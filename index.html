@@ -1180,12 +1180,12 @@
     if(ent&&ent.t==='enemy'){ctxEnemy=ent.e;const m=el('ctxMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');}
     else if(u&&!ent&&!blocked(u.x,u.y)){ // clic droit sur case LIBRE → poser un allié (bleu) ou un ennemi (rouge)
       placeCell={x:u.x,y:u.y};const m=el('placeMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');}});
-  function spawnToken(friendly){ // jeton rapide : entité alliée (anneau bleu) ou ennemie (anneau rouge) posée au clic droit
+  function spawnToken(friendly){ // pose rapide au clic droit : allié = Crâ (anneau bleu) ; ennemi = Poutch (anneau rouge)
     if(!placeCell)return;const{x,y}=placeCell;placeCell=null;el('placeMenu').classList.remove('show');
     if(entityAt(x,y)||blocked(x,y)){toast('Case occupée ou bloquée.');return;}
-    const e=spawnMobFrom({name:friendly?'Allié':'Ennemi',kind:friendly?'invoc':'mob',friendly,hpMax:500,ring:friendly?0x4db2ff:0xff5b5b,x,y});
-    const mat=e.obj.userData.mat;mat.map=tokenTex(friendly?'A':'E',friendly?0x4db2ff:0xff5b5b);mat.color.setHex(0xffffff);mat.needsUpdate=true;
-    refreshTiles();refreshHUD();toast((friendly?'🔵 Allié':'🔴 Ennemi')+' posé en '+x+','+y+' (clic droit dessus pour le retirer).');}
+    spawnMobFrom({name:friendly?'Crâ (allié)':'Poutch',kind:friendly?'invoc':'mob',friendly,hpMax:500,
+      ring:friendly?0x4db2ff:0xff5b5b,x,y,img:API+'/img/monsters/'+(friendly?93:278)+'.png'}); // Dopeul Crâ / Poutch Ingball (DofusDB)
+    refreshTiles();refreshHUD();toast((friendly?'🔵 Crâ allié':'🔴 Poutch')+' posé en '+x+','+y+' (clic droit dessus pour le retirer).');}
   function killEnemyEntity(e){if(!e)return;if(e.obj)scene.remove(e.obj);e.alive=false;state.enemies=state.enemies.filter(x=>x!==e);
     if(state.initiative)state.initiative=state.initiative.filter(it=>it.t!=='enemy'||it.e!==e);toast((e.name||'Monstre')+' retiré (mort).');refreshTiles();refreshHUD();}
   renderer.domElement.addEventListener('pointermove',e=>{
