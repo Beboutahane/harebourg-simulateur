@@ -174,10 +174,12 @@
   .mbtn .mtxt i{font-style:normal;font-size:9.5px;color:var(--muted)}
   #modeDj.on{border-color:#e8a04b;background:linear-gradient(120deg,rgba(232,160,75,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(232,160,75,.35)}
   #modeSonge.on{border-color:#b98cff;background:linear-gradient(120deg,rgba(185,140,255,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(185,140,255,.35)}
-  #ctxMenu{position:absolute;z-index:12;display:none;background:var(--panel);border:1px solid var(--border-strong);border-radius:9px;padding:4px;pointer-events:auto;box-shadow:0 10px 24px rgba(0,8,20,.6)}
-  #ctxMenu.show{display:block}
-  #ctxMenu button{display:block;width:100%;border:0;background:transparent;color:var(--danger);font-family:var(--font);font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:7px;cursor:pointer;text-align:left;white-space:nowrap}
+  #ctxMenu,#placeMenu{position:absolute;z-index:12;display:none;background:var(--panel);border:1px solid var(--border-strong);border-radius:9px;padding:4px;pointer-events:auto;box-shadow:0 10px 24px rgba(0,8,20,.6)}
+  #ctxMenu.show,#placeMenu.show{display:block}
+  #ctxMenu button,#placeMenu button{display:block;width:100%;border:0;background:transparent;color:var(--danger);font-family:var(--font);font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:7px;cursor:pointer;text-align:left;white-space:nowrap}
   #ctxMenu button:hover{background:rgba(255,107,125,.14)}
+  #placeMenu #pmAlly{color:#7fd0ff}#placeMenu #pmAlly:hover{background:rgba(75,184,240,.16)}
+  #placeMenu #pmEnemy{color:#ff8a95}#placeMenu #pmEnemy:hover{background:rgba(255,107,125,.14)}
   #editBrush{display:inline-flex}
   @media(max-width:620px){#left,#right{width:calc(50vw - 16px)}}
   /* Dofus-style bottom spell bar */
@@ -311,6 +313,7 @@
 <div id="hoverHp"><div class="hhn" id="hhName"></div><div class="hhbar"><i id="hhFill"></i></div><div class="hhv" id="hhVal"></div></div>
 <div id="cellCount"></div>
 <div id="ctxMenu"><button id="ctxDead">☠ Mort — retirer du terrain</button></div>
+<div id="placeMenu"><button id="pmAlly">🔵 Poser un allié</button><button id="pmEnemy">🔴 Poser un ennemi</button></div>
 <div id="retreatBox" class="hud card">
   <h2>🏳️ Abandonner le combat ?</h2>
   <p>Reviens au placement (compo, monstres, placement et initiative conservés) pour relancer, ou remets tout à zéro.</p>
@@ -1169,12 +1172,20 @@
   renderer.domElement.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY};dragging=false;downBtn=e.button;
     edgeDrag=null;if(e.button===0){const u=pickTile(e.clientX,e.clientY);const eg=u?edgeAt(u.x,u.y):null;if(eg)edgeDrag={w:eg.w,h:eg.h,moved:false};}
     el('hoverHp').classList.remove('show');el('cellCount').classList.remove('show');});
-  let ctxEnemy=null;
+  let ctxEnemy=null,placeCell=null;
   renderer.domElement.addEventListener('contextmenu',e=>{e.preventDefault();
     if(dragging){return;} // c'était une rotation caméra (clic droit glissé)
     const u=pickTile(e.clientX,e.clientY),ent=u?entityAt(u.x,u.y):null;
+    el('ctxMenu').classList.remove('show');el('placeMenu').classList.remove('show');ctxEnemy=null;placeCell=null;
     if(ent&&ent.t==='enemy'){ctxEnemy=ent.e;const m=el('ctxMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');}
-    else{el('ctxMenu').classList.remove('show');ctxEnemy=null;}});
+    else if(u&&!ent&&!blocked(u.x,u.y)){ // clic droit sur case LIBRE → poser un allié (bleu) ou un ennemi (rouge)
+      placeCell={x:u.x,y:u.y};const m=el('placeMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');}});
+  function spawnToken(friendly){ // jeton rapide : entité alliée (anneau bleu) ou ennemie (anneau rouge) posée au clic droit
+    if(!placeCell)return;const{x,y}=placeCell;placeCell=null;el('placeMenu').classList.remove('show');
+    if(entityAt(x,y)||blocked(x,y)){toast('Case occupée ou bloquée.');return;}
+    const e=spawnMobFrom({name:friendly?'Allié':'Ennemi',kind:friendly?'invoc':'mob',friendly,hpMax:500,ring:friendly?0x4db2ff:0xff5b5b,x,y});
+    const mat=e.obj.userData.mat;mat.map=tokenTex(friendly?'A':'E',friendly?0x4db2ff:0xff5b5b);mat.color.setHex(0xffffff);mat.needsUpdate=true;
+    refreshTiles();refreshHUD();toast((friendly?'🔵 Allié':'🔴 Ennemi')+' posé en '+x+','+y+' (clic droit dessus pour le retirer).');}
   function killEnemyEntity(e){if(!e)return;if(e.obj)scene.remove(e.obj);e.alive=false;state.enemies=state.enemies.filter(x=>x!==e);
     if(state.initiative)state.initiative=state.initiative.filter(it=>it.t!=='enemy'||it.e!==e);toast((e.name||'Monstre')+' retiré (mort).');refreshTiles();refreshHUD();}
   renderer.domElement.addEventListener('pointermove',e=>{
@@ -1329,7 +1340,10 @@
     state.active=Math.min(state.active,state.allies.length-1);setActive(state.active);refreshHUD();toast('Allié retiré.');}
   el('addAlly').onclick=addAlly;
   el('ctxDead').onclick=()=>{killEnemyEntity(ctxEnemy);ctxEnemy=null;el('ctxMenu').classList.remove('show');};
-  document.addEventListener('click',ev=>{if(!el('ctxMenu').contains(ev.target))el('ctxMenu').classList.remove('show');});
+  el('pmAlly').onclick=()=>spawnToken(true);
+  el('pmEnemy').onclick=()=>spawnToken(false);
+  document.addEventListener('click',ev=>{if(!el('ctxMenu').contains(ev.target))el('ctxMenu').classList.remove('show');
+    if(!el('placeMenu').contains(ev.target))el('placeMenu').classList.remove('show');});
   el('aEnd').onclick=()=>{if(state.phase==='playing')rechargeAll();else startGame();};el('ovBtn').onclick=resetGame;
   el('pivotToggle').onclick=()=>{state.comtePivot=!state.comtePivot;refreshTiles();refreshHUD();
     toast(state.comtePivot?'🔄 Au prochain coup sur le Comte : c\'est LUI qui pivote (délock possible via échange).':'🔄 Au prochain coup sur le Comte : c\'est TOI qui pivotes.');};
