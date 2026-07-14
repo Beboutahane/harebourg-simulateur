@@ -88,7 +88,7 @@
   .abtn.on{background:linear-gradient(120deg,var(--ice),var(--ice-2));color:#06121f;border-color:transparent}
   .abtn .k{font-size:17px}.abtn .cost{font-size:9.5px;color:var(--muted)}.abtn.on .cost{color:#06304a}
 
-  #setup{top:86px;left:50%;transform:translateX(-50%);padding:12px 16px 13px;display:flex;flex-direction:column;align-items:stretch;gap:10px;font-size:12.5px;width:min(94vw,600px)}
+  #setup{top:8px;left:50%;transform:translateX(-50%);padding:12px 16px 13px;display:flex;flex-direction:column;align-items:stretch;gap:10px;font-size:12.5px;width:min(94vw,600px)}
   #setup h3{font-family:var(--display);font-size:14px;letter-spacing:.5px;color:var(--ice);display:flex;align-items:center;justify-content:center;gap:7px;text-transform:uppercase;cursor:move;user-select:none;touch-action:none}
   #setup h3:hover{color:var(--frost)}
   #terrainRow{display:flex;gap:9px;align-items:center;flex-wrap:wrap;justify-content:center}
@@ -174,21 +174,24 @@
   .mbtn .mtxt i{font-style:normal;font-size:9.5px;color:var(--muted)}
   #modeDj.on{border-color:#e8a04b;background:linear-gradient(120deg,rgba(232,160,75,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(232,160,75,.35)}
   #modeSonge.on{border-color:#b98cff;background:linear-gradient(120deg,rgba(185,140,255,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(185,140,255,.35)}
-  #ctxMenu,#placeMenu{position:absolute;z-index:12;display:none;background:var(--panel);border:1px solid var(--border-strong);border-radius:9px;padding:4px;pointer-events:auto;box-shadow:0 10px 24px rgba(0,8,20,.6)}
-  #ctxMenu.show,#placeMenu.show{display:block}
-  #ctxMenu button,#placeMenu button{display:block;width:100%;border:0;background:transparent;color:var(--danger);font-family:var(--font);font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:7px;cursor:pointer;text-align:left;white-space:nowrap}
+  #ctxMenu,#placeMenu,#allyMenu{position:absolute;z-index:12;display:none;background:var(--panel);border:1px solid var(--border-strong);border-radius:9px;padding:4px;pointer-events:auto;box-shadow:0 10px 24px rgba(0,8,20,.6)}
+  #ctxMenu.show,#placeMenu.show,#allyMenu.show{display:block}
+  #ctxMenu button,#placeMenu button,#allyMenu button{display:block;width:100%;border:0;background:transparent;color:var(--danger);font-family:var(--font);font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:7px;cursor:pointer;text-align:left;white-space:nowrap}
   #ctxMenu button:hover{background:rgba(255,107,125,.14)}
+  #allyMenu button{color:var(--frost)}#allyMenu button:hover{background:rgba(75,184,240,.16)}
+  #hpPopIn{width:84px;text-align:center;font-family:var(--display);font-weight:800;font-size:13px;background:rgba(42,111,192,.4);border:1px solid var(--border-strong);color:var(--frost);border-radius:8px;padding:5px 6px;outline:none}
+  #hpPopIn:hover,#hpPopIn:focus{border-color:var(--ice)}
   #placeMenu #pmAlly{color:#7fd0ff}#placeMenu #pmAlly:hover{background:rgba(75,184,240,.16)}
   #placeMenu #pmEnemy{color:#ff8a95}#placeMenu #pmEnemy:hover{background:rgba(255,107,125,.14)}
-  #confPop{position:absolute;z-index:13;display:none;transform:translate(-50%,-115%);background:var(--panel);border:1px solid var(--border-strong);border-radius:12px;padding:10px 11px;box-shadow:0 12px 28px rgba(0,8,20,.65);pointer-events:auto;text-align:center;backdrop-filter:blur(10px)}
-  #confPop.show{display:block;animation:cpop .18s cubic-bezier(.34,1.56,.64,1)}
-  #confPop.hide{animation:cdepop .14s ease-in forwards}
+  #confPop,#hpPop{position:absolute;z-index:13;display:none;transform:translate(-50%,-115%);background:var(--panel);border:1px solid var(--border-strong);border-radius:12px;padding:10px 11px;box-shadow:0 12px 28px rgba(0,8,20,.65);pointer-events:auto;text-align:center;backdrop-filter:blur(10px)}
+  #confPop.show,#hpPop.show{display:block;animation:cpop .18s cubic-bezier(.34,1.56,.64,1)}
+  #confPop.hide,#hpPop.hide{animation:cdepop .14s ease-in forwards}
   @keyframes cpop{from{opacity:0;transform:translate(-50%,-115%) scale(.55)}to{opacity:1;transform:translate(-50%,-115%) scale(1)}}
   @keyframes cdepop{to{opacity:0;transform:translate(-50%,-115%) scale(.55)}}
-  #confPop .cptitle{font-family:var(--display);font-size:11px;font-weight:700;color:var(--ice);letter-spacing:.4px;margin-bottom:7px;white-space:nowrap}
-  #confPop .cpbtns{display:flex;gap:5px}
-  #confPop .cpbtns button{border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--frost);font-family:var(--display);font-weight:700;font-size:11.5px;padding:6px 9px;border-radius:8px;cursor:pointer;white-space:nowrap}
-  #confPop .cpbtns button:hover{border-color:var(--ice);background:rgba(75,184,240,.2)}
+  .cptitle{font-family:var(--display);font-size:11px;font-weight:700;color:var(--ice);letter-spacing:.4px;margin-bottom:7px;white-space:nowrap}
+  .cpbtns{display:flex;gap:5px;align-items:center;justify-content:center}
+  .cpbtns button{border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--frost);font-family:var(--display);font-weight:700;font-size:11.5px;padding:6px 9px;border-radius:8px;cursor:pointer;white-space:nowrap}
+  .cpbtns button:hover{border-color:var(--ice);background:rgba(75,184,240,.2)}
   #editBrush{display:inline-flex}
   @media(max-width:620px){#left,#right{width:calc(50vw - 16px)}}
   /* Dofus-style bottom spell bar */
@@ -292,11 +295,7 @@
   </div>
 </div>
 
-<div class="hud card" id="left">
-  <h3>👥 Ton équipe (max 8)</h3>
-  <div id="teamRoster"></div>
-  <button id="addAlly" class="sbtn" style="width:100%;margin-top:6px">＋ Ajouter un allié</button>
-</div>
+<!-- (panneau d'équipe supprimé : tout se gère sur le terrain — clic gauche = contrôler/placer, clic droit = menu du perso) -->
 
 <div class="hud card" id="tips"></div>
 
@@ -328,9 +327,17 @@
 <div id="hoverHp"><div class="hhn" id="hhName"></div><div class="hhbar"><i id="hhFill"></i></div><div class="hhv" id="hhVal"></div></div>
 <div id="cellCount"></div>
 <div id="ctxMenu"><button id="ctxComte" style="display:none;color:#8fe4ff">🔷 Transformer en Comte</button><button id="ctxDead">☠ Mort — retirer du terrain</button></div>
-<div id="placeMenu"><button id="pmAlly">🔵 Ajouter un joueur (Crâ)</button><button id="pmEnemy">🔴 Poser un ennemi (Poutch)</button></div>
+<div id="placeMenu"><button id="pmAlly">🔵 Ajouter un joueur (Crâ)</button><button id="pmEnemy">🔴 Poser un ennemi (Poutch)</button><button id="pmComte" style="color:#8fe4ff">🔷 Poser le Comte</button></div>
 <div id="confPop"><div class="cptitle">🔄 Confusion du perso</div><div class="cpbtns">
   <button data-c="0">Aucune</button><button data-c="90">90° ↻</button><button data-c="180">180°</button><button data-c="270">90° ↺</button></div></div>
+<div id="hpPop"><div class="cptitle">❤ Vitalité du perso</div><div class="cpbtns">
+  <input id="hpPopIn" type="number" min="100" max="20000" step="1"><button id="hpPopOk">OK</button></div></div>
+<div id="allyMenu">
+  <button id="amCtl">🎯 Contrôler ce perso</button>
+  <button id="amConf">🔄 Confusion…</button>
+  <button id="amHp">❤ Vitalité…</button>
+  <button id="amOff" style="color:#ff8a95">✕ Retirer du terrain</button>
+</div>
 <div id="retreatBox" class="hud card">
   <h2>🏳️ Abandonner le combat ?</h2>
   <p>Reviens au placement (compo, monstres, placement et initiative conservés) pour relancer, ou remets tout à zéro.</p>
@@ -643,7 +650,7 @@
     // Le Comte entre en jeu en TRANSFORMANT un Poutch (clic droit) au moment où il apparaît dans le vrai combat.
     state.enemies=state.enemies.filter(e=>{if(e.kind==='count'){if(e.obj)scene.remove(e.obj);return false;}return true;});
   }
-  function transformToComte(e){ // clic droit sur un Poutch → il DEVIENT le Comte Harebourg
+  function transformToComte(e,pose){ // clic droit sur un Poutch → il DEVIENT le Comte Harebourg (pose=true : posé directement)
     if(!e||!e.alive||comte())return;
     const B=BOSSES[state.map]||{name:'Comte Harebourg',img:COMTE_IMG,hp:3000};
     e.name=B.name;e.kind='count';e.friendly=false;e.hp=B.hp;e.hpMax=B.hp;e.vulnerable=false;e.ring=0x8fe4ff;e.dmg=150;e.search=B.search||null;e.img=B.img||COMTE_IMG;
@@ -651,7 +658,13 @@
     e.obj=spriteEntity(e.img,0x8fe4ff,0x8fe4ff,SC_COMTE);e.tp=worldPos(e.x,e.y);e.obj.position.copy(e.tp);scene.add(e.obj);
     e.obj.userData.invuln=invulnTag();e.obj.add(e.obj.userData.invuln); // état 🛡️ tant qu'il n'est pas délock
     if(!e.img&&e.search)fetchMobImg(e);
-    refreshTiles();refreshHUD();toast('🔷 Le Poutch se transforme : le COMTE HAREBOURG est là !');}
+    refreshTiles();refreshHUD();toast(pose?'🔷 Le COMTE HAREBOURG est posé !':'🔷 Le Poutch se transforme : le COMTE HAREBOURG est là !');}
+  function spawnComteToken(){ // pose DIRECTE du Comte au clic droit — un seul à la fois
+    if(!placeCell)return;const{x,y}=placeCell;placeCell=null;el('placeMenu').classList.remove('show');
+    if(comte()){toast('Le Comte est déjà sur le terrain.');return;}
+    if(entityAt(x,y)||blocked(x,y)){toast('Case occupée ou bloquée.');return;}
+    const e=spawnMobFrom({name:'Comte',kind:'mob',friendly:false,hpMax:3000,ring:0x8fe4ff,x,y});
+    transformToComte(e,true);}
   function fetchMobImg(e){fetch(API+'/monsters?slug.fr[$search]='+encodeURIComponent(e.search)+'&$limit=1&lang=fr').then(r=>r.json())
     .then(d=>{const m=d.data&&d.data[0];if(m&&m.img){e.name=m.name.fr||e.name;texLoader.load(m.img,t=>{e.obj.userData.mat.map=t;e.obj.userData.mat.color.setHex(0xffffff);e.obj.userData.mat.needsUpdate=true;refreshHUD();});}}).catch(()=>{});}
   function freeNear(cx,cy,taken){for(let r=1;r<6;r++)for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++){const x=cx+dx,y=cy+dy;
@@ -676,6 +689,10 @@
       state.breeds=bs;refreshHUD();return true; // refreshHUD → renderTeam : peuple les listes de classe des cartes d'alliés
     }catch(e){state.breeds=[];refreshHUD();return false;}
   }
+  // Barre de sorts UNIQUE (demande) : Flèche d'Immobilisation (+6 PO boostable) et Flamiche — AUCUN coût en PA (données DofusDB vérifiées)
+  const FIXED_SPELLS=[
+    {id:32436,name:"Flèche d'Immobilisation",img:API+'/img/spells/sort_11885.png',apCost:0,range:7+6,rangeBoost:6,minRange:1,line:false,diag:false},
+    {id:350,name:'Flamiche',img:API+'/img/spells/sort_11763.png',apCost:0,range:8,rangeBoost:0,minRange:1,line:false,diag:false}];
   const spellCache={};
   async function loadClassSpells(breedId){
     if(spellCache[breedId])return spellCache[breedId];
@@ -893,14 +910,14 @@
      else{const m=state.hpMode%3; // clic sur le cœur : cycle valeur → % → actuel/max
        v.textContent=m===0?hp:(m===1?Math.round(pct*100)+'%':hp+'/'+max);
        v.classList.toggle('small',m===2);}}
-    // Bouton unique : « Lancer le combat » en setup → « Recharger PA/PM » en combat (plus de tours)
+    // Bouton unique : « Lancer le combat » (caché en combat — plus de PA à recharger)
     el('aEnd').disabled=(state.phase==='setup'&&!placedAllies().length);
-    el('aEnd').textContent=playing?'♻️ RECHARGER PA/PM':'▶ LANCER LE COMBAT';
+    el('aEnd').textContent='▶ LANCER LE COMBAT';el('aEnd').style.display=playing?'none':'';
     document.querySelectorAll('#spellSlots .slot').forEach(x=>{
       if(x.classList.contains('ph'))return; // case vide (aucune classe) : rien à mettre à jour
       if(x.dataset.act){x.classList.remove('dim');x.classList.toggle('on',x.dataset.act==='portal'&&state.mode==='portal');return;}
       const sp=(state.classSpells||[]).find(s=>s.id===+x.dataset.id);
-      x.classList.toggle('dim',!(playing&&sp&&state.player.pa>=sp.apCost));
+      x.classList.toggle('dim',!(playing&&sp)); // plus de coût en PA
       x.classList.toggle('on',state.mode==='spell'&&state.spell&&state.spell.id===+x.dataset.id);});
     updateComteGlyph(); // la glyphe noire suit la position du Comte
     updateHints();
@@ -977,7 +994,6 @@
     state.spell=sp;
     document.querySelectorAll('#spellSlots .slot').forEach(x=>x.classList.toggle('on',+x.dataset.id===sp.id));
     if(state.phase==='playing'){
-      if(state.player.pa<sp.apCost){toast('Pas assez de PA pour « '+sp.name+' » ('+sp.apCost+' PA).');return;}
       state.mode='spell';state.targets=spellZone();
       if(!state.targets.size)toast('Aucune case à portée pour « '+sp.name+' » (portée '+(sp.minRange?sp.minRange+'-':'')+sp.range+').');
       else toast('Sort « '+sp.name+' » : clique une case cible en surbrillance.');
@@ -1034,12 +1050,12 @@
         if(o){moveEnt(o,px,py);toast('Ce tour, TU pivotes et échanges ta place avec '+entName(o)+'.');}
         else toast('Ce tour, TU pivotes de 180° autour du Comte.');}}
     refreshTiles();refreshHUD();}
-  function castCell(x,y){if(!state.spell)return;const sp=state.spell;if(state.player.pa<sp.apCost){toast('Pas assez de PA.');return;}
+  function castCell(x,y){if(!state.spell)return;const sp=state.spell; // aucun coût en PA
     if(!state.targets.has(key(x,y))){toast('Case hors de portée du sort.');return;}
-    if(isTrap(sp)){state.player.pa-=sp.apCost;state.mode='idle';state.targets=new Set(); // sort piège : se pose au sol, pas de projectile
+    if(isTrap(sp)){state.mode='idle';state.targets=new Set(); // sort piège : se pose au sol, pas de projectile
       placeTrap(x,y,sp.name);burst(worldPos(x,y),0xffc24b);restMove();refreshTiles();refreshHUD();toast('🪤 « '+sp.name+' » posé au sol en '+x+','+y+'.');return;}
     const d=sp.noDeflect?{x:x,y:y}:deflect(x,y),rx=d.x,ry=d.y,dev=(rx!==x||ry!==y); // confusion : le sort part sur la case réelle (rx,ry) ; l'arme ne dévie pas
-    state.player.pa-=sp.apCost;state.mode='idle';state.targets=new Set();
+    state.mode='idle';state.targets=new Set();
     let so={x:state.player.x,y:state.player.y}; // Eliotrope : le tir part du portail le plus proche de la cible
     if(state.player.className==='Eliotrope'&&state.portals&&state.portals.length)[{x:state.player.x,y:state.player.y},...state.portals].forEach(o=>{if(Math.abs(o.x-rx)+Math.abs(o.y-ry)<Math.abs(so.x-rx)+Math.abs(so.y-ry))so={x:o.x,y:o.y};});
     burst(worldPos(rx,ry),0xc79bff);shoot(worldPos(so.x,so.y),worldPos(rx,ry));
@@ -1156,13 +1172,10 @@
     const ent=entityAt(x,y);
     if(ent){state.setupSel=ent;toast(selName(ent)+' sélectionné — clique une case pour le (re)placer.');refreshTiles();return;}
     const un=state.allies.find(a=>!a.placed);
-    if(un&&un.className==='—'){const idx=state.allies.indexOf(un);setActive(idx); // interdit de placer un allié sans classe → on ouvre la liste
-      toast('⚠️ Choisis d\'abord la classe de ce perso (liste sur sa carte ↖).');
-      requestAnimationFrame(()=>{const sel=el('teamRoster').querySelector('.ally[data-i="'+idx+'"] .allySel');if(sel){sel.focus();try{sel.showPicker&&sel.showPicker();}catch(e){}}});
-      refreshTiles();refreshHUD();return;}
     if(un&&!allyCellOk(x,y)){toast('🔵 En Donjon, clique une case BLEUE pour poser ton personnage.');refreshTiles();return;}
     if(un&&!blocked(x,y)){un.x=x;un.y=y;un.placed=true;syncAlly(un);un.obj.position.copy(un.obj.userData.tp);un.obj.visible=true;
-      setActive(state.allies.indexOf(un));toast('🔵 Perso '+(un.id+1)+' placé.');refreshTiles();refreshHUD();showConfPop(un);return;}
+      setActive(state.allies.indexOf(un));if(un.className==='—')selectClass(9); // classe Crâ automatique (plus de panneau d'équipe)
+      toast('🔵 Perso '+(un.id+1)+' placé.');refreshTiles();refreshHUD();showConfPop(un);return;}
     toast('Clique une entité pour la sélectionner, puis une case libre.');}
   function setActive(i){if(i<0||i>=state.allies.length)return;state.active=i;
     state.classSpells=state.player.classSpells||[];state.spell=null;
@@ -1223,15 +1236,17 @@
         if(ent&&(ent.t==='ally'||ent.t==='enemy'))dragEnt={ent,fromX:u.x,fromY:u.y}; // presser une entité = pouvoir la GLISSER (prioritaire sur l'étirement du bord)
         else{const eg=edgeAt(u.x,u.y);if(eg)edgeDrag={w:eg.w,h:eg.h,moved:false};}}}
     el('hoverHp').classList.remove('show');el('cellCount').classList.remove('show');});
-  let ctxEnemy=null,placeCell=null;
+  let ctxEnemy=null,placeCell=null,ctxAlly=null;
   renderer.domElement.addEventListener('contextmenu',e=>{e.preventDefault();
     if(dragging){return;} // c'était une rotation caméra (clic droit glissé)
     const u=pickTile(e.clientX,e.clientY),ent=u?entityAt(u.x,u.y):null;
-    el('ctxMenu').classList.remove('show');el('placeMenu').classList.remove('show');ctxEnemy=null;placeCell=null;
-    if(ent&&ent.t==='enemy'){ctxEnemy=ent.e;const m=el('ctxMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');
+    el('ctxMenu').classList.remove('show');el('placeMenu').classList.remove('show');el('allyMenu').classList.remove('show');ctxEnemy=null;placeCell=null;ctxAlly=null;
+    if(ent&&ent.t==='ally'){ctxAlly=ent.a;const m=el('allyMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');} // menu du PERSO (tout se gère sur le terrain)
+    else if(ent&&ent.t==='enemy'){ctxEnemy=ent.e;const m=el('ctxMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');
       el('ctxComte').style.display=(ent.e.name==='Poutch'&&ent.e.alive&&!comte())?'':'none';} // transformer un Poutch en Comte (un seul Comte à la fois)
-    else if(u&&!ent&&!blocked(u.x,u.y)){ // clic droit sur case LIBRE → poser un allié (bleu) ou un ennemi (rouge)
-      placeCell={x:u.x,y:u.y};const m=el('placeMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');}});
+    else if(u&&!ent&&!blocked(u.x,u.y)){ // clic droit sur case LIBRE → poser un allié / un ennemi / le Comte (si absent)
+      placeCell={x:u.x,y:u.y};const m=el('placeMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');
+      el('pmComte').style.display=comte()?'none':'';}});
   function spawnToken(friendly){ // clic droit : allié = NOUVEAU JOUEUR Crâ (rejoint l'équipe) ; ennemi = Poutch (entité)
     if(!placeCell)return;const{x,y}=placeCell;placeCell=null;el('placeMenu').classList.remove('show');
     if(entityAt(x,y)||blocked(x,y)){toast('Case occupée ou bloquée.');return;}
@@ -1331,7 +1346,7 @@
       p.style.top=Math.max(4,Math.min(innerHeight-40,e.clientY-dy))+'px';});
     h.addEventListener('pointerup',()=>drag=false);h.addEventListener('pointercancel',()=>drag=false);})();
   function rebuildSpellBar(spells){const box=el('spellSlots');
-    let html=(spells||[]).filter(s=>!s.hidden).map(s=>`<div class="slot" data-id="${s.id}" title="${s.name} — ${s.apCost} PA, portée ${s.minRange?s.minRange+'-':''}${s.range}${s.line?' (ligne)':''}${s.variantId?' · clic droit : variante':''}"><img src="${s.img}" onerror="this.style.display='none'"><span class="lab">${s.apCost}</span></div>`).join('');
+    let html=(spells||[]).filter(s=>!s.hidden).map(s=>`<div class="slot" data-id="${s.id}" title="${s.name} — portée ${s.minRange?s.minRange+'-':''}${s.range}${s.line?' (ligne)':''}"><img src="${s.img}" onerror="this.style.display='none'"></div>`).join(''); // plus de coût en PA affiché
     if(!html&&state.phase!=='playing') // pas encore de classe → afficher le quadrillage vide (les sorts apparaîtront au choix de la classe)
       html=Array.from({length:24},()=>'<div class="slot ph" title="Les sorts apparaîtront quand tu choisiras une classe"></div>').join('');
     if(state.phase==='playing'){ // actions spéciales, seulement en combat
@@ -1374,7 +1389,7 @@
     {const a=state.player,cn=a.className; // …puis personnage CORPS ENTIER de la classe (comme « Iop en cape brakmarienne »)
      fetchClassBody(cn).then(img=>{if(img&&a.className===cn){a.body=img;applyAllyLook(a);}});}
     el('spellSlots').innerHTML='<span class="loadmsg" style="padding:0 6px">…</span>';status('Chargement des sorts '+state.player.className+' (Perso '+(state.active+1)+')…');
-    let spells=[];try{spells=await loadClassSpells(id);}catch(err){}status('');
+    let spells=FIXED_SPELLS.slice();status(''); // barre UNIQUE : Flèche d'Immo + Flamiche (+ invocations en combat) — plus de sorts de classe
     state.player.classSpells=spells;state.classSpells=spells;
     rebuildSpellBar(spells);refreshHUD();};
   function renderTeam(){const box=el('teamRoster');if(!box)return;
@@ -1411,11 +1426,11 @@
     state.allies.splice(i,1);
     state.allies.forEach((al,j)=>{al.id=j;al.ring=allyColors[j];if(al.obj)scene.remove(al.obj);al.obj=buildAllyObj(j);syncAlly(al);al.obj.position.copy(al.obj.userData.tp);al.obj.visible=al.placed&&al.hp>0;});
     state.active=Math.min(state.active,state.allies.length-1);setActive(state.active);refreshHUD();toast('Allié retiré.');}
-  el('addAlly').onclick=addAlly;
   el('ctxDead').onclick=()=>{killEnemyEntity(ctxEnemy);ctxEnemy=null;el('ctxMenu').classList.remove('show');};
   el('ctxComte').onclick=()=>{transformToComte(ctxEnemy);ctxEnemy=null;el('ctxMenu').classList.remove('show');};
   el('pmAlly').onclick=()=>spawnToken(true);
   el('pmEnemy').onclick=()=>spawnToken(false);
+  el('pmComte').onclick=()=>spawnComteToken();
   let confPopAlly=null,confPopAt=0; // widget de CONFUSION du perso : pop au dépôt sur le terrain, choix parmi les 4 confusions
   function showConfPop(a){confPopAlly=a;confPopAt=performance.now();const c=el('confPop');
     const p=projectCell(a.x,a.y,2.3);c.style.left=p.sx+'px';c.style.top=p.sy+'px';
@@ -1426,10 +1441,30 @@
   el('confPop').querySelectorAll('button').forEach(b=>b.onclick=ev=>{ev.stopPropagation();
     if(confPopAlly){confPopAlly.confOverride=+b.dataset.c;toast('🔄 Confusion de Perso '+(confPopAlly.id+1)+' : '+cmap[+b.dataset.c]+'.');}
     hideConfPop(true);refreshTiles();refreshHUD();});
+  // widget VITALITÉ du perso (même style animé que la confusion)
+  let hpPopAlly=null,hpPopAt=0;
+  function showHpPop(a){hpPopAlly=a;hpPopAt=performance.now();const c=el('hpPop');
+    el('hpPopIn').value=a.hpMax;const p=projectCell(a.x,a.y,2.3);c.style.left=p.sx+'px';c.style.top=p.sy+'px';
+    c.classList.remove('hide');c.classList.add('show');}
+  function hideHpPop(force){const c=el('hpPop');if(!c.classList.contains('show'))return;
+    if(!force&&performance.now()-hpPopAt<250)return;
+    hpPopAlly=null;c.classList.add('hide');setTimeout(()=>c.classList.remove('show','hide'),150);}
+  el('hpPopOk').onclick=ev=>{ev.stopPropagation();
+    if(hpPopAlly){const v=Math.max(100,Math.min(20000,parseInt(el('hpPopIn').value)||4000));hpPopAlly.hpMax=v;hpPopAlly.hp=v;toast('❤ Vitalité de Perso '+(hpPopAlly.id+1)+' : '+v+'.');}
+    hideHpPop(true);refreshTiles();refreshHUD();};
+  // menu du PERSO (clic droit sur un allié)
+  el('amCtl').onclick=ev=>{ev.stopPropagation();if(ctxAlly){setActive(state.allies.indexOf(ctxAlly));toast('🔵 Perso '+(ctxAlly.id+1)+' contrôlé.');}ctxAlly=null;el('allyMenu').classList.remove('show');};
+  el('amConf').onclick=ev=>{ev.stopPropagation();if(ctxAlly)showConfPop(ctxAlly);ctxAlly=null;el('allyMenu').classList.remove('show');};
+  el('amHp').onclick=ev=>{ev.stopPropagation();if(ctxAlly)showHpPop(ctxAlly);ctxAlly=null;el('allyMenu').classList.remove('show');};
+  el('amOff').onclick=ev=>{ev.stopPropagation();
+    if(ctxAlly){ctxAlly.placed=false;if(ctxAlly.obj)ctxAlly.obj.visible=false;toast('Perso '+(ctxAlly.id+1)+' retiré — clique une case pour le reposer.');refreshTiles();refreshHUD();}
+    ctxAlly=null;el('allyMenu').classList.remove('show');};
   document.addEventListener('click',ev=>{if(!el('ctxMenu').contains(ev.target))el('ctxMenu').classList.remove('show');
     if(!el('placeMenu').contains(ev.target))el('placeMenu').classList.remove('show');
-    if(!el('confPop').contains(ev.target))hideConfPop();});
-  el('aEnd').onclick=()=>{if(state.phase==='playing')rechargeAll();else startGame();};el('ovBtn').onclick=resetGame;
+    if(!el('allyMenu').contains(ev.target))el('allyMenu').classList.remove('show');
+    if(!el('confPop').contains(ev.target))hideConfPop();
+    if(!el('hpPop').contains(ev.target))hideHpPop();});
+  el('aEnd').onclick=()=>{if(state.phase!=='playing')startGame();};el('ovBtn').onclick=resetGame;
   el('pivotToggle').onclick=()=>{state.comtePivot=!state.comtePivot;refreshTiles();refreshHUD();
     toast(state.comtePivot?'🔄 Au prochain coup sur le Comte : c\'est LUI qui pivote (délock possible via échange).':'🔄 Au prochain coup sur le Comte : c\'est TOI qui pivotes.');};
   el('delockAsk').onclick=()=>{ // « Délock ? » : montre/cache les cases ROUGES qui permettent de rendre l'adversaire vulnérable
