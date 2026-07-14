@@ -214,6 +214,9 @@
   .pivbtn{border:1px solid var(--border-strong);background:rgba(42,111,192,.28);color:var(--frost);font-family:var(--display);font-weight:800;font-size:12.5px;letter-spacing:.4px;padding:8px 14px;border-radius:9px;cursor:pointer;pointer-events:auto;white-space:nowrap}
   .pivbtn:hover{border-color:var(--ice)}
   .pivbtn.boss{background:rgba(255,84,198,.18);border-color:rgba(255,84,198,.55);color:#ff9adf}
+  #delockAsk{border:1px solid rgba(224,53,53,.5);background:rgba(224,53,53,.12);color:#ff9a95;font-family:var(--display);font-weight:800;font-size:12.5px;letter-spacing:.4px;padding:8px 14px;border-radius:9px;cursor:pointer;pointer-events:auto;white-space:nowrap}
+  #delockAsk:hover{border-color:#e03535}
+  #delockAsk.on{background:rgba(224,53,53,.35);color:#ffd9d6;border-color:#e03535}
   #aEnd{border:0;border-radius:9px;padding:9px 16px;font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.5px;cursor:pointer;
     background:linear-gradient(180deg,#8fe27a,#4fa83a);color:#06210a;box-shadow:0 4px 0 #2f6a22,0 8px 14px rgba(0,0,0,.4);white-space:nowrap}
   #aEnd:hover:not(:disabled){filter:brightness(1.08)}#aEnd:active:not(:disabled){transform:translateY(2px);box-shadow:0 2px 0 #2f6a22}
@@ -244,6 +247,7 @@
 
 <div class="hud" id="topbar"><div class="card">
   <button id="pivotToggle" class="pivbtn" title="Qui pivote au prochain coup sur le Comte ? Clique pour basculer">🔄 CE COUP : TOI tu pivotes</button>
+  <button id="delockAsk" title="Existe-t-il une case permettant de rendre l'adversaire vulnérable ? Clique : les cases s'allument en ROUGE · re-clique : elles s'éteignent">❓ Délock ?</button>
   <span class="invtag on" id="invTag" style="margin-top:0;font-size:10px;padding:3px 9px;border-radius:99px;cursor:pointer" title="Clique pour signaler que le boss est vulnérable / invulnérable">🛡️ INVULNÉRABLE</span>
   <span class="parity" id="delock" style="display:none">🔒</span>
   <button id="delockBtn" style="display:none" title="Il ne reste que le Comte : plus d'entité à échanger — force le délock">🔓 DÉLOCK</button>
@@ -348,7 +352,7 @@
   function makeAlly(i){return{id:i,x:HALF-2+i,y:HALF,hp:4000,hpMax:4000,pa:PA_MAX,pm:PM_MAX,pmPen:0,placed:false,className:'—',classSpells:[],head:null,ring:allyColors[i],obj:null};}
   const state={phase:'setup',placeMode:'player',withInvocs:true,map:'songe',obstacles:new Set(),hpMode:0,
     mapW:15,mapH:15, // Songe : zone jouable centrée, réglable (9..N) via les boutons +/- de l'outil terrain
-    tour:1,comtePivot:false,mode:'idle',confusion:0,vitaOverride:null,glyph:new Set(),view:'iso',edit:false,brush:'block',
+    tour:1,comtePivot:false,showDelock:false,mode:'idle',confusion:0,vitaOverride:null,glyph:new Set(),view:'iso',edit:false,brush:'block',
     allies:[makeAlly(0),makeAlly(1),makeAlly(2)],active:0,classSpells:[],setupSel:null, // équipe de 3 persos par défaut
     enemies:[],reach:new Map(),targets:new Set(),spell:null,toPlace:null,_countX:9,_countY:6,_countPlaced:false,_ghost:null};
   Object.defineProperty(state,'player',{get(){return state.allies[state.active];},configurable:true}); // state.player = allié actif
@@ -710,12 +714,15 @@
       if(sp.diag&&!sp.line&&!(Math.abs(dx)===Math.abs(dy)))continue;
       if(blocked(x,y))continue;
       z.add(key(x,y));}});return z;}
-  function delockCells(){ // cases où l'allié ACTIF peut se placer pour DÉLOCK le Comte (tour pair) : P = milieu(Comte, entité miroir)
-    const res=[],C=comte();
-    if(!C||!C.alive||state.phase!=='playing'||state.enemyTurn||!comtePivots()||C.vulnerable)return res; // délock possible seulement les tours où le Comte pivote, Comte encore invulnérable
+  function delockTarget(){ // l'adversaire à rendre vulnérable : le Comte s'il est là, sinon le DERNIER mob ennemi en vie
+    const C=comte();if(C&&C.alive)return C;
+    const mobs=state.enemies.filter(e=>e.alive&&!e.friendly);return mobs.length?mobs[mobs.length-1]:null;}
+  function delockCells(){ // cases où l'allié ACTIF peut se placer pour DÉLOCK l'adversaire : P = milieu(cible, entité miroir)
+    const res=[],C=delockTarget();
+    if(!C||!C.alive||state.phase!=='playing'||state.enemyTurn||!comtePivots()||C.vulnerable)return res; // délock possible seulement quand l'interrupteur est sur « le COMTE pivote »
     const me=state.player;const ents=[];
     state.allies.forEach(a=>{if(a!==me&&a.placed&&a.hp>0)ents.push({x:a.x,y:a.y,label:'Perso '+(a.id+1)});}); // les autres joueurs (dont les 3 ayant déjà joué)
-    state.enemies.forEach(e=>{if(e.kind!=='count'&&e.alive)ents.push({x:e.x,y:e.y,label:e.name||'monstre'});}); // + monstres / invocations
+    state.enemies.forEach(e=>{if(e!==C&&e.alive)ents.push({x:e.x,y:e.y,label:e.name||'monstre'});}); // + monstres / invocations
     const seen=new Set();
     ents.forEach(q=>{
       if(((C.x+q.x)&1)||((C.y+q.y)&1))return; // milieu non entier → pas de case
@@ -744,8 +751,8 @@
         if((state.mode==='swap'||state.mode==='spell')&&state.targets.has(key(x,y)))c=0x4a2f8a; // zone du sort
       }
       m.color.setHex(c);m.opacity=.96;}
-    delockCells().forEach(dc=>{const t=tiles[dc.x]&&tiles[dc.x][dc.y]; // cases de DÉLOCK pour le joueur actif : rose vif = à portée, rose sombre = hors déplacement
-      if(t&&t.visible)t.material.color.setHex(dc.reachable?0xff54c6:0x8a3a72);});
+    if(state.showDelock)delockCells().forEach(dc=>{const t=tiles[dc.x]&&tiles[dc.x][dc.y]; // bouton « Délock ? » actif : ROUGE vif = à portée, rouge sombre = hors déplacement
+      if(t&&t.visible)t.material.color.setHex(dc.reachable?0xe03535:0x7a2222);});
     {const pv=pivotCell(); // case PIVOT de la position actuelle : ORANGE = invoque/place une entité ici puis frappe le Comte
      if(pv&&pv.status==='free'){const t=tiles[pv.x]&&tiles[pv.x][pv.y];if(t&&t.visible)t.material.color.setHex(0xf29a3c);}}
     if(state.phase==='playing'&&!state.enemyTurn&&state.player&&state.player.placed&&tiles[state.player.x]&&tiles[state.player.x][state.player.y])
@@ -818,6 +825,8 @@
     state.confusion=currentConf();
     {const pt=el('pivotToggle');if(pt){const piv=comtePivots(); // interrupteur : qui pivote au prochain coup sur le Comte ?
       pt.textContent=piv?'🔄 CE COUP : le COMTE pivote':'🔄 CE COUP : TOI tu pivotes';pt.classList.toggle('boss',piv);}}
+    if(!comtePivots())state.showDelock=false; // l'interrupteur repasse sur TOI → la surbrillance délock n'a plus de sens
+    if(el('delockAsk'))el('delockAsk').classList.toggle('on',!!state.showDelock);
     el('confVal').textContent=cmap[state.confusion];
     renderTeam();
     const C=comte();{const it=el('invTag');const vul=C&&C.vulnerable;
@@ -830,9 +839,9 @@
        if(C.vulnerable){dl.className='parity pair';dl.textContent='🎯 VULNÉRABLE — frappe !';}
        else if(piv){const pv=pivotCell(),dc=delockCells(),reach=dc.filter(d=>d.reachable).length; // priorité : la case PIVOT depuis TA position
          if(pv&&pv.status==='occupied'){dl.className='parity pair';dl.textContent='🎯 DÉLOCK PRÊT : '+pv.who+' est sur ta case pivot — FRAPPE le Comte !';}
-         else if(pv&&pv.status==='free'){dl.className='parity pair';dl.textContent='🟠 invoque/place une entité sur la case ORANGE (pivot) puis frappe'+(reach>0?' · ou déplace-toi sur une case rose':'');}
-         else if(reach>0){dl.className='parity pair';dl.textContent='🔓 '+reach+' case'+(reach>1?'s':'')+' de DÉLOCK à portée (rose) — place-toi dessus et frappe';}
-         else if(dc.length){dl.className='parity impair';dl.textContent='🔒 '+dc.length+' case'+(dc.length>1?'s':'')+' de délock mais HORS de ton déplacement (rose sombre)';}
+         else if(pv&&pv.status==='free'){dl.className='parity pair';dl.textContent='🟠 invoque/place une entité sur la case ORANGE (pivot) puis frappe'+(reach>0?' · ou clique « ❓ Délock ? » (cases rouges)':'');}
+         else if(reach>0){dl.className='parity pair';dl.textContent='🔓 '+reach+' case'+(reach>1?'s':'')+' de DÉLOCK existent — clique « ❓ Délock ? » pour les voir en rouge';}
+         else if(dc.length){dl.className='parity impair';dl.textContent='🔒 '+dc.length+' case'+(dc.length>1?'s':'')+' de délock mais HORS de ton déplacement — « ❓ Délock ? » pour les voir';}
          else{dl.className='parity impair';dl.textContent='🔒 pivot hors map et aucun milieu Comte ↔ entité valide — rapproche-toi';}}
        else{dl.className='parity impair';dl.textContent='🔒 si tu frappes, c\'est TOI qui pivotes — bascule 🔄 pour faire pivoter le Comte';}
      }else dl.style.display='none';
@@ -1040,7 +1049,7 @@
   /* ===== FLOW ===== */
   function startGame(){if(!placedAllies().length){toast('① Clique une case pour placer au moins un perso 🔵.');return;}
     if(state._ghost){scene.remove(state._ghost);state._ghost=null;}
-    state.setupSel=null;state.phase='playing';state.glyph.clear();_glyphAt=null;drawGlyph();
+    state.setupSel=null;state.phase='playing';state.glyph.clear();_glyphAt=null;drawGlyph();state.showDelock=false;
     state.allies.forEach(a=>{if(a.placed){a.hp=a.hpMax;a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;}});
     spawnEnemies();syncInitiative();snapshotStart();state.curEnt=null;state.enemyTurn=false;
     el('setup').style.display='none';
@@ -1346,6 +1355,16 @@
   el('aEnd').onclick=()=>{if(state.phase==='playing')rechargeAll();else startGame();};el('ovBtn').onclick=resetGame;
   el('pivotToggle').onclick=()=>{state.comtePivot=!state.comtePivot;refreshTiles();refreshHUD();
     toast(state.comtePivot?'🔄 Au prochain coup sur le Comte : c\'est LUI qui pivote (délock possible via échange).':'🔄 Au prochain coup sur le Comte : c\'est TOI qui pivotes.');};
+  el('delockAsk').onclick=()=>{ // « Délock ? » : montre/cache les cases ROUGES qui permettent de rendre l'adversaire vulnérable
+    if(state.phase!=='playing'){toast('Lance le combat d\'abord.');return;}
+    if(state.showDelock){state.showDelock=false;refreshTiles();refreshHUD();toast('❓ Surbrillance délock retirée.');return;}
+    if(!comtePivots()){toast('🔒 L\'interrupteur est sur « TOI tu pivotes » : aucun délock possible ce coup. Bascule 🔄 si c\'est au Comte de pivoter.');return;}
+    const T=delockTarget();
+    if(!T){toast('Aucun adversaire à délock (pose un Poutch ou transforme-le en Comte).');return;}
+    state.showDelock=true;const dc=delockCells(),reach=dc.filter(d=>d.reachable).length;
+    refreshTiles();refreshHUD();
+    toast(dc.length?('✅ '+dc.length+' case'+(dc.length>1?'s':'')+' ROUGE'+(dc.length>1?'S':'')+' pour délock '+(T.kind==='count'?'le Comte':T.name)+(reach?' ('+reach+' à ta portée)':' (aucune à ta portée ce coup)')+'.')
+                    :('❌ AUCUNE case ne permet le délock — aucun milieu exact entre '+(T.kind==='count'?'le Comte':T.name)+' et une entité.'));};
   el('mobSearch').oninput=e=>{clearTimeout(searchT);const v=e.target.value;searchT=setTimeout(()=>searchMonsters(v),280);};
   function fullReset(){ // repart de zéro : équipe, monstres, portails/pièges, obstacles, tour
     state.enemies.forEach(e=>{if(e.obj)scene.remove(e.obj);});state.enemies=[];clearPortals();clearTraps();
@@ -1354,7 +1373,7 @@
     const a0=state.allies[0];a0.obj=buildAllyObj(0);syncAlly(a0);a0.obj.position.copy(a0.obj.userData.tp);a0.obj.visible=false;
     state.initiative=[];state.curEnt=null;state.enemyTurn=false;state.phase='setup';state.mode='idle';
     state.glyph.clear();drawGlyph();state.targets=new Set();state.setupSel=null;state.spell=null;state.toPlace=null;
-    state.meleeHits=0;state.vitaOverride=null;state.hpMode=0;state.mapW=15;state.mapH=15;state.comtePivot=false;_glyphAt=null;
+    state.meleeHits=0;state.vitaOverride=null;state.hpMode=0;state.mapW=15;state.mapH=15;state.comtePivot=false;state.showDelock=false;_glyphAt=null;
     el('setup').style.display='flex';el('overlay').classList.remove('show');
     applyAmbiance();updateMapSizeLabels();refreshTiles();refreshHUD();toast('♻️ Tout réinitialisé.');}
   // ===== ABANDON : soit revenir au placement (compo/monstres/placement/initiative gardés), soit tout réinitialiser =====
