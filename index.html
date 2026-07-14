@@ -180,6 +180,15 @@
   #ctxMenu button:hover{background:rgba(255,107,125,.14)}
   #placeMenu #pmAlly{color:#7fd0ff}#placeMenu #pmAlly:hover{background:rgba(75,184,240,.16)}
   #placeMenu #pmEnemy{color:#ff8a95}#placeMenu #pmEnemy:hover{background:rgba(255,107,125,.14)}
+  #confPop{position:absolute;z-index:13;display:none;transform:translate(-50%,-115%);background:var(--panel);border:1px solid var(--border-strong);border-radius:12px;padding:10px 11px;box-shadow:0 12px 28px rgba(0,8,20,.65);pointer-events:auto;text-align:center;backdrop-filter:blur(10px)}
+  #confPop.show{display:block;animation:cpop .18s cubic-bezier(.34,1.56,.64,1)}
+  #confPop.hide{animation:cdepop .14s ease-in forwards}
+  @keyframes cpop{from{opacity:0;transform:translate(-50%,-115%) scale(.55)}to{opacity:1;transform:translate(-50%,-115%) scale(1)}}
+  @keyframes cdepop{to{opacity:0;transform:translate(-50%,-115%) scale(.55)}}
+  #confPop .cptitle{font-family:var(--display);font-size:11px;font-weight:700;color:var(--ice);letter-spacing:.4px;margin-bottom:7px;white-space:nowrap}
+  #confPop .cpbtns{display:flex;gap:5px}
+  #confPop .cpbtns button{border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--frost);font-family:var(--display);font-weight:700;font-size:11.5px;padding:6px 9px;border-radius:8px;cursor:pointer;white-space:nowrap}
+  #confPop .cpbtns button:hover{border-color:var(--ice);background:rgba(75,184,240,.2)}
   #editBrush{display:inline-flex}
   @media(max-width:620px){#left,#right{width:calc(50vw - 16px)}}
   /* Dofus-style bottom spell bar */
@@ -320,6 +329,8 @@
 <div id="cellCount"></div>
 <div id="ctxMenu"><button id="ctxComte" style="display:none;color:#8fe4ff">🔷 Transformer en Comte</button><button id="ctxDead">☠ Mort — retirer du terrain</button></div>
 <div id="placeMenu"><button id="pmAlly">🔵 Ajouter un joueur (Crâ)</button><button id="pmEnemy">🔴 Poser un ennemi (Poutch)</button></div>
+<div id="confPop"><div class="cptitle">🔄 Confusion du perso</div><div class="cpbtns">
+  <button data-c="0">Aucune</button><button data-c="90">90° ↻</button><button data-c="180">180°</button><button data-c="270">90° ↺</button></div></div>
 <div id="retreatBox" class="hud card">
   <h2>🏳️ Abandonner le combat ?</h2>
   <p>Reviens au placement (compo, monstres, placement et initiative conservés) pour relancer, ou remets tout à zéro.</p>
@@ -351,7 +362,7 @@
   const N=25,TILE=1,HALF=(N-1)/2,PA_MAX=12,PM_MAX=6,SWAP=3; // grille interne 25×25 ; la zone jouable (Songe) est réglable via state.mapW/mapH
   const A2D={0:{x:0,y:-1},90:{x:1,y:0},180:{x:0,y:1},270:{x:-1,y:0}};
   const allyColors=[0xbcd0ff,0x8effc4,0xffcf6b,0xff9ad2,0xc9a0ff,0xff8f6b,0x7be0d0,0xe8e06b];
-  function makeAlly(i){return{id:i,x:HALF-2+i,y:HALF,hp:4000,hpMax:4000,pa:PA_MAX,pm:PM_MAX,pmPen:0,placed:false,className:'—',classSpells:[],head:null,ring:allyColors[i],obj:null};}
+  function makeAlly(i){return{id:i,x:HALF-2+i,y:HALF,hp:4000,hpMax:4000,pa:PA_MAX,pm:PM_MAX,pmPen:0,placed:false,className:'—',classSpells:[],head:null,ring:allyColors[i],obj:null,confOverride:null};}
   const state={phase:'setup',placeMode:'player',withInvocs:true,map:'songe',obstacles:new Set(),hpMode:0,
     mapW:15,mapH:15, // Songe : zone jouable centrée, réglable (9..N) via les boutons +/- de l'outil terrain
     tour:1,comtePivot:false,showDelock:false,mode:'idle',confusion:0,vitaOverride:null,glyph:new Set(),view:'iso',edit:false,brush:'block',
@@ -707,7 +718,15 @@
 
   /* ===== TILE VISUALS ===== */
   let hoverCell=null;
-  function spellZone(){const z=new Set();if(!state.spell)return z;const sp=state.spell;
+  function hasLoS(x0,y0,x1,y1){ // ligne de vue : aucun OBSTACLE strictement entre les deux cases (les trous ne bloquent pas la vue)
+    let dx=Math.abs(x1-x0),dy=Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1,err=dx-dy,x=x0,y=y0;
+    while(!(x===x1&&y===y1)){const e2=2*err;
+      if(e2>-dy){err-=dy;x+=sx;}
+      if(e2<dx){err+=dx;y+=sy;}
+      if(x===x1&&y===y1)break;
+      if(state.obstacles.has(key(x,y)))return false;}
+    return true;}
+  function spellZone(){const z=new Set();state.noLoS=new Set();if(!state.spell)return z;const sp=state.spell;
     const origins=[{x:state.player.x,y:state.player.y}]; // Eliotrope : les attaques passent aussi par les portails
     if(state.player.className==='Eliotrope'&&state.portals&&state.portals.length)state.portals.forEach(p=>origins.push({x:p.x,y:p.y}));
     origins.forEach(o=>{for(let x=0;x<N;x++)for(let y=0;y<N;y++){const dx=x-o.x,dy=y-o.y,d=Math.abs(dx)+Math.abs(dy);
@@ -715,7 +734,10 @@
       if(sp.line&&!(dx===0||dy===0))continue;
       if(sp.diag&&!sp.line&&!(Math.abs(dx)===Math.abs(dy)))continue;
       if(blocked(x,y))continue;
-      z.add(key(x,y));}});return z;}
+      z.add(key(x,y));}});
+    z.forEach(k=>{const[x,y]=k.split(',').map(Number); // ligne de vue BLOQUÉE par un obstacle depuis toutes les origines → case estompée
+      if(!origins.some(o=>hasLoS(o.x,o.y,x,y)))state.noLoS.add(k);});
+    return z;}
   function delockTarget(){ // l'adversaire à rendre vulnérable : le Comte s'il est là, sinon le DERNIER mob ennemi en vie
     const C=comte();if(C&&C.alive)return C;
     const mobs=state.enemies.filter(e=>e.alive&&!e.friendly);return mobs.length?mobs[mobs.length-1]:null;}
@@ -741,13 +763,16 @@
     const o=occupant(mx,my);
     if(o&&o.t==='enemy'&&!o.e.friendly)return{x:mx,y:my,status:'invalid'}; // un ENNEMI y est : inutilisable (seuls tes alliés délock)
     return{x:mx,y:my,status:o?'occupied':'free',who:o?(o.t==='ally'?('Perso '+(o.a.id+1)):(o.e.name||'une entité')):null};}
+  const _mixA=new THREE.Color(),_mixB=new THREE.Color();
+  function mixHex(a,b,t){_mixA.setHex(a);_mixB.setHex(b);return _mixA.lerp(_mixB,t).getHex();}
   function refreshTiles(){ // rendu À PLAT : chaque case = UNE couleur unie (bi-couleur, zéro effet de lumière)
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){const t=tiles[x][y],m=t.material;let c=t.userData.base;
       if(blocked(x,y))c=0x0b1a28; // obstacle / trou
       else{
         if(state.startCells&&state.phase==='setup'&&state.startCells.has(key(x,y)))c=0x2f6fd0; // cases BLEUES de départ (Donjon) : placement des persos uniquement
         if(state.mode==='move'&&state.hoverPath&&state.hoverPath.has(key(x,y)))c=0x35c46a; // cases empruntées jusqu'à la destination (prévisu de déplacement) = VERT
-        if((state.mode==='swap'||state.mode==='spell')&&state.targets.has(key(x,y)))c=0x4a2f8a; // zone du sort
+        if((state.mode==='swap'||state.mode==='spell')&&state.targets.has(key(x,y))) // zone du sort : BLEU translucide (le damier reste visible) ; ligne de vue bloquée = très estompé
+          c=mixHex(t.userData.base,0x3d8bff,(state.noLoS&&state.noLoS.has(key(x,y)))?0.18:0.58);
       }
       m.color.setHex(c);m.opacity=.96;}
     if(state.showDelock)delockCells().forEach(dc=>{const t=tiles[dc.x]&&tiles[dc.x][dc.y]; // bouton « Délock ? » actif : ROUGE vif = entité déjà en place (délock prêt), rouge sombre = pose une entité ici
@@ -768,6 +793,11 @@
       if(inGrid(d.x,d.y)&&tiles[d.x][d.y].visible){const dm=tiles[d.x][d.y].material;
         if(d.x===hoverCell.x&&d.y===hoverCell.y)dm.color.setHex(0x2fae6a); // pas de déviation → vert (case réelle)
         else dm.color.setHex(0xc0392b);}} // déviée → rouge (là où le sort part vraiment)
+    if(state.toPlace&&state.toPlace.kind==='invoc'&&state.phase==='playing'&&hoverCell&&!blocked(hoverCell.x,hoverCell.y)){ // pose d'invocation : la confusion dévie — or = visée, vert/rouge = case réelle
+      tiles[hoverCell.x][hoverCell.y].material.color.setHex(0xd8b544);
+      const d=deflect(hoverCell.x,hoverCell.y);
+      if(inGrid(d.x,d.y)&&tiles[d.x][d.y].visible){const dm=tiles[d.x][d.y].material;
+        if(d.x===hoverCell.x&&d.y===hoverCell.y)dm.color.setHex(0x2fae6a);else dm.color.setHex(0xc0392b);}}
     const sw=updateSwapGhost(); // prévisu de la rotation du Comte (désinvulnérabilité)
     if(sw&&inGrid(sw.x,sw.y)&&tiles[sw.x][sw.y].visible)tiles[sw.x][sw.y].material.color.setHex(sw.ok?0x7fd0ff:0xc0392b);}
 
@@ -777,7 +807,9 @@
   const cmap={0:'aucune',90:'90° ↻',180:'180°',270:'90° ↺'};
   const VITA=[{l:'100-90%',rot:90},{l:'89-75%',rot:270},{l:'74-45%',rot:180},{l:'44-30%',rot:270},{l:'29-0%',rot:90}];
   function confFromHp(pct){if(pct>=90)return 90;if(pct>=75)return 270;if(pct>=45)return 180;if(pct>=30)return 270;return 90;}
-  function currentConf(){const base=state.vitaOverride!=null?VITA[state.vitaOverride].rot:confFromHp(state.player.hp/state.player.hpMax*100);
+  function currentConf(){const p=state.player;
+    const base=(p&&p.confOverride!=null)?p.confOverride // confusion CHOISIE via le widget du perso (prioritaire)
+      :(state.vitaOverride!=null?VITA[state.vitaOverride].rot:confFromHp(Math.max(0,p.hp)/(p.hpMax||1)*100));
     return ((base+270*(state.meleeHits||0))%360+360)%360;} // +90° anti-horaire par coup mêlée
   function deflect(tx,ty){let dx=tx-state.player.x,dy=ty-state.player.y;let n=((state.confusion/90)%4+4)%4;
     for(let i=0;i<n;i++){const nx=-dy,ny=dx;dx=nx;dy=ny;} // rotation 90° horaire (grille y vers le bas)
@@ -1130,7 +1162,7 @@
       refreshTiles();refreshHUD();return;}
     if(un&&!allyCellOk(x,y)){toast('🔵 En Donjon, clique une case BLEUE pour poser ton personnage.');refreshTiles();return;}
     if(un&&!blocked(x,y)){un.x=x;un.y=y;un.placed=true;syncAlly(un);un.obj.position.copy(un.obj.userData.tp);un.obj.visible=true;
-      setActive(state.allies.indexOf(un));toast('🔵 Perso '+(un.id+1)+' placé.');refreshTiles();refreshHUD();return;}
+      setActive(state.allies.indexOf(un));toast('🔵 Perso '+(un.id+1)+' placé.');refreshTiles();refreshHUD();showConfPop(un);return;}
     toast('Clique une entité pour la sélectionner, puis une case libre.');}
   function setActive(i){if(i<0||i>=state.allies.length)return;state.active=i;
     state.classSpells=state.player.classSpells||[];state.spell=null;
@@ -1145,7 +1177,11 @@
     applyEditVisual();}
   function onTileClick(u){
     if(state.phase==='setup'&&state.edit){editAt(u.x,u.y);return;}
-    if(state.toPlace){if(entityAt(u.x,u.y)||blocked(u.x,u.y)){toast('Case occupée ou bloquée.');return;}placeMob(u.x,u.y);return;}
+    if(state.toPlace){let tx=u.x,ty=u.y;
+      if(state.toPlace.kind==='invoc'&&state.phase==='playing'&&state.confusion){const d=deflect(u.x,u.y); // la CONFUSION dévie aussi le placement des invocations
+        if(d.x!==u.x||d.y!==u.y){tx=d.x;ty=d.y;toast('⤳ Confusion '+cmap[state.confusion]+' : l\'invocation dévie en '+tx+','+ty+' !');}}
+      if(!inGrid(tx,ty)||entityAt(tx,ty)||blocked(tx,ty)){toast('Case '+(tx!==u.x||ty!==u.y?'DÉVIÉE ('+tx+','+ty+') ':'')+'occupée ou bloquée.');return;}
+      placeMob(tx,ty);return;}
     if(state.phase==='setup'){pickMove(u.x,u.y);return;}
     if(state.phase!=='playing')return;
     if(state.mode==='portal'){placePortal(u.x,u.y);return;}
@@ -1206,7 +1242,7 @@
       a.obj=buildAllyObj(i);a.x=x;a.y=y;a.placed=true;syncAlly(a);a.obj.position.copy(a.obj.userData.tp);a.obj.visible=true;
       if(state.phase==='playing'){a.hp=a.hpMax;a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;}
       setActive(i);selectClass(9); // Crâ (la seule classe) : tête + sorts + corps entier chargés
-      refreshTiles();refreshHUD();toast('🔵 Joueur '+(i+1)+' (Crâ) ajouté à l\'équipe en '+x+','+y+'.');return;}
+      refreshTiles();refreshHUD();toast('🔵 Joueur '+(i+1)+' (Crâ) ajouté à l\'équipe en '+x+','+y+'.');showConfPop(a);return;}
     spawnMobFrom({name:'Poutch',kind:'mob',friendly:false,hpMax:500,ring:0xff5b5b,x,y,img:API+'/img/monsters/278.png'}); // Poutch Ingball (DofusDB)
     refreshTiles();refreshHUD();toast('🔴 Poutch posé en '+x+','+y+' (clic droit dessus pour le retirer).');}
   function killEnemyEntity(e){if(!e)return;if(e.obj)scene.remove(e.obj);e.alive=false;state.enemies=state.enemies.filter(x=>x!==e);
@@ -1236,7 +1272,8 @@
       const self=u&&u.x===d.fromX&&u.y===d.fromY;
       const okAlly=!u||ent.t!=='ally'||allyCellOk(u.x,u.y); // en Donjon (préparation) : persos sur cases bleues uniquement
       if(u&&!self&&tiles[u.x][u.y].visible&&!blocked(u.x,u.y)&&!entityAt(u.x,u.y)&&okAlly){
-        moveEntity(ent,u.x,u.y);toast((ent.t==='ally'?('🔵 Perso '+(ent.a.id+1)):(ent.e.name||'Monstre'))+' déplacé en '+u.x+','+u.y+'.');}
+        moveEntity(ent,u.x,u.y);toast((ent.t==='ally'?('🔵 Perso '+(ent.a.id+1)):(ent.e.name||'Monstre'))+' déplacé en '+u.x+','+u.y+'.');
+        if(ent.t==='ally')showConfPop(ent.a);} // joueur déposé → widget de confusion
       else{if(ent.t==='ally')syncAlly(ent.a);else syncEnemy(ent.e); // case invalide → retour à la case d'origine
         if(u&&!self)toast('Case invalide — retour à la case de départ.');}
       renderer.domElement.style.cursor='';refreshTiles();refreshHUD();down=null;edgeDrag=null;return;}
@@ -1348,7 +1385,7 @@
       const nm=setup
         ? '<select class="allySel" data-si="'+i+'">'+opts+'</select>'
         : '<span class="nm">'+(a.className==='—'?'—':a.className)+(ko?' ☠':'')+'</span>';
-      const cf=a.className!=='—'?('<span class="cf">🔄 '+cmap[confFromHp(Math.max(0,a.hp)/(a.hpMax||1)*100)]+'</span>'):''; // confusion AU-DESSUS de la vitalité
+      const cf=a.className!=='—'?('<span class="cf">🔄 '+cmap[a.confOverride!=null?a.confOverride:confFromHp(Math.max(0,a.hp)/(a.hpMax||1)*100)]+'</span>'):''; // confusion AU-DESSUS de la vitalité (choisie via widget si définie)
       const molSvg='<svg width="11" height="15" viewBox="0 0 12 16" fill="none"><rect x="1.4" y="1.4" width="9.2" height="13.2" rx="4.6" stroke="currentColor" stroke-width="1.3"/><line x1="6" y1="3.6" x2="6" y2="6.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
       const vit=setup?('<span class="molhint">'+molSvg+' scroll avec la molette</span><span class="cl"><span class="hrt">❤</span><input class="hpEdit" type="number" data-si="'+i+'" value="'+a.hpMax+'" min="100" max="20000" step="1" title="Vitalité de ce perso — molette = ±1 (Shift = ±1000), ou tape la valeur">')
                      :('<span class="cl"><span class="hrt">❤</span> '+Math.max(0,Math.min(100,Math.round(Math.max(0,a.hp)/(a.hpMax||1)*100)))+' %</span>'); // en combat : PV en POURCENTAGE
@@ -1379,8 +1416,19 @@
   el('ctxComte').onclick=()=>{transformToComte(ctxEnemy);ctxEnemy=null;el('ctxMenu').classList.remove('show');};
   el('pmAlly').onclick=()=>spawnToken(true);
   el('pmEnemy').onclick=()=>spawnToken(false);
+  let confPopAlly=null,confPopAt=0; // widget de CONFUSION du perso : pop au dépôt sur le terrain, choix parmi les 4 confusions
+  function showConfPop(a){confPopAlly=a;confPopAt=performance.now();const c=el('confPop');
+    const p=projectCell(a.x,a.y,2.3);c.style.left=p.sx+'px';c.style.top=p.sy+'px';
+    c.classList.remove('hide');c.classList.add('show');}
+  function hideConfPop(force){const c=el('confPop');if(!c.classList.contains('show'))return;
+    if(!force&&performance.now()-confPopAt<250)return; // ignore le clic natif qui suit immédiatement le dépôt
+    confPopAlly=null;c.classList.add('hide');setTimeout(()=>c.classList.remove('show','hide'),150);}
+  el('confPop').querySelectorAll('button').forEach(b=>b.onclick=ev=>{ev.stopPropagation();
+    if(confPopAlly){confPopAlly.confOverride=+b.dataset.c;toast('🔄 Confusion de Perso '+(confPopAlly.id+1)+' : '+cmap[+b.dataset.c]+'.');}
+    hideConfPop(true);refreshTiles();refreshHUD();});
   document.addEventListener('click',ev=>{if(!el('ctxMenu').contains(ev.target))el('ctxMenu').classList.remove('show');
-    if(!el('placeMenu').contains(ev.target))el('placeMenu').classList.remove('show');});
+    if(!el('placeMenu').contains(ev.target))el('placeMenu').classList.remove('show');
+    if(!el('confPop').contains(ev.target))hideConfPop();});
   el('aEnd').onclick=()=>{if(state.phase==='playing')rechargeAll();else startGame();};el('ovBtn').onclick=resetGame;
   el('pivotToggle').onclick=()=>{state.comtePivot=!state.comtePivot;refreshTiles();refreshHUD();
     toast(state.comtePivot?'🔄 Au prochain coup sur le Comte : c\'est LUI qui pivote (délock possible via échange).':'🔄 Au prochain coup sur le Comte : c\'est TOI qui pivotes.');};
