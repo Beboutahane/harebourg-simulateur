@@ -209,8 +209,9 @@
   .bubble.pa{background:radial-gradient(circle at 34% 28%,#8fccff,#2a6fb0 78%);color:#f2f9ff}
   .bubble.pm{background:radial-gradient(circle at 34% 28%,#78ecb2,#1f9a5f 78%);color:#effff6}
   #turnbox{display:flex;flex-direction:column;align-items:center;gap:5px;padding:7px 9px}
-  #turnTimer{font-family:var(--display);font-size:20px;font-weight:700;color:var(--ok);line-height:1}
-  #turnTimer.low{color:var(--danger)}
+  .pivbtn{border:1px solid var(--border-strong);background:rgba(42,111,192,.28);color:var(--frost);font-family:var(--display);font-weight:800;font-size:12.5px;letter-spacing:.4px;padding:8px 14px;border-radius:9px;cursor:pointer;pointer-events:auto;white-space:nowrap}
+  .pivbtn:hover{border-color:var(--ice)}
+  .pivbtn.boss{background:rgba(255,84,198,.18);border-color:rgba(255,84,198,.55);color:#ff9adf}
   #aEnd{border:0;border-radius:9px;padding:9px 16px;font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.5px;cursor:pointer;
     background:linear-gradient(180deg,#8fe27a,#4fa83a);color:#06210a;box-shadow:0 4px 0 #2f6a22,0 8px 14px rgba(0,0,0,.4);white-space:nowrap}
   #aEnd:hover:not(:disabled){filter:brightness(1.08)}#aEnd:active:not(:disabled){transform:translateY(2px);box-shadow:0 2px 0 #2f6a22}
@@ -240,15 +241,10 @@
 <div id="loading">❄️ Chargement de l'arène 3D et des données Dofus…</div>
 
 <div class="hud" id="topbar"><div class="card">
-  <div><div class="tnum" id="tnum">1</div><div class="tlbl">Tour</div></div>
-  <div style="display:flex;flex-direction:column;gap:4px;align-items:center">
-    <span class="parity impair" id="parity">IMPAIR</span>
-    <span class="invtag on" id="invTag" style="margin-top:0;font-size:10px;padding:3px 9px;border-radius:99px;cursor:pointer" title="Clique pour signaler que le boss est vulnérable / invulnérable">🛡️ INVULNÉRABLE</span>
-  </div>
+  <button id="pivotToggle" class="pivbtn" title="Qui pivote au prochain coup sur le Comte ? Clique pour basculer">🔄 CE COUP : TOI tu pivotes</button>
+  <span class="invtag on" id="invTag" style="margin-top:0;font-size:10px;padding:3px 9px;border-radius:99px;cursor:pointer" title="Clique pour signaler que le boss est vulnérable / invulnérable">🛡️ INVULNÉRABLE</span>
   <span class="parity" id="delock" style="display:none">🔒</span>
-  <button id="delockBtn" style="display:none" title="Il ne reste que le Comte : plus d'entité à échanger — force le délock ce tour">🔓 DÉLOCK</button>
-  <div class="conf" title="Tour auquel le Comte apparaît (en Songe : s'il apparaît à un tour pair, la parité du délock s'inverse)">
-    <input id="comteTurnIn" type="number" min="1" max="99" value="1"><div class="tlbl">Comte au tour</div></div>
+  <button id="delockBtn" style="display:none" title="Il ne reste que le Comte : plus d'entité à échanger — force le délock">🔓 DÉLOCK</button>
   <div class="conf"><div class="cv" id="confVal">—</div><div class="tlbl">Confusion</div></div>
 </div></div>
 <div id="status"></div>
@@ -306,8 +302,8 @@
     </div>
     <div id="spellSlots" class="slotwrap"></div>
   </div>
-  <div class="card" id="turnbox"><div id="turnTimer">30</div>
-    <div class="turnBtns"><button id="aEnd">FIN DE TOUR</button><button id="retreat" title="Abandonner le combat">🏳️ Abandonner</button></div>
+  <div class="card" id="turnbox">
+    <div class="turnBtns"><button id="aEnd">▶ LANCER LE COMBAT</button><button id="retreat" title="Abandonner le combat">🏳️ Abandonner</button></div>
   </div>
 </div>
 
@@ -327,7 +323,7 @@
 <div id="overlay"><div class="box"><h2 id="ovTitle"></h2><p id="ovText"></p><button id="ovBtn">Rejouer</button></div></div>
 
 <script>
-/* three.js r128 embarqué pour le partage en fichier unique */
+/* three.js r128 embarqué */
 /**
  * @license
  * Copyright 2010-2021 Three.js Authors
@@ -349,7 +345,7 @@
   function makeAlly(i){return{id:i,x:HALF-2+i,y:HALF,hp:4000,hpMax:4000,pa:PA_MAX,pm:PM_MAX,pmPen:0,placed:false,className:'—',classSpells:[],head:null,ring:allyColors[i],obj:null};}
   const state={phase:'setup',placeMode:'player',withInvocs:true,map:'songe',obstacles:new Set(),hpMode:0,
     mapW:15,mapH:15, // Songe : zone jouable centrée, réglable (9..N) via les boutons +/- de l'outil terrain
-    tour:1,comteTurn:1,mode:'idle',confusion:0,vitaOverride:null,glyph:new Set(),view:'iso',edit:false,brush:'block',
+    tour:1,comtePivot:false,mode:'idle',confusion:0,vitaOverride:null,glyph:new Set(),view:'iso',edit:false,brush:'block',
     allies:[makeAlly(0),makeAlly(1),makeAlly(2)],active:0,classSpells:[],setupSel:null, // équipe de 3 persos par défaut
     enemies:[],reach:new Map(),targets:new Set(),spell:null,toPlace:null,_countX:9,_countY:6,_countPlaced:false,_ghost:null};
   Object.defineProperty(state,'player',{get(){return state.allies[state.active];},configurable:true}); // state.player = allié actif
@@ -373,9 +369,9 @@
     sylargh:{name:'Sylargh',search:'sylargh',hp:2400},
     frizz:{name:'Missiz Frizz',search:'missiz frizz',hp:2800}};
   const comte=()=>state.enemies.find(e=>e.kind==='count');
-  // Le Comte PIVOTE (et peut être délock) quand (tour − tour d'apparition) est IMPAIR.
-  // Apparu au tour 1 (donjon) → pivote aux tours 2,4,6… ; apparu à un tour PAIR (Songe) → la parité s'inverse.
-  function comtePivots(){const s=state.comteTurn||1;return(((state.tour-s)%2)+2)%2===1;}
+  // Plus de système de tours : un INTERRUPTEUR manuel décide qui pivote au prochain coup sur le Comte.
+  // true = le COMTE pivote (délock possible) ; false = c'est TOI qui pivotes.
+  function comtePivots(){return !!state.comtePivot;}
   const alive=()=>state.enemies.filter(e=>e.alive);
   function occupant(x,y){const a=state.allies.find(a=>a.placed&&a.hp>0&&a.x===x&&a.y===y);if(a)return{t:'ally',a};
     const e=state.enemies.find(e=>e.alive&&e.x===x&&e.y===y);return e?{t:'enemy',e}:null;}
@@ -820,9 +816,8 @@
     return info;}
   function refreshHUD(){
     state.confusion=currentConf();
-    el('tnum').textContent=state.tour;const pair=state.tour%2===0;
-    if(el('comteTurnIn')&&document.activeElement!==el('comteTurnIn'))el('comteTurnIn').value=state.comteTurn||1; // widget « Comte au tour N » synchronisé
-    el('parity').textContent=pair?'PAIR':'IMPAIR';el('parity').className='parity '+(pair?'pair':'impair');
+    {const pt=el('pivotToggle');if(pt){const piv=comtePivots(); // interrupteur : qui pivote au prochain coup sur le Comte ?
+      pt.textContent=piv?'🔄 CE COUP : le COMTE pivote':'🔄 CE COUP : TOI tu pivotes';pt.classList.toggle('boss',piv);}}
     el('confVal').textContent=cmap[state.confusion];
     renderTeam();
     const C=comte();{const it=el('invTag');const vul=C&&C.vulnerable;
@@ -839,7 +834,7 @@
          else if(reach>0){dl.className='parity pair';dl.textContent='🔓 '+reach+' case'+(reach>1?'s':'')+' de DÉLOCK à portée (rose) — place-toi dessus et frappe';}
          else if(dc.length){dl.className='parity impair';dl.textContent='🔒 '+dc.length+' case'+(dc.length>1?'s':'')+' de délock mais HORS de ton déplacement (rose sombre)';}
          else{dl.className='parity impair';dl.textContent='🔒 pivot hors map et aucun milieu Comte ↔ entité valide — rapproche-toi';}}
-       else{dl.className='parity impair';dl.textContent='🔒 ce tour, si tu frappes c\'est TOI qui pivotes (délock au prochain tour)';}
+       else{dl.className='parity impair';dl.textContent='🔒 si tu frappes, c\'est TOI qui pivotes — bascule 🔄 pour faire pivoter le Comte';}
      }else dl.style.display='none';
      // bouton DÉLOCK de secours : tour de pivot + il ne reste QUE le Comte (plus aucun monstre ennemi vivant)
      const db=el('delockBtn');
@@ -858,18 +853,16 @@
      else{const m=state.hpMode%3; // clic sur le cœur : cycle valeur → % → actuel/max
        v.textContent=m===0?hp:(m===1?Math.round(pct*100)+'%':hp+'/'+max);
        v.classList.toggle('small',m===2);}}
-    // Bouton unique : « Lancer le combat » en setup → « FIN DE TOUR » en combat
+    // Bouton unique : « Lancer le combat » en setup → « Recharger PA/PM » en combat (plus de tours)
     el('aEnd').disabled=(state.phase==='setup'&&!placedAllies().length);
-    el('aEnd').textContent=playing?'FIN DE TOUR':'▶ LANCER LE COMBAT';
-    el('turnTimer').style.display=playing?'':'none';
+    el('aEnd').textContent=playing?'♻️ RECHARGER PA/PM':'▶ LANCER LE COMBAT';
     document.querySelectorAll('#spellSlots .slot').forEach(x=>{
       if(x.classList.contains('ph'))return; // case vide (aucune classe) : rien à mettre à jour
       if(x.dataset.act){x.classList.remove('dim');x.classList.toggle('on',x.dataset.act==='portal'&&state.mode==='portal');return;}
       const sp=(state.classSpells||[]).find(s=>s.id===+x.dataset.id);
       x.classList.toggle('dim',!(playing&&sp&&state.player.pa>=sp.apCost));
       x.classList.toggle('on',state.mode==='spell'&&state.spell&&state.spell.id===+x.dataset.id);});
-    el('turnTimer').textContent=Math.max(0,state.turnTimer||0);el('turnTimer').classList.toggle('low',(state.turnTimer||0)<=10);
-    renderTimeline();
+    updateComteGlyph(); // la glyphe noire suit la position du Comte
     updateHints();
   }
   // ===== CONSEILLER : délock + déplacement + sort selon PA/PM/classe =====
@@ -1020,33 +1013,19 @@
     restMove();refreshTiles();refreshHUD();}
 
   /* ===== TOURS (rotation sur la timeline : alliés ET monstres, chacun son tour) ===== */
-  function comteTurnStart(C){ // début du tour du Comte (dofuspourlesnoobs) : il se RE-VERROUILLE et pose sa GLYPHE NOIRE en croix de 3 PO
-    C.vulnerable=false; // l'invulnérabilité revient au début de SON tour (le délock dure donc jusqu'à ce qu'il rejoue)
-    state.glyph.clear();state.glyph.add(key(C.x,C.y));
-    for(let d=1;d<=3;d++)[[d,0],[-d,0],[0,d],[0,-d]].forEach(([dx,dy])=>{if(inGrid(C.x+dx,C.y+dy))state.glyph.add(key(C.x+dx,C.y+dy));});
-    drawGlyph();
-    toast('⬛ Le Comte se re-verrouille et pose sa GLYPHE NOIRE (croix, 3 PO) — ne COMMENCE PAS ton tour dessus !');}
-  function beginTurn(it){state.setupSel=null;state.spell=null;state.targets=new Set();state.mode='idle';state.turnTimer=30;
-    if(it.t==='ally'){state.enemyTurn=false;state.curEnt={t:'ally',a:it.a};state.meleeHits=0; // coups en mêlée remis à 0 à chaque début de tour de joueur
-      it.a.pa=PA_MAX;it.a.pm=Math.max(0,PM_MAX-(it.a.pmPen||0));it.a.pmPen=0;
-      setActive(state.allies.indexOf(it.a)); // → restMove (déplacement) + HUD
-      if(state.glyph.has(key(it.a.x,it.a.y)))toast('☠ Perso '+(it.a.id+1)+' COMMENCE son tour sur la glyphe noire — dans le vrai combat, il MEURT !');
-      else toast('▶ Au tour de Perso '+(it.a.id+1)+(it.a.className!=='—'?' ('+it.a.className+')':'')+' — Tour '+state.tour+'.');}
-    else{state.enemyTurn=true;state.curEnt={t:'enemy',e:it.e};state.mode='enemyMove';state.reach=new Map(); // tour d'un monstre : tu le repositionnes à la main
-      if(it.e.kind==='count')comteTurnStart(it.e);
-      refreshTiles();refreshHUD();
-      if(it.e.kind!=='count')toast('👹 Au tour de '+(it.e.name||'Monstre')+' — clique une case libre pour le déplacer (1 clic), puis « Fin de tour ».');}}
-  function endTurn(){if(state.phase!=='playing')return;state.mode='idle';state.targets=new Set();state.setupSel=null;
-    state.allies.forEach(a=>{if(a.hp<=0&&a.obj)a.obj.visible=false;}); // KO (vie gérée via le cœur)
-    if(aliveAllies().length===0){endGame(false);return;}
-    syncInitiative(); // l'ordre de jeu = la timeline (alliés + monstres) ; on passe à l'entité suivante
-    const list=state.initiative.filter(it=>it.t==='ally'?(it.a.placed&&it.a.hp>0):it.e.alive);
-    if(!list.length){endGame(false);return;}
-    const cur=state.curEnt;
-    let pos=cur?list.findIndex(it=>cur.t==='ally'?(it.t==='ally'&&it.a===cur.a):(it.t==='enemy'&&it.e===cur.e)):-1;
-    let next=(pos<0?0:pos+1);if(next>=list.length){next=0;state.tour++;} // boucle complète → tour suivant
-    beginTurn(list[next]);
-    refreshTiles();refreshHUD();}
+  // Plus de tours : la GLYPHE NOIRE (croix de 3 PO) suit simplement la position ACTUELLE du Comte (info « n'y commence pas ton tour »)
+  let _glyphAt=null;
+  function updateComteGlyph(){
+    const C=comte(),want=(state.phase==='playing'&&C&&C.alive)?key(C.x,C.y):null;
+    if(want===_glyphAt)return;_glyphAt=want;
+    state.glyph.clear();
+    if(want){state.glyph.add(key(C.x,C.y));
+      for(let d=1;d<=3;d++)[[d,0],[-d,0],[0,d],[0,-d]].forEach(([dx,dy])=>{if(inGrid(C.x+dx,C.y+dy))state.glyph.add(key(C.x+dx,C.y+dy));});}
+    drawGlyph();}
+  function rechargeAll(){ // « ♻️ Recharger PA/PM » : simule un nouveau tour de jeu, sans rotation ni chrono
+    state.allies.forEach(a=>{if(a.placed){a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;}});
+    state.meleeHits=0;state.spell=null;state.targets=new Set();state.setupSel=null;
+    restMove();refreshTiles();refreshHUD();toast('♻️ PA/PM rechargés pour tous tes persos.');}
 
   /* ===== VFX ===== */
   const floats=[],shots=[],bursts=[];
@@ -1061,14 +1040,13 @@
   /* ===== FLOW ===== */
   function startGame(){if(!placedAllies().length){toast('① Clique une case pour placer au moins un perso 🔵.');return;}
     if(state._ghost){scene.remove(state._ghost);state._ghost=null;}
-    state.setupSel=null;state.phase='playing';state.tour=1;state.glyph.clear();drawGlyph();state.turnTimer=30;
+    state.setupSel=null;state.phase='playing';state.glyph.clear();_glyphAt=null;drawGlyph();
     state.allies.forEach(a=>{if(a.placed){a.hp=a.hpMax;a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;}});
     spawnEnemies();syncInitiative();snapshotStart();state.curEnt=null;state.enemyTurn=false;
     el('setup').style.display='none';
-    const first=state.initiative.find(it=>it.t==='ally'&&it.a.placed&&it.a.hp>0)||state.initiative[0]; // 1re entité de l'ordre (verrouillé)
-    if(first)beginTurn(first);else{setActive(state.allies.indexOf(placedAllies()[0]));restMove();}
+    setActive(state.allies.indexOf(placedAllies()[0]));restMove(); // pas de tours : tu joues librement, clique un perso pour en changer
     refreshTiles();refreshHUD();
-    toast('Combat lancé ! Ordre verrouillé — « Fin de tour » passe à l\'entité suivante (perso ou monstre).');}
+    toast('Combat lancé ! Déplace/replace librement — l\'interrupteur 🔄 en haut décide qui pivote au prochain coup sur le Comte.');}
   function endGame(win){state.phase='over';state.mode='idle';el('ovTitle').textContent=win?'❄️ Victoire !':'☠️ Défaite';
     el('ovTitle').style.color=win?'var(--ok)':'var(--danger)';el('ovText').textContent=win?'Boss vaincu !':'Ton équipe est tombée.';el('overlay').classList.add('show');refreshHUD();}
   function resetGame(){el('overlay').classList.remove('show');el('setup').style.display='flex';
@@ -1233,9 +1211,6 @@
     C.vulnerable=!C.vulnerable;refreshHUD();toast(C.vulnerable?'🎯 Boss signalé VULNÉRABLE (délock).':'🛡️ Boss signalé invulnérable.');};
   el('delockBtn').onclick=()=>{const C=comte();if(!C||!C.alive)return; // secours : plus que le Comte sur la carte → délock direct ce tour de pivot
     C.vulnerable=true;refreshHUD();toast('🔓 DÉLOCK forcé : il ne restait que le Comte — il est VULNÉRABLE ce tour !');};
-  el('comteTurnIn').onchange=()=>{const v=Math.max(1,Math.min(99,parseInt(el('comteTurnIn').value)||1));
-    el('comteTurnIn').value=v;state.comteTurn=v;refreshTiles();refreshHUD();
-    toast('⏱️ Comte apparu au tour '+v+' → il pivote (délock possible) les tours '+(v%2===0?'IMPAIRS':'PAIRS')+'.');};
   // Cœur de vie : clic = cycle d'affichage (valeur → % → actuel/max) ; molette = monte/baisse la vie
   el('heartHp').onclick=()=>{if(!state.player||state.player.className==='—')return;state.hpMode=(state.hpMode+1)%3;refreshHUD();};
   el('heartHp').addEventListener('wheel',e=>{e.preventDefault();if(!state.player||state.player.className==='—')return;
@@ -1355,16 +1330,18 @@
   el('addAlly').onclick=addAlly;
   el('ctxDead').onclick=()=>{killEnemyEntity(ctxEnemy);ctxEnemy=null;el('ctxMenu').classList.remove('show');};
   document.addEventListener('click',ev=>{if(!el('ctxMenu').contains(ev.target))el('ctxMenu').classList.remove('show');});
-  el('aEnd').onclick=()=>{if(state.phase==='playing')endTurn();else startGame();};el('ovBtn').onclick=resetGame;
+  el('aEnd').onclick=()=>{if(state.phase==='playing')rechargeAll();else startGame();};el('ovBtn').onclick=resetGame;
+  el('pivotToggle').onclick=()=>{state.comtePivot=!state.comtePivot;refreshTiles();refreshHUD();
+    toast(state.comtePivot?'🔄 Au prochain coup sur le Comte : c\'est LUI qui pivote (délock possible via échange).':'🔄 Au prochain coup sur le Comte : c\'est TOI qui pivotes.');};
   el('mobSearch').oninput=e=>{clearTimeout(searchT);const v=e.target.value;searchT=setTimeout(()=>searchMonsters(v),280);};
   function fullReset(){ // repart de zéro : équipe, monstres, portails/pièges, obstacles, tour
     state.enemies.forEach(e=>{if(e.obj)scene.remove(e.obj);});state.enemies=[];clearPortals();clearTraps();
     state.allies.forEach(a=>{if(a.obj)scene.remove(a.obj);});
     state.allies=[makeAlly(0)];state.active=0;
     const a0=state.allies[0];a0.obj=buildAllyObj(0);syncAlly(a0);a0.obj.position.copy(a0.obj.userData.tp);a0.obj.visible=false;
-    state.initiative=[];state.curEnt=null;state.enemyTurn=false;state.phase='setup';state.mode='idle';state.tour=1;state.turnTimer=30;
+    state.initiative=[];state.curEnt=null;state.enemyTurn=false;state.phase='setup';state.mode='idle';
     state.glyph.clear();drawGlyph();state.targets=new Set();state.setupSel=null;state.spell=null;state.toPlace=null;
-    state.meleeHits=0;state.vitaOverride=null;state.hpMode=0;state.mapW=15;state.mapH=15;state.comteTurn=1;
+    state.meleeHits=0;state.vitaOverride=null;state.hpMode=0;state.mapW=15;state.mapH=15;state.comtePivot=false;_glyphAt=null;
     el('setup').style.display='flex';el('overlay').classList.remove('show');
     applyAmbiance();updateMapSizeLabels();refreshTiles();refreshHUD();toast('♻️ Tout réinitialisé.');}
   // ===== ABANDON : soit revenir au placement (compo/monstres/placement/initiative gardés), soit tout réinitialiser =====
@@ -1384,8 +1361,8 @@
       a.className=sa.cn;a.head=sa.head;a.classSpells=(sa.spells||[]).slice();a.hpMax=sa.hpMax;a.hp=sa.hpMax;a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;a.x=sa.x;a.y=sa.y;a.placed=sa.placed;
       applyAllyLook(a);syncAlly(a);if(a.obj){a.obj.position.copy(a.obj.userData.tp);a.obj.visible=a.placed;}});
     const newMobs=s.mobs.map(m=>spawnMobFrom(m)); // monstres recréés à leur place de départ
-    state.phase='setup';state.mode='idle';state.enemyTurn=false;state.curEnt=null;state.tour=1;state.turnTimer=30;
-    state.glyph.clear();drawGlyph();state.targets=new Set();state.setupSel=null;state.spell=null;state.toPlace=null;state.meleeHits=0;
+    state.phase='setup';state.mode='idle';state.enemyTurn=false;state.curEnt=null;
+    state.glyph.clear();_glyphAt=null;drawGlyph();state.targets=new Set();state.setupSel=null;state.spell=null;state.toPlace=null;state.meleeHits=0;
     el('setup').style.display='flex';el('overlay').classList.remove('show');
     state.initiative=s.order.map(tok=>{if(tok[0]==='a'){const a=state.allies[+tok.slice(1)];return a?{t:'ally',a}:null;}
       if(tok[0]==='m'){const e=newMobs[+tok.slice(1)];return e?{t:'enemy',e}:null;}return null;}).filter(Boolean); // ordre d'initiative conservé (sans le Comte)
@@ -1422,9 +1399,7 @@
   /* ===== INIT ===== */
   applyAmbiance();refreshTiles();refreshHUD();rebuildSpellBar(state.classSpells||[]);renderTips();animate();loadEl.style.display='none';
   loadBreeds();
-  setInterval(()=>{if(state.phase!=='playing')return;state.turnTimer=(state.turnTimer||0)-1;
-    el('turnTimer').textContent=Math.max(0,state.turnTimer);el('turnTimer').classList.toggle('low',state.turnTimer<=10);
-    if(state.turnTimer<=0)endTurn();},1000);
+  // (plus de chrono de tour : jeu libre)
 })();
 </script>
 </body>
