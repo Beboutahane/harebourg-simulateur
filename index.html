@@ -1175,8 +1175,13 @@
     if(ax>rw+1||ay>rh+1)return null; // trop loin de la zone
     const w=(ax===rw||ax===rw+1), h=(ay===rh||ay===rh+1); // près d'un bord vertical (colonnes) / horizontal (lignes)
     return(w||h)?{w,h}:null;}
+  let dragEnt=null; // drag & drop d'entité : {ent,fromX,fromY}
   renderer.domElement.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY};dragging=false;downBtn=e.button;
-    edgeDrag=null;if(e.button===0){const u=pickTile(e.clientX,e.clientY);const eg=u?edgeAt(u.x,u.y):null;if(eg)edgeDrag={w:eg.w,h:eg.h,moved:false};}
+    edgeDrag=null;dragEnt=null;
+    if(e.button===0){const u=pickTile(e.clientX,e.clientY);
+      if(u){const ent=entityAt(u.x,u.y);
+        if(ent&&(ent.t==='ally'||ent.t==='enemy'))dragEnt={ent,fromX:u.x,fromY:u.y}; // presser une entité = pouvoir la GLISSER (prioritaire sur l'étirement du bord)
+        else{const eg=edgeAt(u.x,u.y);if(eg)edgeDrag={w:eg.w,h:eg.h,moved:false};}}}
     el('hoverHp').classList.remove('show');el('cellCount').classList.remove('show');});
   let ctxEnemy=null,placeCell=null;
   renderer.domElement.addEventListener('contextmenu',e=>{e.preventDefault();
@@ -1198,7 +1203,11 @@
   renderer.domElement.addEventListener('pointermove',e=>{
     if(down){if(Math.abs(e.clientX-down.x)+Math.abs(e.clientY-down.y)>5)dragging=true;
       if(dragging){
-        if(edgeDrag&&downBtn===0){const u=pickTile(e.clientX,e.clientY); // étirement du bord : la bordure suit le curseur
+        if(dragEnt&&downBtn===0){const u=pickTile(e.clientX,e.clientY); // drag & drop : l'entité suit le curseur de case en case
+          if(u&&tiles[u.x]&&tiles[u.x][u.y].visible){hoverCell={x:u.x,y:u.y};const w=worldPos(u.x,u.y);
+            if(dragEnt.ent.t==='ally')dragEnt.ent.a.obj.userData.tp=w;else dragEnt.ent.e.tp=w;
+            renderer.domElement.style.cursor='grabbing';refreshTiles();}}
+        else if(edgeDrag&&downBtn===0){const u=pickTile(e.clientX,e.clientY); // étirement du bord : la bordure suit le curseur
           if(u){let w=state.mapW,h=state.mapH;
             if(edgeDrag.w)w=2*Math.abs(u.x-HALF)+1;
             if(edgeDrag.h)h=2*Math.abs(u.y-HALF)+1;
@@ -1207,13 +1216,22 @@
         else panBy(e.movementX||0,e.movementY||0);}}
     else{const u=pickTile(e.clientX,e.clientY);hoverCell=u?{x:u.x,y:u.y}:null;
       if(state.mode==='move'&&hoverCell&&state.reach&&state.reach.has(key(hoverCell.x,hoverCell.y))){const p=pathTo(hoverCell.x,hoverCell.y);state.hoverPath=p?new Set(p.map(c=>key(c.x,c.y))):null;}else state.hoverPath=null;
-      const eg=hoverCell?edgeAt(hoverCell.x,hoverCell.y):null; // au bord de la zone → curseur d'étirement
-      renderer.domElement.style.cursor=eg?(eg.w&&eg.h?'nwse-resize':eg.w?'ew-resize':'ns-resize'):'';
+      const eg=hoverCell?edgeAt(hoverCell.x,hoverCell.y):null; // au bord de la zone → curseur d'étirement ; sur une entité → main (drag & drop)
+      renderer.domElement.style.cursor=eg?(eg.w&&eg.h?'nwse-resize':eg.w?'ew-resize':'ns-resize'):(hoverCell&&entityAt(hoverCell.x,hoverCell.y)?'grab':'');
       refreshTiles();updateHoverHp();updateCellCount();}});
   window.addEventListener('pointerup',e=>{
+    if(down&&dragEnt&&dragging&&downBtn===0){const d=dragEnt;dragEnt=null; // DÉPÔT du drag & drop
+      const u=pickTile(e.clientX,e.clientY),ent=d.ent;
+      const self=u&&u.x===d.fromX&&u.y===d.fromY;
+      const okAlly=!u||ent.t!=='ally'||allyCellOk(u.x,u.y); // en Donjon (préparation) : persos sur cases bleues uniquement
+      if(u&&!self&&tiles[u.x][u.y].visible&&!blocked(u.x,u.y)&&!entityAt(u.x,u.y)&&okAlly){
+        moveEntity(ent,u.x,u.y);toast((ent.t==='ally'?('🔵 Perso '+(ent.a.id+1)):(ent.e.name||'Monstre'))+' déplacé en '+u.x+','+u.y+'.');}
+      else{if(ent.t==='ally')syncAlly(ent.a);else syncEnemy(ent.e); // case invalide → retour à la case d'origine
+        if(u&&!self)toast('Case invalide — retour à la case de départ.');}
+      renderer.domElement.style.cursor='';refreshTiles();refreshHUD();down=null;edgeDrag=null;return;}
     if(down&&edgeDrag&&edgeDrag.moved)toast('🗺️ Carte : '+state.mapW+' × '+state.mapH+' cases.');
     else if(down&&!dragging&&downBtn===0){const u=pickTile(e.clientX,e.clientY);if(u)onTileClick(u);}
-    down=null;edgeDrag=null;});
+    down=null;edgeDrag=null;dragEnt=null;});
   renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();radius=Math.max(8,Math.min(60,radius+Math.sign(e.deltaY)*2));updateCam();},{passive:false});
 
   const TIPS_DJ=['✅ Tuer les mobs avant le Comte.','✅ Focus le Cycloïde en premier.','✅ Finir rapidement le Granduk une fois entamé.','✅ Au début de son tour, le Comte pose une grande glyphe en croix 3 de PO : si tu commences dessus, tu meurs.','✅ Ne pas compter sur les obstacles : Jacquemart frappe sans ligne de vue. (Portée : 1 à 4 cases)','✅ Plus le Comte est bas en vie, plus il devient menaçant.'];
