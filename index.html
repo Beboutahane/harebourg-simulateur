@@ -312,7 +312,7 @@
 <div id="toast"></div>
 <div id="hoverHp"><div class="hhn" id="hhName"></div><div class="hhbar"><i id="hhFill"></i></div><div class="hhv" id="hhVal"></div></div>
 <div id="cellCount"></div>
-<div id="ctxMenu"><button id="ctxDead">☠ Mort — retirer du terrain</button></div>
+<div id="ctxMenu"><button id="ctxComte" style="display:none;color:#8fe4ff">🔷 Transformer en Comte</button><button id="ctxDead">☠ Mort — retirer du terrain</button></div>
 <div id="placeMenu"><button id="pmAlly">🔵 Poser un allié</button><button id="pmEnemy">🔴 Poser un ennemi</button></div>
 <div id="retreatBox" class="hud card">
   <h2>🏳️ Abandonner le combat ?</h2>
@@ -527,8 +527,7 @@
     }else{state.obstacles=new Set();state.voids=computeSongeVoids();state.startCells=null;} // Songe : zone jouable réglable mapW×mapH, placement libre
     state._baseVoids=new Set(state.voids);
     for(let x=0;x<N;x++)for(let y=0;y<N;y++)tiles[x][y].visible=!state.voids.has(key(x,y));
-    if(state.phase==='setup'){const tc=[HALF,HALF-4];state._countX=tc[0];state._countY=tc[1];state._countPlaced=true; // le Comte est obligatoire, toujours pré-placé
-      if(!state._ghost){state._ghost=spriteEntity(COMTE_IMG,0x8fe4ff,0x8fe4ff,SC_COMTE);scene.add(state._ghost);}state._ghost.position.copy(worldPos(tc[0],tc[1]));}
+    state._countPlaced=false;if(state._ghost)state._ghost.visible=false; // plus de Comte pré-posé : il apparaît en TRANSFORMANT un Poutch (clic droit)
     pl.color.setHex(a.light);amb.color.setHex(a.amb);snow.visible=a.snow;
     document.body.style.background=
       'radial-gradient(1100px 600px at 12% -8%, rgba(120,180,255,.16), transparent 60%),linear-gradient(160deg,'+a.bg+',#050a14)';
@@ -623,22 +622,19 @@
   /* ---- enemy spawning ---- */
   const COMTE_IMG=API+'/img/monsters/993.png';
   function spawnEnemies(){
-    // le Comte (fantôme) devient une vraie entité ; on GARDE les monstres déjà là (défauts DJ + ajouts manuels)
+    // Plus de Comte automatique : on GARDE simplement les monstres déjà posés (défauts DJ + ajouts manuels).
+    // Le Comte entre en jeu en TRANSFORMANT un Poutch (clic droit) au moment où il apparaît dans le vrai combat.
     state.enemies=state.enemies.filter(e=>{if(e.kind==='count'){if(e.obj)scene.remove(e.obj);return false;}return true;});
-    const B=BOSSES[state.map]||{name:'Comte Harebourg',img:COMTE_IMG,hp:3000};
-    const cE={id:'count',name:B.name,kind:'count',hp:B.hp,hpMax:B.hp,speed:2,dmg:150,x:state._countX,y:state._countY,img:B.img||null,ring:0x8fe4ff,search:B.search,alive:true,vulnerable:false};
-    cE.obj=spriteEntity(cE.img,0x8fe4ff,0x8fe4ff,SC_COMTE);cE.tp=worldPos(cE.x,cE.y);cE.obj.position.copy(cE.tp);scene.add(cE.obj);state.enemies.push(cE);
-    cE.obj.userData.invuln=invulnTag();cE.obj.add(cE.obj.userData.invuln); // état 🛡️ visible tant qu'il n'est pas délock
-    if(!cE.img&&cE.search)fetchMobImg(cE);
-    // invocations par défaut : seulement si AUCUN autre monstre déjà présent (Songe vierge) — en DJ ils sont déjà posés
-    if(state.withInvocs&&!state.enemies.some(e=>e.kind!=='count')){
-      [{kind:'cyclo',name:'Cycloïde',hp:220,dmg:60,ring:0xb98cff,search:'givrefoux'},
-       {kind:'granduk',name:'Sinistrofu',hp:180,dmg:60,ring:0xf5b06b,search:'sinistrofu'}].forEach(sp=>{
-        const c=freeNear(state._countX,state._countY,state.enemies);
-        const e={id:sp.kind+Date.now()+Math.floor(Math.random()*1e4),name:sp.name,kind:sp.kind,hp:sp.hp,hpMax:sp.hp,speed:2,dmg:sp.dmg,ring:sp.ring,search:sp.search,alive:true,x:c.x,y:c.y,img:null};
-        e.obj=spriteEntity(null,sp.ring,sp.ring,SC_MOB);e.tp=worldPos(c.x,c.y);e.obj.position.copy(e.tp);scene.add(e.obj);state.enemies.push(e);fetchMobImg(e);});
-    }
   }
+  function transformToComte(e){ // clic droit sur un Poutch → il DEVIENT le Comte Harebourg
+    if(!e||!e.alive||comte())return;
+    const B=BOSSES[state.map]||{name:'Comte Harebourg',img:COMTE_IMG,hp:3000};
+    e.name=B.name;e.kind='count';e.friendly=false;e.hp=B.hp;e.hpMax=B.hp;e.vulnerable=false;e.ring=0x8fe4ff;e.dmg=150;e.search=B.search||null;e.img=B.img||COMTE_IMG;
+    if(e.obj)scene.remove(e.obj);
+    e.obj=spriteEntity(e.img,0x8fe4ff,0x8fe4ff,SC_COMTE);e.tp=worldPos(e.x,e.y);e.obj.position.copy(e.tp);scene.add(e.obj);
+    e.obj.userData.invuln=invulnTag();e.obj.add(e.obj.userData.invuln); // état 🛡️ tant qu'il n'est pas délock
+    if(!e.img&&e.search)fetchMobImg(e);
+    refreshTiles();refreshHUD();toast('🔷 Le Poutch se transforme : le COMTE HAREBOURG est là !');}
   function fetchMobImg(e){fetch(API+'/monsters?slug.fr[$search]='+encodeURIComponent(e.search)+'&$limit=1&lang=fr').then(r=>r.json())
     .then(d=>{const m=d.data&&d.data[0];if(m&&m.img){e.name=m.name.fr||e.name;texLoader.load(m.img,t=>{e.obj.userData.mat.map=t;e.obj.userData.mat.color.setHex(0xffffff);e.obj.userData.mat.needsUpdate=true;refreshHUD();});}}).catch(()=>{});}
   function freeNear(cx,cy,taken){for(let r=1;r<6;r++)for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++){const x=cx+dx,y=cy+dy;
@@ -658,7 +654,8 @@
   function status(t){const s=document.getElementById('status');if(!t){s.classList.remove('show');return;}s.textContent=t;s.classList.add('show');}
   async function loadBreeds(){
     try{const r=await fetch(API+'/breeds?$limit=50');const d=await r.json();
-      const bs=(d.data||[]).sort((a,b)=>(a.sortIndex||0)-(b.sortIndex||0)).map(b=>({id:b.id,name:(b.shortName&&b.shortName.fr)||('Classe '+b.id),spellIds:b.breedSpellsId||[],head:(b.heads&&(b.heads.male||b.heads.female))||b.img}));
+      const bs=(d.data||[]).sort((a,b)=>(a.sortIndex||0)-(b.sortIndex||0)).map(b=>({id:b.id,name:(b.shortName&&b.shortName.fr)||('Classe '+b.id),spellIds:b.breedSpellsId||[],head:(b.heads&&(b.heads.male||b.heads.female))||b.img}))
+        .filter(b=>b.id===9); // SEULE classe conservée : Crâ (demande utilisateur)
       state.breeds=bs;refreshHUD();return true; // refreshHUD → renderTeam : peuple les listes de classe des cartes d'alliés
     }catch(e){state.breeds=[];refreshHUD();return false;}
   }
@@ -881,11 +878,11 @@
   function updateHints(){const m=el('hintMsg');if(!m)return; // panneau « Que faire ? » retiré
     if(state.phase==='setup'){const nb=placedAllies().length,banner=el('setupMsg');
       if(banner)banner.innerHTML=nb
-        ? '✓ '+nb+' perso'+(nb>1?'s':'')+' placé'+(nb>1?'s':'')+' · ② « ＋ Ajouter un allié » (max 4), place tes monstres, ou <b style="color:var(--ok)">▶ Démarrer</b> · Comte 🔷 obligatoire'
-        : '① <b style="color:var(--frost)">🏰 DJ ou 🌙 Songe ?</b> (en bas à gauche) · ② clique une case pour placer <b style="color:var(--frost)">un perso</b> 🔵 · le Comte 🔷 est déjà là';
+        ? '✓ '+nb+' perso'+(nb>1?'s':'')+' placé'+(nb>1?'s':'')+' · ② ajoute des alliés/monstres (clic droit = poser), puis <b style="color:var(--ok)">▶ Démarrer</b> · le Comte : transforme un Poutch 🔷 (clic droit)'
+        : '① <b style="color:var(--frost)">🏰 DJ ou 🌙 Songe ?</b> (en bas à gauche) · ② clique une case pour placer <b style="color:var(--frost)">un perso</b> 🔵 · clic droit = poser Crâ/Poutch, et transformer un Poutch en Comte 🔷';
       m.innerHTML=nb
-        ? '<b>'+nb+' perso'+(nb>1?'s placés':' placé')+'.</b> Ajoute des alliés (max 4) avec ＋, choisis la classe de chacun, place des monstres (🔎), puis <b>Démarrer</b>.'
-        : '<b>Choisis d\'abord :</b> 🏰 <b>DJ</b> (map du donjon recréée avec ses obstacles) ou 🌙 <b>Songe</b> (grande map vide, construis-la avec ✏️). Puis clique une case pour placer un perso 🔵. Le Comte 🔷 est déjà là.';
+        ? '<b>'+nb+' perso'+(nb>1?'s placés':' placé')+'.</b> Clic droit sur une case = poser un Crâ allié ou un Poutch ; clic droit sur un Poutch = le transformer en Comte. Puis <b>Démarrer</b>.'
+        : '<b>Choisis d\'abord :</b> 🏰 <b>DJ</b> ou 🌙 <b>Songe</b>. Clique une case pour placer un perso 🔵 · clic droit = poser Crâ/Poutch, transformer un Poutch en Comte 🔷.';
       return;}
     if(state.phase==='over'){m.textContent='Combat terminé.';return;}
     const C=comte(),invAlive=state.enemies.some(e=>e.kind!=='count'&&e.alive),noClass=!state.classSpells||!state.classSpells.length;
@@ -1177,7 +1174,8 @@
     if(dragging){return;} // c'était une rotation caméra (clic droit glissé)
     const u=pickTile(e.clientX,e.clientY),ent=u?entityAt(u.x,u.y):null;
     el('ctxMenu').classList.remove('show');el('placeMenu').classList.remove('show');ctxEnemy=null;placeCell=null;
-    if(ent&&ent.t==='enemy'){ctxEnemy=ent.e;const m=el('ctxMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');}
+    if(ent&&ent.t==='enemy'){ctxEnemy=ent.e;const m=el('ctxMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');
+      el('ctxComte').style.display=(ent.e.name==='Poutch'&&ent.e.alive&&!comte())?'':'none';} // transformer un Poutch en Comte (un seul Comte à la fois)
     else if(u&&!ent&&!blocked(u.x,u.y)){ // clic droit sur case LIBRE → poser un allié (bleu) ou un ennemi (rouge)
       placeCell={x:u.x,y:u.y};const m=el('placeMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');}});
   function spawnToken(friendly){ // pose rapide au clic droit : allié = Crâ (anneau bleu) ; ennemi = Poutch (anneau rouge)
@@ -1340,6 +1338,7 @@
     state.active=Math.min(state.active,state.allies.length-1);setActive(state.active);refreshHUD();toast('Allié retiré.');}
   el('addAlly').onclick=addAlly;
   el('ctxDead').onclick=()=>{killEnemyEntity(ctxEnemy);ctxEnemy=null;el('ctxMenu').classList.remove('show');};
+  el('ctxComte').onclick=()=>{transformToComte(ctxEnemy);ctxEnemy=null;el('ctxMenu').classList.remove('show');};
   el('pmAlly').onclick=()=>spawnToken(true);
   el('pmEnemy').onclick=()=>spawnToken(false);
   document.addEventListener('click',ev=>{if(!el('ctxMenu').contains(ev.target))el('ctxMenu').classList.remove('show');
@@ -1369,8 +1368,7 @@
     if(!e.img&&e.search)fetchMobImg(e);return e;}
   function restoreLaunch(){const s=state.launchSnap;if(!s){fullReset();return;}
     state.enemies.forEach(e=>{if(e.obj)scene.remove(e.obj);});state.enemies=[];clearPortals();clearTraps();
-    state._countX=s.cx;state._countY=s.cy;state._countPlaced=true; // le Comte redevient un fantôme repositionnable
-    if(!state._ghost){state._ghost=spriteEntity(COMTE_IMG,0x8fe4ff,0x8fe4ff,SC_COMTE);scene.add(state._ghost);}state._ghost.position.copy(worldPos(s.cx,s.cy));state._ghost.visible=true;
+    state._countPlaced=false;if(state._ghost)state._ghost.visible=false; // pas de Comte pré-posé : un Poutch du snapshot pourra être re-transformé
     s.allies.forEach((sa,i)=>{const a=state.allies[i];if(!a)return; // alliés : mêmes objets, on restaure classe/placement/vie de départ
       a.className=sa.cn;a.head=sa.head;a.classSpells=(sa.spells||[]).slice();a.hpMax=sa.hpMax;a.hp=sa.hpMax;a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;a.x=sa.x;a.y=sa.y;a.placed=sa.placed;
       applyAllyLook(a);syncAlly(a);if(a.obj){a.obj.position.copy(a.obj.userData.tp);a.obj.visible=a.placed;}});
