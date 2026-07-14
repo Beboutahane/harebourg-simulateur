@@ -319,7 +319,7 @@
 <div id="hoverHp"><div class="hhn" id="hhName"></div><div class="hhbar"><i id="hhFill"></i></div><div class="hhv" id="hhVal"></div></div>
 <div id="cellCount"></div>
 <div id="ctxMenu"><button id="ctxComte" style="display:none;color:#8fe4ff">🔷 Transformer en Comte</button><button id="ctxDead">☠ Mort — retirer du terrain</button></div>
-<div id="placeMenu"><button id="pmAlly">🔵 Poser un allié</button><button id="pmEnemy">🔴 Poser un ennemi</button></div>
+<div id="placeMenu"><button id="pmAlly">🔵 Ajouter un joueur (Crâ)</button><button id="pmEnemy">🔴 Poser un ennemi (Poutch)</button></div>
 <div id="retreatBox" class="hud card">
   <h2>🏳️ Abandonner le combat ?</h2>
   <p>Reviens au placement (compo, monstres, placement et initiative conservés) pour relancer, ou remets tout à zéro.</p>
@@ -726,9 +726,10 @@
     state.allies.forEach(a=>{if(!a.placed||a.hp<=0)return;
       const mx=2*a.x-C.x,my=2*a.y-C.y,kk=key(mx,my);
       if(seen.has(kk)||!inGrid(mx,my)||blocked(mx,my))return; // hors map / bloquée = pas réalisable
-      seen.add(kk);
       const occ=occupant(mx,my);
-      res.push({x:mx,y:my,via:'Perso '+(a.id+1),ready:!!occ, // ready = une entité est DÉJÀ sur la case miroir → cet allié peut frapper et délock tout de suite
+      if(occ&&occ.t==='enemy'&&!occ.e.friendly)return; // un ENNEMI occupe la case miroir → inutilisable : SEULS TES ALLIÉS peuvent délock
+      seen.add(kk);
+      res.push({x:mx,y:my,via:'Perso '+(a.id+1),ready:!!occ, // ready = un ALLIÉ / une entité AMIE est déjà sur la case miroir → frappe avec cet allié = délock
         who:occ?(occ.t==='ally'?('Perso '+(occ.a.id+1)):(occ.e.name||'entité')):null});});
     return res;}
   function pivotCell(){ // case PIVOT (miroir M=2P−C) de la position ACTUELLE du joueur actif : y poser/invoquer une entité = délock au prochain coup
@@ -738,6 +739,7 @@
     const mx=2*p.x-C.x,my=2*p.y-C.y;
     if(!inGrid(mx,my)||blocked(mx,my))return{x:mx,y:my,status:'invalid'};
     const o=occupant(mx,my);
+    if(o&&o.t==='enemy'&&!o.e.friendly)return{x:mx,y:my,status:'invalid'}; // un ENNEMI y est : inutilisable (seuls tes alliés délock)
     return{x:mx,y:my,status:o?'occupied':'free',who:o?(o.t==='ally'?('Perso '+(o.a.id+1)):(o.e.name||'une entité')):null};}
   function refreshTiles(){ // rendu À PLAT : chaque case = UNE couleur unie (bi-couleur, zéro effet de lumière)
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){const t=tiles[x][y],m=t.material;let c=t.userData.base;
@@ -988,8 +990,10 @@
     if(pair){const nx=2*state.player.x-e.x,ny=2*state.player.y-e.y;
       if(!inGrid(nx,ny)||blocked(nx,ny))toast('☠ Rotation du Comte IMPOSSIBLE (case bloquée) — dans le vrai combat, c\'est le WIPE !');
       else{const o=occupant(nx,ny),ox=e.x,oy=e.y;e.x=nx;e.y=ny;syncEnemy(e);
-        if(o){moveEnt(o,ox,oy); // ÉCHANGE de place avec l'entité (allié, invocation, monstre) : c'est CE changement de place qui le délock
-          if(!e.vulnerable){e.vulnerable=true;toast('🎯 Le Comte a ÉCHANGÉ sa place avec '+entName(o)+' → il est VULNÉRABLE !');}
+        if(o){moveEnt(o,ox,oy); // ÉCHANGE de place — mais SEULS TES ALLIÉS (persos + entités amies) déclenchent le délock
+          const mine=o.t==='ally'||(o.e&&o.e.friendly);
+          if(!e.vulnerable&&mine){e.vulnerable=true;toast('🎯 Le Comte a ÉCHANGÉ sa place avec '+entName(o)+' → il est VULNÉRABLE !');}
+          else if(!e.vulnerable)toast('🔀 Échange avec '+entName(o)+' (ENNEMI) — pas de délock : seuls tes alliés peuvent le rendre vulnérable.');
           else toast('🔀 Le Comte échange sa place avec '+entName(o)+'.');}
         else toast(e.vulnerable?'Le Comte pivote (case vide).':'↔️ Le Comte pivote sur une case VIDE — pas d\'échange d\'entité, il reste INVULNÉRABLE. Pose une entité (ex: Arakne) sur la case miroir !');}}
     else{const nx=2*e.x-state.player.x,ny=2*e.y-state.player.y;
@@ -1081,7 +1085,8 @@
     let swp='';const sw=swapPreviewInfo(); // qui pivote / échange si ce sort touche le Comte ?
     if(sw){const nm=o=>o.t==='ally'?('Perso '+(o.a.id+1)):(o.e.name||'une entité');let t;
       if(!sw.ok)t='☠ rotation impossible — WIPE !';
-      else if(sw.mover==='count')t=sw.swapWith?('🔀 le COMTE échange avec '+nm(sw.swapWith)+' → DÉLOCK !'):'↔️ le COMTE pivote (case vide : pas de délock)';
+      else if(sw.mover==='count'){const amie=sw.swapWith&&(sw.swapWith.t==='ally'||(sw.swapWith.e&&sw.swapWith.e.friendly));
+        t=sw.swapWith?('🔀 le COMTE échange avec '+nm(sw.swapWith)+(amie?' → DÉLOCK !':' (ennemi : PAS de délock)')):'↔️ le COMTE pivote (case vide : pas de délock)';}
       else t=sw.swapWith?('🔀 TU échanges ta place avec '+nm(sw.swapWith)):'🔁 TOI, tu pivotes de 180°';
       swp='<span>'+t+'</span>';}
     box.innerHTML='<b>'+tag+dist+' case'+(dist>1?'s':'')+'</b><span>'+parts.join('  ')+'</span>'+swp;
@@ -1157,7 +1162,7 @@
     if(o&&o.t==='enemy'&&mvMode){state.setupSel={t:'enemy',e:o.e};toast('👹 '+(o.e.name||'Monstre')+' sélectionné — clique sa case de destination.');refreshTiles();return;}
     if(state.mode==='enemyMove')return; // tour des monstres : pas de déplacement d'allié ni de sort
     if(o&&o.t==='ally'&&o.a!==state.player){setActive(state.allies.indexOf(o.a));toast('🔵 Perso '+(o.a.id+1)+' actif.');return;} // clic sur un autre allié = le contrôler
-    if(state.mode==='move'){doMoveTo(u.x,u.y);return;}
+    // (plus de déplacement au clic : les alliés se déplacent par DRAG & DROP)
     if(state.mode==='swap'){if(o&&o.t==='enemy'&&state.targets.has(key(u.x,u.y))){swapClick(o.e);return;}
       restMove();refreshTiles();refreshHUD();return;}
     if(state.mode==='spell'){if(state.targets.has(key(u.x,u.y))){castCell(u.x,u.y);return;}
@@ -1191,12 +1196,19 @@
       el('ctxComte').style.display=(ent.e.name==='Poutch'&&ent.e.alive&&!comte())?'':'none';} // transformer un Poutch en Comte (un seul Comte à la fois)
     else if(u&&!ent&&!blocked(u.x,u.y)){ // clic droit sur case LIBRE → poser un allié (bleu) ou un ennemi (rouge)
       placeCell={x:u.x,y:u.y};const m=el('placeMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');}});
-  function spawnToken(friendly){ // pose rapide au clic droit : allié = Crâ (anneau bleu) ; ennemi = Poutch (anneau rouge)
+  function spawnToken(friendly){ // clic droit : allié = NOUVEAU JOUEUR Crâ (rejoint l'équipe) ; ennemi = Poutch (entité)
     if(!placeCell)return;const{x,y}=placeCell;placeCell=null;el('placeMenu').classList.remove('show');
     if(entityAt(x,y)||blocked(x,y)){toast('Case occupée ou bloquée.');return;}
-    spawnMobFrom({name:friendly?'Crâ (allié)':'Poutch',kind:friendly?'invoc':'mob',friendly,hpMax:500,
-      ring:friendly?0x4db2ff:0xff5b5b,x,y,img:API+'/img/monsters/'+(friendly?93:278)+'.png'}); // Dopeul Crâ / Poutch Ingball (DofusDB)
-    refreshTiles();refreshHUD();toast((friendly?'🔵 Crâ allié':'🔴 Poutch')+' posé en '+x+','+y+' (clic droit dessus pour le retirer).');}
+    if(friendly){ // un VRAI joueur ajouté à l'équipe (vignette, classe Crâ, contrôlable), placé sur la case
+      if(state.allies.length>=8){toast('Maximum 8 persos.');return;}
+      if(!allyCellOk(x,y)){toast('🔵 En Donjon, les personnages se placent sur les cases bleues.');return;}
+      const i=state.allies.length,a=makeAlly(i);state.allies.push(a);
+      a.obj=buildAllyObj(i);a.x=x;a.y=y;a.placed=true;syncAlly(a);a.obj.position.copy(a.obj.userData.tp);a.obj.visible=true;
+      if(state.phase==='playing'){a.hp=a.hpMax;a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;}
+      setActive(i);selectClass(9); // Crâ (la seule classe) : tête + sorts + corps entier chargés
+      refreshTiles();refreshHUD();toast('🔵 Joueur '+(i+1)+' (Crâ) ajouté à l\'équipe en '+x+','+y+'.');return;}
+    spawnMobFrom({name:'Poutch',kind:'mob',friendly:false,hpMax:500,ring:0xff5b5b,x,y,img:API+'/img/monsters/278.png'}); // Poutch Ingball (DofusDB)
+    refreshTiles();refreshHUD();toast('🔴 Poutch posé en '+x+','+y+' (clic droit dessus pour le retirer).');}
   function killEnemyEntity(e){if(!e)return;if(e.obj)scene.remove(e.obj);e.alive=false;state.enemies=state.enemies.filter(x=>x!==e);
     if(state.initiative)state.initiative=state.initiative.filter(it=>it.t!=='enemy'||it.e!==e);toast((e.name||'Monstre')+' retiré (mort).');refreshTiles();refreshHUD();}
   renderer.domElement.addEventListener('pointermove',e=>{
@@ -1214,7 +1226,7 @@
         else if(downBtn===2){theta-=(e.movementX||0)*0.005;if(state.view!=='iso')phi=Math.max(0.25,Math.min(1.3,phi-(e.movementY||0)*0.005));updateCam();}
         else panBy(e.movementX||0,e.movementY||0);}}
     else{const u=pickTile(e.clientX,e.clientY);hoverCell=u?{x:u.x,y:u.y}:null;
-      if(state.mode==='move'&&hoverCell&&state.reach&&state.reach.has(key(hoverCell.x,hoverCell.y))){const p=pathTo(hoverCell.x,hoverCell.y);state.hoverPath=p?new Set(p.map(c=>key(c.x,c.y))):null;}else state.hoverPath=null;
+      state.hoverPath=null; // plus de prévisualisation de chemin : le déplacement se fait par DRAG & DROP uniquement
       const eg=hoverCell?edgeAt(hoverCell.x,hoverCell.y):null; // au bord de la zone → curseur d'étirement ; sur une entité → main (drag & drop)
       renderer.domElement.style.cursor=eg?(eg.w&&eg.h?'nwse-resize':eg.w?'ew-resize':'ns-resize'):(hoverCell&&entityAt(hoverCell.x,hoverCell.y)?'grab':'');
       refreshTiles();updateHoverHp();updateCellCount();}});
