@@ -620,7 +620,39 @@
     x.lineWidth=7;x.strokeStyle='rgba(255,255,255,.8)';x.stroke();
     x.fillStyle='#06121f';x.font='bold 60px Segoe UI';x.textAlign='center';x.textBaseline='middle';x.fillText(label,64,70);
     return new THREE.CanvasTexture(c);}
-  const PERSO_NAME='Beboucafe'; // nom affiché de TES persos (l'apparence, elle, vient du Dopeul de la classe — cf. fetchClassBody)
+  const PERSO_NAME='Beboucafe'; // nom affiché de TES persos
+  /* ---- PLANCHE DU PERSO (perso-planche.png, 3 vues × 2 rangées) : on en découpe UNE ----
+     La planche est DÉJÀ détourée (canal alpha) → aucun effacement à faire, juste un recadrage sur le personnage.
+     ⚠️ Ne PAS détourer par propagation de couleur ici : le contour du perso est noir, exactement comme le fond
+     transparent (rgb 0,0,0) → on lui mangerait son trait. C'est l'ALPHA qui fait foi. */
+  const SHEET_URL='perso-planche.png', SHEET_COLS=3, SHEET_ROWS=2, SHEET_COL=1, SHEET_ROW=0; // vue 3/4 face (haut, milieu) : la mieux orientée pour l'isométrique
+  let sheetTex=null,sheetTried=false;const sheetWaiters=[];
+  function cutSheet(im){
+    const cw=Math.floor(im.width/SHEET_COLS),ch=Math.floor(im.height/SHEET_ROWS);
+    const c=document.createElement('canvas');c.width=cw;c.height=ch;
+    const x=c.getContext('2d',{willReadFrequently:true});
+    x.drawImage(im,SHEET_COL*cw,SHEET_ROW*ch,cw,ch,0,0,cw,ch);
+    const p=x.getImageData(0,0,cw,ch).data;
+    let x0=cw,y0=ch,x1=-1,y1=-1; // bounding box des pixels VISIBLES
+    for(let py=0;py<ch;py++)for(let px=0;px<cw;px++){if(p[(py*cw+px)*4+3]>16){
+      if(px<x0)x0=px;if(px>x1)x1=px;if(py<y0)y0=py;if(py>y1)y1=py;}}
+    if(x1<x0||y1<y0)return new THREE.CanvasTexture(c); // cellule vide : on rend la découpe telle quelle
+    const pad=3,ax=Math.max(0,x0-pad),ay=Math.max(0,y0-pad),aw=Math.min(cw-1,x1+pad)-ax+1,ah=Math.min(ch-1,y1+pad)-ay+1;
+    const o=document.createElement('canvas');o.width=aw;o.height=ah;
+    o.getContext('2d').drawImage(c,ax,ay,aw,ah,0,0,aw,ah);
+    const t=new THREE.CanvasTexture(o);t.userData={ratio:aw/ah};return t;}
+  function loadSheet(cb){ // chargée UNE fois, partagée par tous les persos ; si le fichier manque → repli Dopeul
+    if(sheetTex)return cb(sheetTex);
+    sheetWaiters.push(cb);if(sheetTried)return;sheetTried=true;
+    const im=new Image();
+    im.onload=()=>{try{sheetTex=cutSheet(im);}catch(e){sheetTex=null;}
+      if(sheetTex&&renderer.capabilities)sheetTex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+      if(sheetTex)sheetWaiters.splice(0).forEach(f=>f(sheetTex));};
+    im.onerror=()=>{sheetWaiters.length=0;};
+    im.src=SHEET_URL;}
+  function applySheet(g,mat,spr){loadSheet(t=>{mat.map=t;mat.color.setHex(0xffffff);mat.needsUpdate=true;
+    g.userData.hasPerso=true; // priorité sur le Dopeul DofusDB
+    const r=(t.userData&&t.userData.ratio)||0.55;spr.scale.set(1.5*r,1.5,1);spr.position.y=0.9;});}
   function buildAllyObj(i){const col=allyColors[i];
     const g=new THREE.Group();
     const sh=new THREE.Mesh(new THREE.CircleGeometry(0.36,24),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.34,depthWrite:false}));
@@ -633,7 +665,7 @@
     g.add(ring(RING_ALLY)); // allié = anneau bleu
     const img='perso'+(i===0?'':(i+1))+'.png';
     texLoader.load(img,t=>{if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();mat.map=t;mat.needsUpdate=true;g.userData.hasPerso=true;spr.scale.set(1.25,1.25,1);spr.position.y=0.88;},
-      undefined,()=>{}); // pas de persoN.png dédié → apparence par défaut : le Dopeul de la classe (applyAllyLook)
+      undefined,()=>applySheet(g,mat,spr)); // pas de persoN.png dédié → la PLANCHE ; si elle manque aussi → Dopeul de la classe (applyAllyLook)
     g.userData.spr=spr;g.userData.mat=mat;g.userData.ally=i;g.visible=false;scene.add(g);return g;}
   function applyAllyLook(a){if(!a.obj)return;const mat=a.obj.userData.mat,spr=a.obj.userData.spr;
     if(a.obj.userData.hasPerso)return; // l'utilisateur a fourni persoN.png → priorité
