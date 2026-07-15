@@ -543,9 +543,35 @@
   for(let i=0;i<SNOW;i++){snowPos[i*3]=(Math.random()-.5)*30;snowPos[i*3+1]=Math.random()*18;snowPos[i*3+2]=(Math.random()-.5)*30;}
   snowGeo.setAttribute('position',new THREE.BufferAttribute(snowPos,3));
   const snow=new THREE.Points(snowGeo,new THREE.PointsMaterial({color:0xcfeaff,size:0.08,transparent:true,opacity:.7}));scene.add(snow);
-  // Map du DJ (recréée d'après la vraie salle) : blocs 2x2 / 3x2 / 1x1 + trous, sur une arène octogonale
-  const DJ_OBS=[[0,0], [-4,-2],[-5,-2], [-4,2],[-3,2], [4,-1],[5,-1], [1,4]]; // reproduction réf. : bloc central + 4 blocs (HL, gauche, droite, bas)
-  const DJ_HOLES=[[-2,-3], [-6,0], [-3,3], [3,1], [6,-1], [0,5], [4,3]]; // trous répartis comme la réf.
+  // ===== SALLE DU COMTE (Donjon) : relevé case par case de la vraie salle, fait à la main par l'utilisateur =====
+  // Une ligne = un y (0 en haut), un caractère = un x.  '#' = sol · 'X' = sol + bloc · '.' = vide ou trou.
+  // C'est LA map de référence du Donjon : la modifier ici change la salle par défaut (284 cases, 20 blocs).
+  const DJ_MAP=[
+    '.........................',
+    '.........................',
+    '.........................',
+    '..........####...........',
+    '........########.........',
+    '......############.......',
+    '.....########.#####......',
+    '....#########XX#####.....',
+    '....#########XX#####.....',
+    '...##########..#####X....',
+    '...##################....',
+    '..XX.#################...',
+    '..XX#######XX#########...',
+    '..#########XX#########...',
+    '..####################...',
+    '...##################....',
+    '...##################....',
+    '....###XXX.#########.....',
+    '....###XXX.#####.###.....',
+    '.....###########X##......',
+    '......############.......',
+    '.........#######.........',
+    '..........####...........',
+    '.........................',
+    '.........................'];
   // Monstres présents de base avec le Comte en donjon (près de lui, repositionnables à volonté)
   // Salle finale B4 : le Comte + Cycloïde, Granduk, Nocturlabe (les 3 mécanismes de l'horloge), regroupés en haut de la salle
   const DJ_MOBS=[{kind:'cyclo',name:'Cycloïde',hp:6000,dmg:70,ring:0xb98cff,search:'cycloide',dx:-2,dy:-5},
@@ -573,11 +599,11 @@
   function applyAmbiance(){ // GÉNÈRE le terrain de la carte courante (1re visite / remise à zéro) puis le dessine
     state.enemies.forEach(e=>{if(e.obj)scene.remove(e.obj);});state.enemies=[]; // (re)construire la map = repartir sur les monstres par défaut
     state.voids=new Set();
-    if(state.map==='dj'){ // DJ = map du donjon recréée ; Songe = grande map vide à construire
-      state.obstacles=new Set(DJ_OBS.map(([dx,dy])=>key(HALF+dx,HALF+dy)));
-      for(let x=0;x<N;x++)for(let y=0;y<N;y++){const ddx=Math.abs(x-HALF),ddy=Math.abs(y-HALF);
-        if(ddx+ddy>10||ddx>7||ddy>7)state.voids.add(key(x,y));} // arène octogonale
-      DJ_HOLES.forEach(([dx,dy])=>state.voids.add(key(HALF+dx,HALF+dy)));
+    if(state.map==='dj'){ // DJ = la vraie salle, lue case par case dans DJ_MAP ; Songe = grande map vide à construire
+      state.obstacles=new Set();
+      for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=(DJ_MAP[y]||'')[x]||'.';
+        if(c==='.')state.voids.add(key(x,y)); // vide / trou
+        else if(c==='X')state.obstacles.add(key(x,y));} // bloc posé sur du sol
       state.startCells=new Set(DJ_START.map(([dx,dy])=>key(HALF+dx,HALF+dy)).filter(k=>!state.obstacles.has(k)&&!state.voids.has(k))); // cases bleues = placement des persos (Donjon)
     }else{state.obstacles=new Set();state.voids=computeSongeVoids();state.startCells=null;} // Songe : zone jouable réglable mapW×mapH, placement libre
     state._baseVoids=new Set(state.voids);
