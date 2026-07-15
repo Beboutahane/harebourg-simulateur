@@ -263,15 +263,27 @@
   .tltok.ally{cursor:pointer}
   .tltok.act{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)!important}
   .tltok.dead{opacity:.3;filter:grayscale(1)}
+  /* Vignette de survol façon Dofus : blason + guilde (vert) + pseudo (or). Les monstres n'ont ni blason ni guilde → seule la classe .joueur les affiche. */
   #hoverHp{position:absolute;z-index:8;display:none;transform:translate(-50%,-100%);pointer-events:none;background:rgba(8,18,32,.94);border:1px solid var(--border-strong);border-radius:8px;padding:4px 8px;min-width:86px;text-align:center;box-shadow:0 6px 16px rgba(0,8,20,.5)}
   #hoverHp.show{display:block}
+  #hoverHp .hhtop{display:flex;align-items:center;justify-content:center;gap:8px}
+  #hoverHp.joueur .hhtop{justify-content:flex-start}
+  #hoverHp .hhblz,#hoverHp .hhg{display:none} /* réservés aux persos joués */
+  #hoverHp.joueur .hhblz{display:block;width:36px;height:36px;flex:0 0 auto}
+  #hoverHp.joueur .hhg{display:block}
+  #hoverHp .hhtx{display:flex;flex-direction:column;align-items:flex-start;line-height:1.12;min-width:0}
+  #hoverHp .hhg{font-family:var(--display);font-size:12px;font-weight:700;color:#86e05c;letter-spacing:.2px;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.8)} /* nom de guilde : vert, comme en jeu */
+  #hoverHp .hhn{font-family:var(--display);font-size:19px;color:#fff;font-weight:800;letter-spacing:.3px;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85)} /* le pseudo, en GROS */
+  #hoverHp.joueur .hhn{color:#ffd24a} /* or Dofus */
+  #hoverHp.joueur .hhbar,#hoverHp.joueur .hhv{margin-left:44px} /* alignés sous le pseudo, pas sous le blason */
+  #hoverHp.joueur .hhv{text-align:left}
   #cellCount{position:absolute;z-index:8;display:none;transform:translate(-50%,-100%);pointer-events:none;background:rgba(10,26,44,.95);border:1px solid var(--ice);border-radius:8px;padding:3px 9px;text-align:center;box-shadow:0 6px 16px rgba(0,8,20,.55)}
   #cellCount.show{display:block}
   #cellCount b{font-family:var(--display);font-size:13.5px;color:#fff;white-space:nowrap}
   #cellCount span{display:block;font-size:12px;color:var(--ice);font-weight:800;margin-top:1px;white-space:nowrap;letter-spacing:1px}
   #cellCount span.mort{color:#ff5566;letter-spacing:.3px} /* rotation impossible = mort : le message doit sauter aux yeux */
   #cellCount.danger{border-color:#ff5566;background:rgba(52,10,16,.96);box-shadow:0 0 14px rgba(255,85,102,.5)}
-  #hoverHp .hhn{font-family:var(--display);font-size:15px;color:#fff;font-weight:800;letter-spacing:.3px;white-space:nowrap;margin-bottom:4px} /* le NOM, en gros */
+  #hoverHp .hhtop{margin-bottom:4px} /* (le style du nom est plus haut, avec le blason et la guilde) */
   #hoverHp .hhbar{position:relative;height:8px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
   #hoverHp .hhbar>i{display:block;height:100%;width:100%}
   #hoverHp .hhbar::after{content:'';position:absolute;inset:0;pointer-events:none; /* graduations par QUART : 25 / 50 / 75 % */
@@ -382,7 +394,24 @@
 </div>
 
 <div id="toast"></div>
-<div id="hoverHp"><div class="hhn" id="hhName"></div><div class="hhbar"><i id="hhFill"></i></div><div class="hhv" id="hhVal"></div></div>
+<!-- Vignette de survol : pour un perso joué, présentation Dofus = blason + guilde + pseudo. Blason REDESSINÉ en SVG (soleil cyan sur écu bleu nuit) d'après le blason Neo Midgard. -->
+<div id="hoverHp">
+  <div class="hhtop">
+    <span class="hhblz">
+      <svg viewBox="0 0 40 40" width="36" height="36" aria-hidden="true">
+        <circle cx="20" cy="20" r="18.4" fill="#0c1a2e" stroke="#c9d8e6" stroke-width="2.2"/>
+        <path d="M20 6 L22.49 13.99 L29.9 10.1 L26.01 17.51 L34 20 L26.01 22.49 L29.9 29.9 L22.49 26.01 L20 34 L17.51 26.01 L10.1 29.9 L13.99 22.49 L6 20 L13.99 17.51 L10.1 10.1 L17.51 13.99 Z" fill="#3fc9f0"/>
+        <circle cx="20" cy="20" r="5.6" fill="#bff0ff"/>
+      </svg>
+    </span>
+    <span class="hhtx">
+      <span class="hhg">Neo Midgard</span>
+      <span class="hhn" id="hhName"></span>
+    </span>
+  </div>
+  <div class="hhbar"><i id="hhFill"></i></div>
+  <div class="hhv" id="hhVal"></div>
+</div>
 <div id="cellCount"></div>
 <div id="ctxMenu"><button id="ctxComte" style="display:none;color:#8fe4ff">🔷 Transformer en Comte</button><button id="ctxDead">☠ Mort — retirer du terrain</button></div>
 <div id="placeMenu"><button id="pmEnemy">🔴 Poser un ennemi (Poutch)</button><button id="pmComte" style="color:#8fe4ff"><img class="pmico" src="https://api.dofusdb.fr/img/items/16362.png" alt="" onerror="this.replaceWith('🔷')">Poser le Comte</button></div>
@@ -663,9 +692,9 @@
     x.fillStyle='#06121f';x.font='bold 60px Segoe UI';x.textAlign='center';x.textBaseline='middle';x.fillText(label,64,70);
     return new THREE.CanvasTexture(c);}
   /* ---- BASE DES PERSOS : un nom = un jeu de 4 vues (fichiers <pre>bd/bg/hg/hd.png) ----
-     Perso 1 = Beboucafe, Perso 2 = Mikassa-Ackerman, puis on recommence. Si les images d'un perso
+     Perso 1 = Mika, Perso 2 = Beboucafe, puis on recommence. Si les images d'un perso
      manquent, il garde simplement l'apparence par défaut (Dopeul) : rien ne casse. */
-  const SKINS=[{name:'Mikassa-Ackerman',pre:'mika-'},{name:'Beboucafe',pre:'bebou-'}]; // Perso 1 = Mikassa, Perso 2 = Beboucafe, puis on alterne
+  const SKINS=[{name:'Mika sans mérite',pre:'mika-'},{name:'Beboucafe Le Goat',pre:'bebou-'}]; // Perso 1 = Mika, Perso 2 = Beboucafe, puis on alterne (le `pre` = les fichiers PNG, il ne bouge pas quand le pseudo change)
   const skinOf=a=>SKINS[(a.id||0)%SKINS.length];
   /* ---- SKIN DU PERSO : 4 vues (déjà détourées, 300×500) — il REGARDE toujours le Comte ----
      Les fichiers sont nommés d'après la direction ÉCRAN vers laquelle il regarde, en repères isométriques :
@@ -1365,6 +1394,7 @@
     else{const B=BOSSES[state.map]||{name:'Comte Harebourg',hp:3000};name='🔷 '+B.name;hp=B.hp;max=B.hp;col='linear-gradient(90deg,#8fe4ff,#4bb8f0)';}
     const pct=Math.max(0,Math.min(100,Math.round(Math.max(0,hp)/(max||1)*100)));
     const quart=pct>=100?100:pct>=75?75:pct>=50?50:pct>=25?25:0; // palier par QUART (100 / 75 / 50 / 25)
+    box.classList.toggle('joueur',ent.t==='ally'); // seul un perso joué a un blason, une guilde et un pseudo doré
     el('hhName').textContent=name;el('hhVal').textContent=pct+' %'+(quart<100&&pct>0?' · palier '+quart+' %':'');
     const f=el('hhFill');f.style.width=pct+'%';f.style.background=col;
     const p=projectCell(hoverCell.x,hoverCell.y,1.6);box.style.left=p.sx+'px';box.style.top=(p.sy-6)+'px';box.classList.add('show');}
