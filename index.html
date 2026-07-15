@@ -1195,11 +1195,7 @@
     if(ent){state.setupSel=ent;toast(selName(ent)+' sélectionné — clique une case pour le (re)placer.');refreshTiles();return;}
     if(!allyCellOk(x,y)){toast('🔵 En Donjon, clique une case BLEUE pour poser ton personnage.');refreshTiles();return;}
     if(blocked(x,y)){toast('Clique une case LIBRE pour ajouter un personnage.');return;}
-    const un=state.allies.find(a=>!a.placed); // un perso attend d'être posé → c'est lui qu'on place…
-    if(un){un.x=x;un.y=y;un.placed=true;syncAlly(un);un.obj.position.copy(un.obj.userData.tp);un.obj.visible=true;
-      setActive(state.allies.indexOf(un));if(un.className==='—')selectClass(9); // classe Crâ automatique (plus de panneau d'équipe)
-      toast('🔵 Perso '+(un.id+1)+' placé.');refreshTiles();refreshHUD();showConfPop(un);maybeAutoStart();return;}
-    addPlayerAt(x,y);} // …sinon le clic gauche AJOUTE un nouveau joueur (le clic droit ne sert plus qu'au Comte et aux ennemis)
+    putPlayerAt(x,y);} // perso en attente, sinon nouveau joueur (le clic droit ne sert plus qu'au Comte et aux ennemis)
   function setActive(i){if(i<0||i>=state.allies.length)return;state.active=i;
     state.classSpells=state.player.classSpells||[];state.spell=null;
     rebuildSpellBar(state.classSpells);
@@ -1239,6 +1235,7 @@
       restMove();refreshTiles();refreshHUD();return;}
     if(state.mode==='spell'){if(state.targets.has(key(u.x,u.y))){castCell(u.x,u.y);return;}
       restMove();refreshTiles();refreshHUD();toast('Sort désélectionné.');return;}
+    if(!o&&!blocked(u.x,u.y))putPlayerAt(u.x,u.y); // le boss est déjà posé (combat) : clic gauche sur une case libre = poser un allié de PLUS (chaque allié = une case de délock)
   }
   let down=null,dragging=false,downBtn=0,edgeDrag=null;
   const camRight=new THREE.Vector3(),camFwd=new THREE.Vector3();
@@ -1276,6 +1273,13 @@
     if(state.phase==='playing'){a.hp=a.hpMax;a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;}
     setActive(i);selectClass(9); // Crâ (la seule classe) : tête + sorts + corps entier chargés
     refreshTiles();refreshHUD();toast('🔵 Joueur '+(i+1)+' (Crâ) ajouté en '+x+','+y+'.');showConfPop(a);maybeAutoStart();}
+  function putPlayerAt(x,y){ // clic gauche sur une case libre : pose le perso qui attend, sinon en AJOUTE un nouveau (préparation comme combat)
+    const un=state.allies.find(a=>!a.placed);
+    if(!un){addPlayerAt(x,y);return;}
+    un.x=x;un.y=y;un.placed=true;syncAlly(un);un.obj.position.copy(un.obj.userData.tp);un.obj.visible=true;
+    if(state.phase==='playing'){un.hp=un.hpMax;un.pa=PA_MAX;un.pm=PM_MAX;un.pmPen=0;} // posé en plein combat : il arrive frais
+    setActive(state.allies.indexOf(un));if(un.className==='—')selectClass(9); // classe Crâ automatique (plus de panneau d'équipe)
+    toast('🔵 Perso '+(un.id+1)+' placé.');refreshTiles();refreshHUD();showConfPop(un);maybeAutoStart();}
   function spawnPoutch(){ // clic droit sur une case libre → Poutch (entité ennemie) ; les joueurs, eux, se posent au clic gauche
     if(!placeCell)return;const{x,y}=placeCell;placeCell=null;el('placeMenu').classList.remove('show');
     if(entityAt(x,y)||blocked(x,y)){toast('Case occupée ou bloquée.');return;}
