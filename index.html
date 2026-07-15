@@ -266,24 +266,18 @@
   /* Vignette de survol façon Dofus : blason + guilde (vert) + pseudo (or). Les monstres n'ont ni blason ni guilde → seule la classe .joueur les affiche. */
   #hoverHp{position:absolute;z-index:8;display:none;transform:translate(-50%,-100%);pointer-events:none;background:rgba(8,18,32,.94);border:1px solid var(--border-strong);border-radius:8px;padding:4px 8px;min-width:86px;text-align:center;box-shadow:0 6px 16px rgba(0,8,20,.5)}
   #hoverHp.show{display:block}
-  #hoverHp .hhtop{display:flex;align-items:center;justify-content:center;gap:8px}
-  #hoverHp.joueur .hhtop{justify-content:flex-start}
-  #hoverHp .hhblz,#hoverHp .hhg{display:none} /* réservés aux persos joués */
-  #hoverHp.joueur .hhblz{display:block;width:36px;height:36px;flex:0 0 auto}
-  #hoverHp.joueur .hhg{display:block}
-  #hoverHp .hhtx{display:flex;flex-direction:column;align-items:flex-start;line-height:1.12;min-width:0}
-  #hoverHp .hhg{font-family:var(--display);font-size:12px;font-weight:700;color:#86e05c;letter-spacing:.2px;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.8)} /* nom de guilde : vert, comme en jeu */
-  #hoverHp .hhn{font-family:var(--display);font-size:19px;color:#fff;font-weight:800;letter-spacing:.3px;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85)} /* le pseudo, en GROS */
+  #hoverHp .hhtop{display:none;align-items:center;justify-content:center;gap:6px;margin-bottom:1px} /* blason + guilde : réservés aux persos joués */
+  #hoverHp.joueur .hhtop{display:flex}
+  #hoverHp .hhblz{width:26px;height:26px;border-radius:50%;flex:0 0 auto;display:block} /* le PNG est CARRÉ (fond damier dans les coins) : le rond le découpe pile sur le disque */
+  #hoverHp .hhg{font-family:var(--display);font-size:12.5px;font-weight:700;color:#ffd24a;letter-spacing:.2px;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.8)} /* nom de guilde, en or */
+  #hoverHp .hhn{font-family:var(--display);font-size:22px;color:#fff;font-weight:800;letter-spacing:.3px;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85);margin-bottom:4px} /* le pseudo, en GROS et centré */
   #hoverHp.joueur .hhn{color:#ffd24a} /* or Dofus */
-  #hoverHp.joueur .hhbar,#hoverHp.joueur .hhv{margin-left:44px} /* alignés sous le pseudo, pas sous le blason */
-  #hoverHp.joueur .hhv{text-align:left}
   #cellCount{position:absolute;z-index:8;display:none;transform:translate(-50%,-100%);pointer-events:none;background:rgba(10,26,44,.95);border:1px solid var(--ice);border-radius:8px;padding:3px 9px;text-align:center;box-shadow:0 6px 16px rgba(0,8,20,.55)}
   #cellCount.show{display:block}
   #cellCount b{font-family:var(--display);font-size:13.5px;color:#fff;white-space:nowrap}
   #cellCount span{display:block;font-size:12px;color:var(--ice);font-weight:800;margin-top:1px;white-space:nowrap;letter-spacing:1px}
   #cellCount span.mort{color:#ff5566;letter-spacing:.3px} /* rotation impossible = mort : le message doit sauter aux yeux */
   #cellCount.danger{border-color:#ff5566;background:rgba(52,10,16,.96);box-shadow:0 0 14px rgba(255,85,102,.5)}
-  #hoverHp .hhtop{margin-bottom:4px} /* (le style du nom est plus haut, avec le blason et la guilde) */
   #hoverHp .hhbar{position:relative;height:8px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
   #hoverHp .hhbar>i{display:block;height:100%;width:100%}
   #hoverHp .hhbar::after{content:'';position:absolute;inset:0;pointer-events:none; /* graduations par QUART : 25 / 50 / 75 % */
@@ -394,21 +388,13 @@
 </div>
 
 <div id="toast"></div>
-<!-- Vignette de survol : pour un perso joué, présentation Dofus = blason + guilde + pseudo. Blason REDESSINÉ en SVG (soleil cyan sur écu bleu nuit) d'après le blason Neo Midgard. -->
+<!-- Vignette de survol : pour un perso joué, blason + guilde + pseudo, tout CENTRÉ. `blason.png` = le vrai blason Neo Midgard, recadré pile sur son disque (l'original n'a pas d'alpha : ses coins de damier sont masqués par le border-radius:50% de .hhblz). -->
 <div id="hoverHp">
   <div class="hhtop">
-    <span class="hhblz">
-      <svg viewBox="0 0 40 40" width="36" height="36" aria-hidden="true">
-        <circle cx="20" cy="20" r="18.4" fill="#0c1a2e" stroke="#c9d8e6" stroke-width="2.2"/>
-        <path d="M20 6 L22.49 13.99 L29.9 10.1 L26.01 17.51 L34 20 L26.01 22.49 L29.9 29.9 L22.49 26.01 L20 34 L17.51 26.01 L10.1 29.9 L13.99 22.49 L6 20 L13.99 17.51 L10.1 10.1 L17.51 13.99 Z" fill="#3fc9f0"/>
-        <circle cx="20" cy="20" r="5.6" fill="#bff0ff"/>
-      </svg>
-    </span>
-    <span class="hhtx">
-      <span class="hhg">Neo Midgard</span>
-      <span class="hhn" id="hhName"></span>
-    </span>
+    <img class="hhblz" src="blason.png" alt="" onerror="this.style.display='none'">
+    <span class="hhg">Neo Midgard</span>
   </div>
+  <div class="hhn" id="hhName"></div>
   <div class="hhbar"><i id="hhFill"></i></div>
   <div class="hhv" id="hhVal"></div>
 </div>
