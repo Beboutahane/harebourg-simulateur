@@ -199,6 +199,7 @@
   @keyframes cpop{from{opacity:0;transform:translate(-50%,-115%) scale(.55)}to{opacity:1;transform:translate(-50%,-115%) scale(1)}}
   @keyframes cdepop{to{opacity:0;transform:translate(-50%,-115%) scale(.55)}}
   .cptitle{font-family:var(--display);font-size:11px;font-weight:700;color:var(--ice);letter-spacing:.4px;margin-bottom:7px;white-space:nowrap}
+  .cptitle .chp{color:#ff4d5e;text-shadow:0 0 6px rgba(255,77,94,.55)} /* le cœur du titre : ROUGE */
   .cpbtns{display:flex;gap:5px;align-items:center;justify-content:center}
   /* --vc = couleur de la tranche (triplet RGB posé par VITA) : vert à pleine vie → rouge à l'agonie */
   .cpbtns button{border:1px solid rgba(var(--vc),.45);background:rgba(var(--vc),.12);color:rgb(var(--vc));font-family:var(--display);font-weight:700;font-size:11.5px;padding:7px 11px;border-radius:8px;cursor:pointer;white-space:nowrap;line-height:1.2;transition:.12s}
@@ -372,7 +373,7 @@
 <div id="cellCount"></div>
 <div id="ctxMenu"><button id="ctxComte" style="display:none;color:#8fe4ff">🔷 Transformer en Comte</button><button id="ctxDead">☠ Mort — retirer du terrain</button></div>
 <div id="placeMenu"><button id="pmEnemy">🔴 Poser un ennemi (Poutch)</button><button id="pmComte" style="color:#8fe4ff"><img class="pmico" src="https://api.dofusdb.fr/img/items/16362.png" alt="" onerror="this.replaceWith('🔷')">Poser le Comte</button></div>
-<div id="confPop"><div class="cptitle">❤ Tranche de vita</div><div class="cpbtns"></div></div>
+<div id="confPop"><div class="cptitle"><span class="chp">❤</span> Choisis ta vitalité</div><div class="cpbtns"></div></div>
 <div id="allyMenu">
   <button id="amConf">🔄 Tranche de vita…</button>
   <button id="amOff" style="color:#ff8a95">✕ Retirer du terrain</button>
@@ -702,7 +703,8 @@
     state.comteTurn=state.tour; // le tour de son ARRIVÉE fixe la parité : il pivotera aux tours suivants, un sur deux
     if(!e.img&&e.search)fetchMobImg(e);
     refreshTiles();refreshHUD();toast(pose?'🔷 Le COMTE HAREBOURG est posé !':'🔷 Le Poutch se transforme : le COMTE HAREBOURG est là !');
-    maybeAutoStart();}
+    maybeAutoStart();
+    if(state.phase==='playing')snapshotStart();} // le VRAI départ du combat, c'est son arrivée : c'est cet état (persos + monstres) que « revenir au placement » doit rendre
   function spawnComteToken(){ // pose DIRECTE du Comte au clic droit — un seul à la fois
     if(!placeCell)return;const{x,y}=placeCell;placeCell=null;el('placeMenu').classList.remove('show');
     if(comte()){toast('Le Comte est déjà sur le terrain.');return;}
@@ -873,7 +875,8 @@
   function tierFromPct(pct){return pct>=90?0:pct>=75?1:pct>=45?2:pct>=30?3:4;} // les 5 tranches de vitalité du Comte
   function tierOf(p){return (p&&p.vitaTier!=null)?p.vitaTier // tranche CHOISIE via le widget du perso (prioritaire)
     :(state.vitaOverride!=null?state.vitaOverride:tierFromPct(p?Math.max(0,p.hp)/(p.hpMax||1)*100:100));}
-  function currentConf(){const base=VITA[tierOf(state.player)].rot; // la confusion DÉCOULE de la tranche de vitalité
+  function currentConf(){if(!comte())return 0; // le Comte n'est PAS sur le terrain = aucune confusion : le sort part droit sur la case cliquée
+    const base=VITA[tierOf(state.player)].rot; // la confusion DÉCOULE de la tranche de vitalité
     return ((base+270*(state.meleeHits||0))%360+360)%360;} // +90° anti-horaire par coup mêlée
   function deflect(tx,ty){let dx=tx-state.player.x,dy=ty-state.player.y;let n=((state.confusion/90)%4+4)%4;
     for(let i=0;i<n;i++){const nx=-dy,ny=dx;dx=nx;dy=ny;} // rotation 90° horaire (grille y vers le bas)
@@ -938,7 +941,9 @@
     el('topbar').style.display=playing?'':'none'; // bandeau Tour/parité/vulnérabilité/confusion : seulement en combat
     if(el('retreat'))el('retreat').style.display=playing?'':'none'; // « Abandonner » : seulement en combat
     {const dj=state.map==='dj',sable=state.map==='sable'; // le DONJON est la vraie salle, figée : ni outils de map ni tuto, on y joue (comme en Songe : tout se pose à la main)
-     el('setup').style.display=(state.phase==='setup'&&!dj)?'flex':'none';
+     const showSetup=(state.phase==='setup'||!comte())&&!dj; // les outils de map restent tant que le COMTE n'est pas là (le combat, lui, démarre dès le 1er perso posé)
+     el('setup').style.display=showSetup?'flex':'none';
+     if(!showSetup&&state.edit){state.edit=false;updateSetupBtns();} // le Comte arrive, les outils disparaissent → on sort de l'édition pour ne pas creuser en cliquant
      el('tuto').style.display=dj?'none':'';
      el('setupTitle').textContent=sable?'🧪 Bac à sable':'🏖️ Construis ta map';
      el('mapHint').style.display=''; // étirement de la zone : Songe ET Bac à sable
@@ -970,9 +975,6 @@
     const v=undeflect(mx,my);
     if(!inGrid(v.x,v.y)||blocked(v.x,v.y))return' ⤳ <b>Confusion '+cmap[state.confusion]+'</b> : la case à viser tombe hors jeu — déplace le perso avant d\'invoquer.';
     return' ⤳ <b>Confusion '+cmap[state.confusion]+'</b> : vise la case <b>'+v.x+','+v.y+'</b> pour que l\'invocation atterrisse en '+mx+','+my+'.';}
-  function swapDelock(){ // « téléportation » : Échange de place avec le Comte (portée 4) → il change de place → VULNÉRABLE direct
-    const C=delockTarget();if(!C||!C.alive)return null;
-    const a=aliveAllies().find(a=>manh(a,C)<=SWAP_RANGE);return a?{a}:null;}
   function moveForDelock(){ // aucune symétrie réalisable : où amener un perso pour qu'il en existe une ? (la plus proche de lui)
     const C=delockTarget();if(!C||!C.alive)return null;
     let best=null;
@@ -997,8 +999,6 @@
     if(ready)return'✅ <b>Tout est prêt :</b> frappe '+nom+' avec <b>'+ready.via+'</b> → il pivote en <b>'+ready.x+','+ready.y+'</b>, échange avec '+(ready.who||'ton entité')+' et devient <b>VULNÉRABLE</b>.';
     if(cells.length){const c=cells[0]; // (pas d'adviceCell ici : la case est déjà peinte en ROUGE par delockCells)
       return'👉 <b>Va poser une entité en '+c.x+','+c.y+'</b> (case rouge), puis frappe '+nom+' avec <b>'+c.via+'</b> : il pivotera dessus et échangera.'+aimHint(c.x,c.y);}
-    const sw=swapDelock();
-    if(sw)return'🔀 <b>Pas de case de symétrie réalisable</b> — mais '+nom+' est à portée d\'<b>Échange</b> de <b>Perso '+(sw.a.id+1)+'</b> : lance 🔀 <b>Échange</b> sur lui → vous permutez, il devient <b>VULNÉRABLE</b> direct.';
     const mv=moveForDelock();
     if(mv){state.adviceCell={x:mv.x,y:mv.y};
       return'🧭 <b>Pas de case de symétrie d\'ici.</b> Rapproche-toi : glisse <b>Perso '+(mv.a.id+1)+'</b> sur la <b>case verte '+mv.x+','+mv.y+'</b> → sa case de délock deviendra <b>'+mv.mx+','+mv.my+'</b>.';}
@@ -1152,15 +1152,14 @@
     if(state._ghost){scene.remove(state._ghost);state._ghost=null;}
     state.setupSel=null;state.phase='playing';state.glyph.clear();_glyphAt=null;drawGlyph();state.showDelock=false;
     state.allies.forEach(a=>{if(a.placed){a.hp=a.hpMax;a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;}});
-    spawnEnemies();syncInitiative();snapshotStart();state.curEnt=null;state.enemyTurn=false;
-    el('setup').style.display='none';
+    spawnEnemies();syncInitiative();snapshotStart();state.curEnt=null;state.enemyTurn=false; // (refreshHUD gère l'affichage des outils de map : ils restent tant que le Comte n'est pas là)
     setActive(state.allies.indexOf(placedAllies()[0]));restMove(); // pas de tours : tu joues librement, clique un perso pour en changer
     refreshTiles();refreshHUD();
-    toast('⚔️ Le Comte et ton équipe sont en place — le combat commence ! (règle le n° de tour en haut : le délock se calcule tout seul)');}
-  function maybeAutoStart(){ // le combat démarre TOUT SEUL dès qu'un Comte ET au moins un joueur sont sur le terrain
+    toast(comte()?'⚔️ Le Comte et ton équipe sont en place — le combat commence ! (règle le n° de tour en haut : le délock se calcule tout seul)'
+                 :'⚔️ Tes sorts sont dispo. Tant que le Comte n\'est pas là : aucune confusion, le sort part sur la case que tu cliques.');}
+  function maybeAutoStart(){ // le combat démarre TOUT SEUL dès qu'un joueur est sur le terrain — le Comte n'est PAS requis : on lance ses sorts sans lui (sans confusion)
     if(state.phase!=='setup')return;
-    const C=comte();
-    if(C&&C.alive&&placedAllies().length)startGame();}
+    if(placedAllies().length)startGame();}
   function endGame(win){state.phase='over';state.mode='idle';el('ovTitle').textContent=win?'❄️ Victoire !':'☠️ Défaite';
     el('ovTitle').style.color=win?'var(--ok)':'var(--danger)';el('ovText').textContent=win?'Boss vaincu !':'Ton équipe est tombée.';el('overlay').classList.add('show');refreshHUD();}
   function resetGame(){el('overlay').classList.remove('show');el('setup').style.display='flex';
@@ -1246,7 +1245,7 @@
     else{state.obstacles.delete(k);state.voids.delete(k);}
     applyEditVisual();}
   function onTileClick(u){
-    if(state.phase==='setup'&&state.edit){editAt(u.x,u.y);return;}
+    if(state.edit){editAt(u.x,u.y);return;} // édition de la map : possible aussi une fois le combat lancé (les outils ne s'affichent que tant que le Comte n'est pas là)
     if(state.toPlace){let tx=u.x,ty=u.y;
       if(state.toPlace.kind==='invoc'&&state.phase==='playing'&&state.confusion){const d=deflect(u.x,u.y); // la CONFUSION dévie aussi le placement des invocations
         if(d.x!==u.x||d.y!==u.y){tx=d.x;ty=d.y;toast('⤳ Confusion '+cmap[state.confusion]+' : l\'invocation dévie en '+tx+','+ty+' !');}}
@@ -1442,8 +1441,7 @@
     if(state.phase==='playing'){ // actions spéciales, seulement en combat
       if(state.player&&state.player.className==='Eliotrope')
         html+=`<div class="slot act portal" data-act="portal" title="🌀 Portail (Eliotrope) — pose un portail : tes attaques passent à travers"><span class="ic">🌀</span><span class="lab">P</span></div>`;
-      html+=`<div class="slot act swp" data-act="swap" title="🔀 Échange de place avec une cible à ${SWAP_RANGE} cases — sur le Comte, il change de place et devient VULNÉRABLE (délock direct)"><span class="ic">🔀</span><span class="lab">↔</span></div>`
-          +`<div class="slot act sum" data-act="cawotte" title="Invoquer une Cawotte"><span class="ic">🥕</span><span class="lab">+</span></div>`
+      html+=`<div class="slot act sum" data-act="cawotte" title="Invoquer une Cawotte"><span class="ic">🥕</span><span class="lab">+</span></div>`
           +`<div class="slot act sum" data-act="chafer" title="Invoquer un Chafer"><span class="ic">💀</span><span class="lab">+</span></div>`
           +`<div class="slot act sum" data-act="arakne" title="Invoquer une Arakne"><span class="ic">🕷️</span><span class="lab">+</span></div>`;
     }
@@ -1466,7 +1464,6 @@
       if(state.mode==='portal'){state.mode='idle';restMove();refreshTiles();refreshHUD();toast('Pose de portail annulée.');return;}
       state.spell=null;state.mode='portal';state.targets=new Set();refreshTiles();refreshHUD();
       toast('🌀 Clique une case libre pour poser un portail (max 6). Re-clique 🌀 pour annuler.');return;}
-    if(act==='swap'){setMode('swap');return;} // Échange de place (« téléportation ») : sur le Comte = délock direct
     const SUM={cawotte:{name:'Cawotte',search:'cawotte',hp:200,ring:0x8effc4},
                chafer:{name:'Chafer',search:'chafer',hp:250,ring:0x8effc4},
                arakne:{name:'Arakne',search:'arakne',hp:180,ring:0x8effc4}};
@@ -1492,7 +1489,7 @@
       const nm=setup
         ? '<select class="allySel" data-si="'+i+'">'+opts+'</select>'
         : '<span class="nm">'+(a.className==='—'?'—':a.className)+(ko?' ☠':'')+'</span>';
-      const cf=a.className!=='—'?('<span class="cf">🔄 '+cmap[VITA[tierOf(a)].rot]+'</span>'):''; // confusion AU-DESSUS de la vitalité (déduite de la tranche du widget)
+      const cf=a.className!=='—'?('<span class="cf">🔄 '+cmap[comte()?VITA[tierOf(a)].rot:0]+'</span>'):''; // confusion AU-DESSUS de la vitalité (tranche du widget) — « aucune » tant que le Comte n'est pas sur le terrain
       const molSvg='<svg width="11" height="15" viewBox="0 0 12 16" fill="none"><rect x="1.4" y="1.4" width="9.2" height="13.2" rx="4.6" stroke="currentColor" stroke-width="1.3"/><line x1="6" y1="3.6" x2="6" y2="6.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
       const vit=setup?('<span class="molhint">'+molSvg+' scroll avec la molette</span><span class="cl"><span class="hrt">❤</span><input class="hpEdit" type="number" data-si="'+i+'" value="'+a.hpMax+'" min="100" max="20000" step="1" title="Vitalité de ce perso — molette = ±1 (Shift = ±1000), ou tape la valeur">')
                      :('<span class="cl"><span class="hrt">❤</span> '+(a.vitaTier!=null?VITA[a.vitaTier].l:Math.max(0,Math.min(100,Math.round(Math.max(0,a.hp)/(a.hpMax||1)*100)))+' %')+'</span>'); // en combat : tranche choisie, sinon PV en POURCENTAGE
@@ -1532,7 +1529,8 @@
     if(!force&&performance.now()-confPopAt<250)return; // ignore le clic natif qui suit immédiatement le dépôt
     confPopAlly=null;c.classList.add('hide');setTimeout(()=>c.classList.remove('show','hide'),150);}
   el('confPop').querySelectorAll('button').forEach(b=>b.onclick=ev=>{ev.stopPropagation();
-    if(confPopAlly){const t=+b.dataset.t;confPopAlly.vitaTier=t;toast('❤ Perso '+(confPopAlly.id+1)+' : vitalité '+VITA[t].l+' → 🔄 confusion '+cmap[VITA[t].rot]+'.');}
+    if(confPopAlly){const t=+b.dataset.t;confPopAlly.vitaTier=t; // la confusion n'est annoncée que si le Comte est là : sans lui, elle ne s'applique pas
+      toast('❤ Perso '+(confPopAlly.id+1)+' : vitalité '+VITA[t].l+(comte()?(' → 🔄 confusion '+cmap[VITA[t].rot]+'.'):'.'));}
     hideConfPop(true);refreshTiles();refreshHUD();});
   // menu du PERSO (clic droit sur un allié) — pour le contrôler : clic GAUCHE dessus
   el('amConf').onclick=ev=>{ev.stopPropagation();if(ctxAlly)showConfPop(ctxAlly);ctxAlly=null;el('allyMenu').classList.remove('show');};
