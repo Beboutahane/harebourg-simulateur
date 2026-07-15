@@ -237,6 +237,9 @@
   #turnbox{display:flex;flex-direction:column;align-items:center;gap:5px;padding:7px 9px}
   .pivbtn{border:1px solid var(--border-strong);background:rgba(42,111,192,.28);color:var(--frost);font-family:var(--display);font-weight:800;font-size:12.5px;letter-spacing:.4px;padding:8px 14px;border-radius:9px;white-space:nowrap} /* affichage : le pivot se déduit du tour */
   .pivbtn.boss{background:rgba(99,230,179,.2);border-color:rgba(99,230,179,.6);color:var(--ok)} /* le Comte pivote = délock possible → VERT */
+  .pivcol{display:flex;flex-direction:column;gap:5px} /* badge du tour + état du boss, empilés : #invTag se lit juste sous #pivotInfo */
+  .pivcol .invtag{margin-top:0;font-size:14px;padding:6px 12px;border-radius:8px;cursor:pointer;letter-spacing:.5px;transition:.15s} /* AGRANDI (était 10px en ligne) */
+  .pivcol .invtag:hover{filter:brightness(1.25)}
   #turnBox{display:flex;align-items:center;gap:6px;pointer-events:auto}
   #turnBox .tlbl{margin-right:1px}
   #turnNum{font-family:var(--display);font-size:19px;font-weight:800;color:var(--ice);min-width:20px;text-align:center;line-height:1}
@@ -290,8 +293,10 @@
     <span class="tlbl">Tour</span>
     <button class="tstep" id="turnDn">−</button><span class="tnum" id="turnNum">1</span><button class="tstep" id="turnUp">+</button>
   </span>
-  <span id="pivotInfo" class="pivbtn" title="Qui pivote au prochain coup sur le Comte — déduit du tour">🔄 —</span>
-  <span class="invtag on" id="invTag" style="margin-top:0;font-size:10px;padding:3px 9px;border-radius:99px;cursor:pointer" title="Clique pour signaler que le boss est vulnérable / invulnérable">🛡️ INVULNÉRABLE</span>
+  <span class="pivcol"><!-- l'état du boss se lit JUSTE SOUS le badge du tour : les deux se lisent ensemble -->
+    <span id="pivotInfo" class="pivbtn" title="Qui pivote au prochain coup sur le Comte — déduit du tour">🔄 —</span>
+    <span class="invtag on" id="invTag" title="Clique pour signaler que le boss est vulnérable / invulnérable">🛡️ INVULNÉRABLE</span>
+  </span>
 </div></div>
 <div class="hud card" id="delockMsg"></div>
 <div id="status"></div>
@@ -393,7 +398,7 @@
   <div class="hhv" id="hhVal"></div>
 </div>
 <div id="cellCount"></div>
-<div id="ctxMenu"><button id="ctxComte" style="display:none;color:#8fe4ff">🔷 Transformer en Comte</button><button id="ctxDead">☠ Mort — retirer du terrain</button></div>
+<div id="ctxMenu"><button id="ctxMulti" style="display:none;color:#c9a6ff">🌀 Multicomte — poser ses illusions</button><button id="ctxComte" style="display:none;color:#8fe4ff">🔷 Transformer en Comte</button><button id="ctxDead">☠ Mort — retirer du terrain</button></div>
 <div id="placeMenu"><button id="pmEnemy">🔴 Poser un ennemi (Poutch)</button><button id="pmComte" style="color:#8fe4ff"><img class="pmico" src="https://api.dofusdb.fr/img/items/16362.png" alt="" onerror="this.replaceWith('🔷')">Poser le Comte</button></div>
 <div id="allyMenu"> <!-- clic droit sur un perso : la vitalité se choisit ICI, directement (plus de pop-up séparé) -->
   <div class="cptitle"><span class="chp">❤</span> Choisis ta vitalité</div>
@@ -436,7 +441,7 @@
   function makeAlly(i){return{id:i,x:HALF-2+i,y:HALF,hp:4000,hpMax:4000,pa:PA_MAX,pm:PM_MAX,pmPen:0,placed:false,className:'—',classSpells:[],head:null,ring:allyColors[i],obj:null,vitaTier:null};}
   const state={phase:'setup',placeMode:'player',withInvocs:true,map:'songe',obstacles:new Set(),
     mapW:15,mapH:15, // Songe : zone jouable centrée, réglable (9..N) via les boutons +/- de l'outil terrain
-    tour:1,comteTurn:null,showDelock:true,mode:'idle',confusion:0,vitaOverride:null,glyph:new Set(),view:'iso',edit:false,brush:'block', // comteTurn = tour où le Comte a été posé (référence de parité)
+    tour:1,comteTurn:null,showDelock:true,mode:'idle',confusion:0,vitaOverride:null,glyph:new Set(),view:'iso',edit:false,brush:'block',multi:false, // comteTurn = tour où le Comte a été posé (référence de parité) · multi = Multicomte armé, le prochain clic pose la croix
     allies:[makeAlly(0),makeAlly(1),makeAlly(2)],active:0,classSpells:[],setupSel:null, // équipe de 3 persos par défaut
     enemies:[],reach:new Map(),targets:new Set(),spell:null,toPlace:null,_countX:9,_countY:6,_countPlaced:false,_ghost:null};
   Object.defineProperty(state,'player',{get(){return state.allies[state.active];},configurable:true}); // state.player = allié actif
@@ -670,19 +675,22 @@
      Objet UNIQUE réutilisé, animé dans animate() — aucune ambiguïté sur « qui est sélectionné ». ---- */
   const ACTIVE_COL=0xffd24a;
   const activeMark=(()=>{const g=new THREE.Group();
-    const r=new THREE.Mesh(new THREE.TorusGeometry(0.5,0.05,10,44),new THREE.MeshBasicMaterial({color:ACTIVE_COL,transparent:true,depthTest:false}));
-    r.rotation.x=-Math.PI/2;r.position.y=0.05;g.add(r);
+    // ⚠️ L'anneau est OPAQUE et sans depthTest:false, exactement comme les anneaux rouges/bleus des entités (ring()) :
+    // c'est ce qui garantit qu'il est rendu AVANT les sprites (passe opaque) → le skin passe toujours devant, jamais l'inverse.
+    // Sa pulsation joue donc sur l'ÉCHELLE et la LUMINOSITÉ, pas sur l'opacité (qui le ferait basculer en passe transparente).
+    const r=new THREE.Mesh(new THREE.TorusGeometry(0.46,0.05,10,48),new THREE.MeshBasicMaterial({color:ACTIVE_COL}));
+    r.rotation.x=-Math.PI/2;r.position.y=0.03;g.add(r); // y=0.03 : au sol, à ses pieds
     const c=new THREE.Mesh(new THREE.ConeGeometry(0.15,0.32,4),new THREE.MeshBasicMaterial({color:ACTIVE_COL,transparent:true,depthTest:false}));
-    c.rotation.x=Math.PI;c.rotation.y=Math.PI/4;g.add(c); // pyramide pointe en bas = chevron ▼ planté sur sa tête
-    g.userData={ring:r,cone:c};g.visible=false;g.renderOrder=5;scene.add(g);return g;})();
+    c.rotation.x=Math.PI;c.rotation.y=Math.PI/4;c.renderOrder=6;g.add(c); // le chevron ▼, lui, reste toujours visible au-dessus de sa tête
+    g.userData={ring:r,cone:c};g.visible=false;scene.add(g);return g;})();
   function updateActiveMark(t){ // suit le perso ACTIF (sa position d'objet : le marqueur colle à lui même en pleine marche)
     const a=(state.phase==='playing'&&!state.enemyTurn)?state.player:null;
     if(!a||!a.placed||a.hp<=0||!a.obj||!a.obj.visible){activeMark.visible=false;return;}
     activeMark.visible=true;
     const p=a.obj.position,puls=0.5+0.5*Math.sin(t*3.4);
     activeMark.position.set(p.x,0,p.z);
-    const s=1+puls*0.09;activeMark.userData.ring.scale.set(s,s,1);
-    activeMark.userData.ring.material.opacity=0.55+puls*0.45;
+    const s=1+puls*0.06;activeMark.userData.ring.scale.set(s,s,1); // pulse en permanence (0.46→0.49 : reste dans la case)
+    activeMark.userData.ring.material.color.setHex(ACTIVE_COL).multiplyScalar(0.62+puls*0.38); // respire par la luminosité (l'anneau reste opaque)
     activeMark.userData.cone.position.y=1.72+puls*0.09; // flotte au-dessus de sa tête
     activeMark.userData.cone.material.opacity=0.7+puls*0.3;}
   function tokenTex(label,color){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
@@ -974,6 +982,64 @@
     const tag=tagSprite('Va ici avec '+(m.who||'ton perso'),'53,196,106'); // vert = la couleur de la case
     tag.position.set(p.x,0.85,p.z);g.add(tag);
     g.userData.ghost=true;scene.add(g);moveGhost=g;}
+  /* ---- MULTICOMTE (au clic droit sur le Comte) : il choisit une case, s'y TÉLÉPORTE, et sort ses illusions
+     autour, en CROIX. 4 Comtes au total = le vrai (au centre) + 3 illusions au maximum.
+     Une branche hors map / sur un obstacle / déjà occupée ne sort PAS son illusion — d'où les 3 ou 4 Comtes vus en jeu. ---- */
+  const MULTI_DIRS=[{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}]; // haut, bas, gauche, droite (l'ordre du schéma)
+  const MULTI_MAX=3; // 3 illusions au plus : avec le vrai, ça fait les 4 Comtes
+  let comteTex=null,multiGhost=null,multiGhostKey='';
+  texLoader.load(COMTE_IMG,t=>{comteTex=t;multiGhostKey='';refreshTiles();},undefined,()=>{}); // l'image du Comte, pour les fantômes de prévisu
+  function freeForComte(x,y,C){ // case utilisable par le Multicomte ? (celle du Comte compte comme libre : il la quitte)
+    if(!inGrid(x,y)||blocked(x,y)||!tiles[x]||!tiles[x][y]||!tiles[x][y].visible)return false;
+    const o=occupant(x,y);
+    return !o||(o.t==='enemy'&&o.e===C);}
+  function multiPlan(cx,cy){ // ce que donnerait un Multicomte centré ici : {center, clones[]} — null si la case centrale est impossible
+    const C=comte();if(!C||!C.alive)return null;
+    if(!freeForComte(cx,cy,C))return null;
+    const clones=[];
+    for(const d of MULTI_DIRS){
+      if(clones.length>=MULTI_MAX)break;
+      const x=cx+d.x,y=cy+d.y;
+      if(freeForComte(x,y,C))clones.push({x,y});} // case prise/bloquée → cette illusion-là n'apparaît pas
+    return{center:{x:cx,y:cy},clones};}
+  function updateMultiGhost(){ // prévisu : les 4 Comtes en transparence sur la croix, avant même de cliquer
+    const plan=(state.multi&&hoverCell)?multiPlan(hoverCell.x,hoverCell.y):null;
+    const k=plan?(plan.center.x+','+plan.center.y+'|'+plan.clones.map(c=>c.x+','+c.y).join(';')):'';
+    if(k===multiGhostKey)return;multiGhostKey=k;
+    if(multiGhost){scene.remove(multiGhost);multiGhost=null;}
+    if(!plan||!comteTex)return;
+    const g=new THREE.Group();
+    // ⚠️ Le sprite du Comte est SOMBRE et petit : seul, il se noie dans le décor de nuit (même piège que la Cawotte).
+    // C'est l'ANNEAU au sol qui le rend repérable — comme le fantôme de pivot (updateSwapGhost) le fait déjà.
+    const put=(c,vrai)=>{const p=worldPos(c.x,c.y);
+      const s=new THREE.Sprite(new THREE.SpriteMaterial({map:comteTex,transparent:true,opacity:vrai?.95:.72,depthTest:false,fog:false}));
+      s.scale.set(SC_COMTE,SC_COMTE,1);s.position.set(p.x,SC_COMTE*(0.5-FOOT_PAD),p.z);s.renderOrder=4;g.add(s);
+      const rg=ring(vrai?0x8fe4ff:0xc9a6ff);rg.material.transparent=true;rg.material.opacity=vrai?.95:.75;rg.material.depthTest=false;
+      rg.renderOrder=4;rg.position.set(p.x,0.04,p.z);g.add(rg); // cyan = le vrai · violet = une illusion
+      const tag=tagSprite(vrai?'le VRAI Comte':'illusion',vrai?'143,228,255':'201,166,255');
+      tag.position.set(p.x,1.95,p.z);tag.renderOrder=5;g.add(tag);}; // 1.95 : sous la bulle « N cases », qui se superpose sinon
+    put(plan.center,true);plan.clones.forEach(c=>put(c,false));
+    g.userData.ghost=true;scene.add(g);multiGhost=g;}
+  function clearIllusions(){ // un nouveau Multicomte remplace les illusions du précédent
+    state.enemies.filter(e=>e.kind==='illusion').forEach(e=>{if(e.obj)scene.remove(e.obj);});
+    state.enemies=state.enemies.filter(e=>e.kind!=='illusion');
+    if(state.initiative)state.initiative=state.initiative.filter(it=>it.t!=='enemy'||it.e.kind!=='illusion');}
+  function cancelMulti(){state.multi=false;multiGhostKey='';if(multiGhost){scene.remove(multiGhost);multiGhost=null;}}
+  function castMulti(cx,cy){ // le clic pose la croix : le vrai se téléporte au centre, les illusions autour
+    const C=comte();
+    if(!C||!C.alive){toast('Le Comte n\'est pas sur le terrain.');cancelMulti();return;}
+    const plan=multiPlan(cx,cy);
+    if(!plan){toast('🌀 Impossible ici : la case du Comte doit être libre.');return;} // on RESTE armé : il peut viser ailleurs
+    clearIllusions();
+    C.x=plan.center.x;C.y=plan.center.y;syncEnemy(C);if(C.obj)C.obj.position.copy(C.tp); // téléportation : pas de marche
+    plan.clones.forEach(c=>{
+      const e={id:'illu'+Date.now()+Math.floor(Math.random()*1e5),name:'Illusion du Comte',kind:'illusion',friendly:false,
+        hp:1,hpMax:1,speed:0,dmg:0,alive:true,x:c.x,y:c.y,img:COMTE_IMG,ring:0x8fe4ff,search:null};
+      e.obj=spriteEntity(e.img,0x8fe4ff,0x8fe4ff,SC_COMTE,false);e.tp=worldPos(c.x,c.y);e.obj.position.copy(e.tp);
+      scene.add(e.obj);state.enemies.push(e);});
+    cancelMulti();refreshTiles();refreshHUD();updateHints();
+    const n=plan.clones.length;
+    toast('🌀 MULTICOMTE : le vrai en <b>'+plan.center.x+','+plan.center.y+'</b> + <b>'+n+' illusion'+(n>1?'s':'')+'</b>'+(n<MULTI_MAX?' (des cases étaient prises)':'')+'.');}
   const _mixA=new THREE.Color(),_mixB=new THREE.Color();
   function mixHex(a,b,t){_mixA.setHex(a);_mixB.setHex(b);return _mixA.lerp(_mixB,t).getHex();}
   function refreshTiles(){ // rendu À PLAT : chaque case = UNE couleur unie (bi-couleur, zéro effet de lumière)
@@ -1001,6 +1067,11 @@
       if(t&&t.visible)t.material.color.setHex(0xc44dff);}
     updateAimGhost(state.aimCell);updateHitGhost(state.hitCell); // les étiquettes : ① invoque ici · ② tape le Comte ici
     updateMoveGhost(state.showDelock?state.adviceCell:null); // ③ « va ici » — suit la case verte, donc l'assistant
+    if(state.multi&&hoverCell){const plan=multiPlan(hoverCell.x,hoverCell.y); // Multicomte armé : la croix se dessine sous le curseur
+      if(plan){const t=tiles[plan.center.x][plan.center.y];if(t&&t.visible)t.material.color.setHex(0x8fe4ff); // centre = le VRAI
+        plan.clones.forEach(c=>{const q=tiles[c.x]&&tiles[c.x][c.y];if(q&&q.visible)q.material.color.setHex(0x5a72b8);});} // branches = les illusions
+      else if(!blocked(hoverCell.x,hoverCell.y)&&tiles[hoverCell.x][hoverCell.y].visible)tiles[hoverCell.x][hoverCell.y].material.color.setHex(0xc0392b);} // centre impossible
+    updateMultiGhost();
     if(state.phase==='playing'&&!state.enemyTurn&&state.player&&state.player.placed){
       const P=livePos(state.player); // en plein drag : la case suit le curseur, celle de DÉPART est libérée aussitôt
       if(tiles[P.x]&&tiles[P.x][P.y])tiles[P.x][P.y].material.color.setHex(0x2f9ee0);} // case de l'allié actif
@@ -1086,8 +1157,7 @@
       pt.classList.toggle('boss',piv&&!!C);}}
     renderTeam(); // (plus d'afficheur de confusion ni d'indicateur « ❓ Délock ? » en haut : tout se lit dans les conseils de l'assistant)
     const C=comte();{const it=el('invTag');const vul=C&&C.vulnerable;
-      if(vul){it.className='invtag off';it.textContent='🎯 VULNÉRABLE';}else{it.className='invtag on';it.textContent='🛡️ INVULNÉRABLE';}
-      it.style.marginTop='0';}
+      if(vul){it.className='invtag off';it.textContent='🎯 VULNÉRABLE';}else{it.className='invtag on';it.textContent='🛡️ INVULNÉRABLE';}}
     if(C&&C.obj&&C.obj.userData.invuln)C.obj.userData.invuln.visible=C.alive&&!C.vulnerable; // état 🛡️ au-dessus de sa tête : disparaît une fois délock, revient quand il se re-verrouille
     el('paNum').textContent=state.player.pa;el('pmNum').textContent=state.player.pm;
     const playing=state.phase==='playing';
@@ -1450,6 +1520,7 @@
     else{state.obstacles.delete(k);state.voids.delete(k);}
     applyEditVisual();}
   function onTileClick(u){
+    if(state.multi){castMulti(u.x,u.y);return;} // Multicomte armé : le clic pose la croix, rien d'autre
     if(state.edit){editAt(u.x,u.y);return;} // édition de la map : possible aussi une fois le combat lancé (les outils ne s'affichent que tant que le Comte n'est pas là)
     if(state.toPlace){let tx=u.x,ty=u.y;
       if(state.toPlace.kind==='invoc'&&state.phase==='playing'&&state.confusion){const d=deflect(u.x,u.y); // la CONFUSION dévie aussi le placement des invocations
@@ -1506,7 +1577,8 @@
       const t=tierOf(ctxAlly);m.querySelectorAll('.cpbtns button').forEach(b=>b.classList.toggle('on',+b.dataset.t===t)); // sa tranche en cours = bulle allumée
       m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');}
     else if(ent&&ent.t==='enemy'){ctxEnemy=ent.e;const m=el('ctxMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');
-      el('ctxComte').style.display=(ent.e.name==='Poutch'&&ent.e.alive&&!comte())?'':'none';} // transformer un Poutch en Comte (un seul Comte à la fois)
+      el('ctxComte').style.display=(ent.e.name==='Poutch'&&ent.e.alive&&!comte())?'':'none'; // transformer un Poutch en Comte (un seul Comte à la fois)
+      el('ctxMulti').style.display=(ent.e.kind==='count'&&ent.e.alive)?'':'none';} // son sort Multicomte : seulement sur LUI
     else if(u&&!ent&&!blocked(u.x,u.y)){ // clic droit sur case LIBRE → poser un allié / un ennemi / le Comte (si absent)
       placeCell={x:u.x,y:u.y};const m=el('placeMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');
       el('pmComte').style.display=comte()?'none':'';}});
@@ -1594,6 +1666,7 @@
     state.mapW=state.mapH=(state.map==='sable'?21:15); // le Bac à sable démarre GRAND (étirable jusqu'à 25 en tirant sur les bords)
     applyAmbiance();}
   function setMapMode(m){if(m===state.map)return; // déjà sur cette carte : on n'y touche pas
+    cancelMulti(); // un Multicomte armé ne suit pas d'une carte à l'autre
     saveMapState();state.map=m;state.edit=false;state.mode='idle';state.setupSel=null;state.spell=null;state.toPlace=null;
     state.targets=new Set();state.curEnt=null;state.enemyTurn=false;state.glyph.clear();_glyphAt=null;drawGlyph();
     if(loadMapState(m))renderMap();else freshMapState(); // carte déjà visitée → retrouvée INTACTE ; sinon → carte neuve
@@ -1722,6 +1795,9 @@
     state.active=Math.min(state.active,state.allies.length-1);setActive(state.active);refreshHUD();toast('Allié retiré.');}
   el('ctxDead').onclick=()=>{killEnemyEntity(ctxEnemy);ctxEnemy=null;el('ctxMenu').classList.remove('show');};
   el('ctxComte').onclick=()=>{transformToComte(ctxEnemy);ctxEnemy=null;el('ctxMenu').classList.remove('show');};
+  el('ctxMulti').onclick=()=>{state.multi=true;state.mode='idle';state.spell=null;state.toPlace=null;state.targets=new Set();
+    ctxEnemy=null;el('ctxMenu').classList.remove('show');refreshTiles();refreshHUD();
+    toast('🌀 <b>Multicomte</b> : clique la case où le Comte se téléporte — ses illusions se posent autour. (Échap pour annuler)');};
   el('pmEnemy').onclick=()=>spawnPoutch();
   el('pmComte').onclick=()=>spawnComteToken();
   // menu du PERSO (clic droit sur un allié) : la vitalité se choisit DANS le menu — pour le contrôler : clic GAUCHE dessus
@@ -1735,6 +1811,7 @@
       toast('💀 '+skinOf(ctxAlly).name+' est mort — clique une case pour le reposer.');refreshTiles();refreshHUD();
       ctxAlly=null;el('allyMenu').classList.remove('show');checkDefeat();return;} // plus personne en vie → « TU ES MORT »
     ctxAlly=null;el('allyMenu').classList.remove('show');};
+  addEventListener('keydown',ev=>{if(ev.key==='Escape'&&state.multi){cancelMulti();refreshTiles();toast('🌀 Multicomte annulé.');}}); // sinon on resterait armé après un clic sur une case impossible
   document.addEventListener('click',ev=>{if(!el('ctxMenu').contains(ev.target))el('ctxMenu').classList.remove('show');
     if(!el('placeMenu').contains(ev.target))el('placeMenu').classList.remove('show');
     if(!el('allyMenu').contains(ev.target))el('allyMenu').classList.remove('show');});
@@ -1751,7 +1828,7 @@
     state.allies=[makeAlly(0)];state.active=0;
     const a0=state.allies[0];a0.obj=buildAllyObj(0);syncAlly(a0);a0.obj.position.copy(a0.obj.userData.tp);a0.obj.visible=false;
     state.initiative=[];state.curEnt=null;state.enemyTurn=false;state.phase='setup';state.mode='idle';
-    state.glyph.clear();drawGlyph();state.targets=new Set();state.setupSel=null;state.spell=null;state.toPlace=null;
+    state.glyph.clear();drawGlyph();state.targets=new Set();state.setupSel=null;state.spell=null;state.toPlace=null;cancelMulti();
     state.meleeHits=0;state.vitaOverride=null;state.mapW=15;state.mapH=15;state.tour=1;state.comteTurn=null;state.showDelock=true;_glyphAt=null;
     el('setup').style.display='flex';el('overlay').classList.remove('show');
     Object.keys(MAPS).forEach(k=>delete MAPS[k]); // « tout réinitialiser » = les DEUX cartes repartent de zéro
@@ -1773,7 +1850,7 @@
       applyAllyLook(a);syncAlly(a);if(a.obj){a.obj.position.copy(a.obj.userData.tp);a.obj.visible=a.placed;}});
     const newMobs=s.mobs.map(m=>spawnMobFrom(m)); // monstres recréés à leur place de départ
     state.phase='setup';state.mode='idle';state.enemyTurn=false;state.curEnt=null;
-    state.glyph.clear();_glyphAt=null;drawGlyph();state.targets=new Set();state.setupSel=null;state.spell=null;state.toPlace=null;state.meleeHits=0;
+    state.glyph.clear();_glyphAt=null;drawGlyph();state.targets=new Set();state.setupSel=null;state.spell=null;state.toPlace=null;state.meleeHits=0;cancelMulti();
     el('setup').style.display='flex';el('overlay').classList.remove('show');
     state.initiative=s.order.map(tok=>{if(tok[0]==='a'){const a=state.allies[+tok.slice(1)];return a?{t:'ally',a}:null;}
       if(tok[0]==='m'){const e=newMobs[+tok.slice(1)];return e?{t:'enemy',e}:null;}return null;}).filter(Boolean); // ordre d'initiative conservé (sans le Comte)
