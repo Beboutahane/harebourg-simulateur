@@ -31,7 +31,6 @@
   .tlbl{font-size:9px;letter-spacing:1px;color:var(--muted);text-transform:uppercase}
   .parity{font-family:var(--display);font-weight:700;font-size:13px;padding:4px 10px;border-radius:99px}
   .parity.pair{background:rgba(99,230,179,.14);color:var(--ok)}.parity.impair{background:rgba(255,107,125,.14);color:var(--danger)}
-  .conf{display:flex;flex-direction:column;align-items:center}.conf .cv{font-family:var(--display);font-size:15px;color:var(--frost)}
   #comteTurnIn{width:46px;text-align:center;font-family:var(--display);font-weight:800;font-size:15px;color:var(--frost);background:rgba(8,18,32,.7);border:1px solid var(--border);border-radius:8px;padding:2px 3px;outline:none}
   #comteTurnIn:hover,#comteTurnIn:focus{border-color:var(--ice)}
   #delockBtn{border:1px solid rgba(255,84,198,.55);background:rgba(255,84,198,.16);color:#ff9adf;font-family:var(--display);font-weight:800;font-size:12px;letter-spacing:.5px;padding:7px 13px;border-radius:9px;cursor:pointer;pointer-events:auto}
@@ -280,7 +279,6 @@
   <button id="delockAsk" title="Existe-t-il une case permettant de rendre l'adversaire vulnérable ? Clique : les cases s'allument en ROUGE · re-clique : elles s'éteignent">❓ Délock ?</button>
   <span class="invtag on" id="invTag" style="margin-top:0;font-size:10px;padding:3px 9px;border-radius:99px;cursor:pointer" title="Clique pour signaler que le boss est vulnérable / invulnérable">🛡️ INVULNÉRABLE</span>
   <button id="delockBtn" style="display:none" title="Il ne reste que le Comte : plus d'entité à échanger — force le délock">🔓 DÉLOCK</button>
-  <div class="conf"><div class="cv" id="confVal">—</div><div class="tlbl">Confusion</div></div>
 </div></div>
 <div class="hud card" id="delockMsg"></div>
 <div id="status"></div>
@@ -989,8 +987,7 @@
       pt.textContent=!C?'🔄 pose le Comte':(piv?'🔄 CE TOUR : le COMTE pivote — délock possible':'🔄 CE TOUR : TOI tu pivotes');
       pt.classList.toggle('boss',piv&&!!C);}}
     if(el('delockAsk'))el('delockAsk').classList.toggle('on',!!state.showDelock);
-    el('confVal').textContent=cmap[state.confusion];
-    renderTeam();
+    renderTeam(); // (plus d'afficheur de confusion en haut : elle se lit dans les conseils et sur la fiche du perso)
     const C=comte();{const it=el('invTag');const vul=C&&C.vulnerable;
       if(vul){it.className='invtag off';it.textContent='🎯 VULNÉRABLE';}else{it.className='invtag on';it.textContent='🛡️ INVULNÉRABLE';}
       it.style.marginTop='0';}
