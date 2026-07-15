@@ -426,8 +426,9 @@
   function makeAlly(i){return{id:i,x:HALF-2+i,y:HALF,hp:4000,hpMax:4000,pa:PA_MAX,pm:PM_MAX,pmPen:0,placed:false,className:'—',classSpells:[],head:null,ring:allyColors[i],obj:null,vitaTier:null};}
   const state={phase:'setup',placeMode:'player',withInvocs:true,map:'songe',obstacles:new Set(),
     mapW:15,mapH:15, // Songe : zone jouable centrée, réglable (9..N) via les boutons +/- de l'outil terrain
-    tour:1,comteTurn:null,showDelock:true,assist:false,mode:'idle',confusion:0,vitaOverride:null,glyph:new Set(),view:'iso',edit:false,brush:'block',multi:false, // comteTurn = tour où le Comte a été posé (référence de parité) · multi = Multicomte armé, le prochain clic pose la croix
-    // ⚠️ showDelock (toujours vrai) = les CASES colorées · assist = le BANDEAU écrit, ouvert par le bouton 🧭. Deux choses distinctes.
+    tour:1,comteTurn:null,showDelock:true,mode:'idle',confusion:0,vitaOverride:null,glyph:new Set(),view:'iso',edit:false,brush:'block',multi:false, // comteTurn = tour où le Comte a été posé (référence de parité) · multi = Multicomte armé, le prochain clic pose la croix
+    // showDelock = l'ASSISTANT (bouton 🧭) : cases orange/cyan/violette/verte/rouges + cawotte fantôme + bandeau.
+    // Coupé, il ne reste que le jeu normal : portée des sorts, ligne de vue, et la déviation de la confusion à la visée.
     allies:[makeAlly(0),makeAlly(1),makeAlly(2)],active:0,classSpells:[],setupSel:null, // équipe de 3 persos par défaut
     enemies:[],reach:new Map(),targets:new Set(),spell:null,toPlace:null,_countX:9,_countY:6,_countPlaced:false,_ghost:null};
   Object.defineProperty(state,'player',{get(){return state.allies[state.active];},configurable:true}); // state.player = allié actif
@@ -1081,7 +1082,7 @@
       m.color.setHex(c);m.opacity=.96;}
     if(state.showDelock)delockCells().forEach(dc=>{const t=tiles[dc.x]&&tiles[dc.x][dc.y]; // ROUGE vif = entité déjà en place (délock prêt), rouge sombre = pose une entité ici
       if(t&&t.visible)t.material.color.setHex(dc.ready?0xe03535:0x7a2222);});
-    {const pv=pivotCell(); // case PIVOT de la position actuelle : ORANGE = invoque/place une entité ici puis frappe le Comte
+    if(state.showDelock){const pv=pivotCell(); // case PIVOT de la position actuelle : ORANGE = invoque/place une entité ici puis frappe le Comte
      if(pv&&pv.status==='free'){const t=tiles[pv.x]&&tiles[pv.x][pv.y];if(t&&t.visible)t.material.color.setHex(0xf29a3c);}}
     if(state.showDelock&&state.adviceCell){const a=state.adviceCell,t=tiles[a.x]&&tiles[a.x][a.y]; // case conseillée par l'assistant : VERT
       if(t&&t.visible)t.material.color.setHex(0x35c46a);}
@@ -1180,6 +1181,7 @@
     {const pt=el('pivotInfo');if(pt){const piv=comtePivots(),C=comte(); // qui pivote au prochain coup sur le Comte ? DÉDUIT du tour (le Comte pivote 1 tour sur 2 depuis son arrivée)
       pt.textContent=!C?'🔄 pose le Comte':(piv?'🔄 CE TOUR : le COMTE pivote — délock possible':'🔄 CE TOUR : TOI tu pivotes');
       pt.classList.toggle('boss',piv&&!!C);}}
+    {const ab=el('assistBtn');if(ab)ab.classList.toggle('on',state.showDelock);} // l'état est mémorisé PAR CARTE (saveMapState) : le bouton doit suivre
     renderTeam(); // (plus d'afficheur de confusion ni d'indicateur « ❓ Délock ? » en haut : tout se lit dans les conseils de l'assistant)
     const C=comte();{const it=el('invTag');const vul=C&&C.vulnerable;
       if(vul){it.className='invtag off';it.textContent='🎯 VULNÉRABLE';}else{it.className='invtag on';it.textContent='🛡️ INVULNÉRABLE';}}
@@ -1280,15 +1282,15 @@
     if(mv){state.adviceCell={x:mv.x,y:mv.y,who:skinOf(mv.a).name}; // `who` : repris tel quel par l'étiquette « Va ici avec … »
       return'🧭 <b>D\'ici, c\'est impossible.</b> Va sur la <b>case VERTE</b> avec <b>'+skinOf(mv.a).name+'</b> (glisse-le) : c\'est la case la plus proche '+(C.kind==='count'?'du Comte':'de la cible')+' d\'où ça marche.';}
     return'🔒 <b>Impossible pour l\'instant.</b> Rapproche tes persos '+(C.kind==='count'?'du Comte':'de la cible')+', ou fais de la place autour de lui.';}
-  /* `delockAdvice()` est TOUJOURS appelé, même bandeau fermé : c'est lui qui pose les 3 cases où cliquer
-     (cyan · violette · verte) et donc leurs étiquettes 3D. Seul son TEXTE dépend du bouton 🧭. */
+  /* Le bouton 🧭 coupe TOUT l'assistant d'un coup : sans lui, `delockAdvice()` n'est plus appelé, donc
+     aimCell/hitCell/adviceCell restent nuls → les cases cyan/violette/verte et leurs étiquettes s'éteignent d'elles-mêmes. */
   function updateHints(){
     const sig=()=>[state.adviceCell,state.aimCell,state.hitCell].map(c=>c?key(c.x,c.y):'-').join('|'); // les 3 cases (verte, cyan, violette)
     const was=sig();
-    const txt=state.phase==='playing'?delockAdvice():(state.adviceCell=state.aimCell=state.hitCell=null,'');
+    const on=state.phase==='playing'&&state.showDelock;
+    const txt=on?delockAdvice():(state.adviceCell=state.aimCell=state.hitCell=null,'');
     const m=el('delockMsg');
-    if(m){if(state.assist&&state.phase==='playing'){m.innerHTML=txt;m.classList.add('show');}
-          else m.classList.remove('show');}
+    if(m){if(on){m.innerHTML=txt;m.classList.add('show');}else m.classList.remove('show');}
     if(was!==sig())refreshTiles();} // une case a changé → on repeint (refreshTiles est appelé AVANT refreshHUD par les appelants)
   let toastT;function toast(t){const e=el('toast');e.innerHTML=t;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),2600);}
 
@@ -1826,9 +1828,10 @@
     state.active=Math.min(state.active,state.allies.length-1);setActive(state.active);refreshHUD();toast('Allié retiré.');}
   el('ctxDead').onclick=()=>{killEnemyEntity(ctxEnemy);ctxEnemy=null;el('ctxMenu').classList.remove('show');};
   el('ctxComte').onclick=()=>{transformToComte(ctxEnemy);ctxEnemy=null;el('ctxMenu').classList.remove('show');};
-  el('assistBtn').onclick=()=>{state.assist=!state.assist; // n'ouvre/ferme que le TEXTE : les cases colorées restent, elles
-    el('assistBtn').classList.toggle('on',state.assist);updateHints();
-    if(!state.assist)toast('🧭 Assistant refermé — les cases colorées restent affichées.');};
+  el('assistBtn').onclick=()=>{state.showDelock=!state.showDelock; // coupe TOUTE l'aide au délock d'un coup
+    el('assistBtn').classList.toggle('on',state.showDelock);refreshTiles();updateHints();
+    toast(state.showDelock?'🧭 Assistant ACTIVÉ — cases à cliquer, cawotte fantôme et conseils.'
+                          :'🧭 Assistant COUPÉ — il ne reste que la confusion normale.');};
   el('ctxMulti').onclick=()=>{state.multi=true;state.mode='idle';state.spell=null;state.toPlace=null;state.targets=new Set();
     ctxEnemy=null;el('ctxMenu').classList.remove('show');refreshTiles();refreshHUD();
     toast('🌀 <b>Multicomte</b> : clique la case où le Comte se téléporte — ses illusions se posent autour. (Échap pour annuler)');};
