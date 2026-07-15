@@ -36,6 +36,22 @@
 
   #left{top:12px;left:12px;width:246px;max-height:calc(100vh - 150px);display:flex;flex-direction:column;padding:13px;overflow-y:auto}
   #left h3{font-family:var(--display);font-size:14px;letter-spacing:.4px;color:var(--ice);margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  /* Bac à entités (haut-gauche) : on ATTRAPE une vignette et on la LÂCHE sur une case. */
+  #roster{top:12px;left:12px;width:196px;padding:9px 10px;display:flex;flex-direction:column;gap:6px;z-index:7}
+  #roster h3{font-family:var(--display);font-size:11.5px;letter-spacing:.4px;color:var(--ice);display:flex;align-items:center;gap:5px;margin-bottom:2px}
+  .ritem{display:flex;align-items:center;gap:8px;padding:5px 7px;border:1px solid var(--border);border-radius:9px;background:rgba(8,18,32,.55);cursor:grab;user-select:none;transition:.14s}
+  .ritem:hover{border-color:var(--border-strong);background:rgba(75,184,240,.16);transform:translateX(2px)}
+  .ritem:active{cursor:grabbing}
+  .ritem.drag{opacity:.45;transform:none}
+  .ritem.full{opacity:.4;cursor:not-allowed} /* plus de place sur le terrain : la vignette s'éteint */
+  .ritem.full:hover{transform:none;background:rgba(8,18,32,.55);border-color:var(--border)}
+  .rico{width:32px;height:32px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;border-radius:7px;background:rgba(0,0,0,.32);overflow:hidden}
+  .rico img{max-width:100%;max-height:100%;object-fit:contain;pointer-events:none}
+  .rtx{min-width:0;display:flex;flex-direction:column;line-height:1.22}
+  .rtx b{font-family:var(--display);font-size:11.5px;color:var(--frost);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rtx i{font-size:9.5px;color:var(--muted);font-style:normal;white-space:nowrap}
+  .ritem.boss .rtx b{color:var(--ice)}
+  .ritem.mob .rtx b{color:#ff9a95}
   #tips{top:12px;right:12px;width:262px;max-height:calc(100vh - 150px);overflow-y:auto;padding:13px 14px;display:flex;flex-direction:column;gap:8px}
   #tips h3{font-family:var(--display);font-size:13px;letter-spacing:.4px;color:var(--ice);display:flex;align-items:center;gap:6px;margin-bottom:2px}
   .tiplist{list-style:none;display:flex;flex-direction:column;gap:7px;margin:0;padding:0}
@@ -341,6 +357,27 @@
 
 <!-- (panneau d'équipe supprimé : tout se gère sur le terrain — clic gauche = contrôler/placer, clic droit = menu du perso) -->
 
+<!-- Bac à entités : chaque vignette se GLISSE sur une case. Les compteurs sont tenus par renderRoster(). -->
+<div class="hud card" id="roster">
+  <h3>🎭 Glisse-les sur la map</h3>
+  <div class="ritem" draggable="true" data-k="a0" title="Glisse-le sur une case libre">
+    <span class="rico"><img src="mika-bd.png" alt=""></span>
+    <span class="rtx"><b>Mikassa-Ackerman</b><i class="rs">à poser</i></span>
+  </div>
+  <div class="ritem" draggable="true" data-k="a1" title="Glisse-le sur une case libre">
+    <span class="rico"><img src="bebou-bd.png" alt=""></span>
+    <span class="rtx"><b>Beboucafe</b><i class="rs">à poser</i></span>
+  </div>
+  <div class="ritem boss" draggable="true" data-k="comte" title="Un seul Comte à la fois">
+    <span class="rico"><img src="https://api.dofusdb.fr/img/monsters/993.png" alt=""></span>
+    <span class="rtx"><b>Comte Harebourg</b><i class="rs">à poser</i></span>
+  </div>
+  <div class="ritem mob" draggable="true" data-k="poutch" title="Jusqu'à 7 sur le terrain">
+    <span class="rico"><img src="https://api.dofusdb.fr/img/monsters/278.png" alt=""></span>
+    <span class="rtx"><b>Acnoh le poutch</b><i class="rs">0 / 7</i></span>
+  </div>
+</div>
+
 <div class="hud card" id="tips"></div>
 
 <!-- (panneau « Légende des cases » retiré : une nouvelle légende viendra plus tard) -->
@@ -384,7 +421,7 @@
 </div>
 <div id="cellCount"></div>
 <div id="ctxMenu"><button id="ctxMulti" style="display:none;color:#c9a6ff">🌀 Multicomte — poser ses illusions</button><button id="ctxComte" style="display:none;color:#8fe4ff">🔷 Transformer en Comte</button><button id="ctxDead">☠ Mort — retirer du terrain</button></div>
-<div id="placeMenu"><button id="pmEnemy">🔴 Poser un ennemi (Poutch)</button><button id="pmComte" style="color:#8fe4ff"><img class="pmico" src="https://api.dofusdb.fr/img/items/16362.png" alt="" onerror="this.replaceWith('🔷')">Poser le Comte</button></div>
+<div id="placeMenu"><button id="pmEnemy">🔴 Poser un ennemi (Acnoh le poutch)</button><button id="pmComte" style="color:#8fe4ff"><img class="pmico" src="https://api.dofusdb.fr/img/items/16362.png" alt="" onerror="this.replaceWith('🔷')">Poser le Comte</button></div>
 <div id="allyMenu"> <!-- clic droit sur un perso : la vitalité se choisit ICI, directement (plus de pop-up séparé) -->
   <div class="cptitle"><span class="chp">❤</span> Choisis ta vitalité</div>
   <div class="amrow">
@@ -423,6 +460,7 @@
   const N=25,TILE=1,HALF=(N-1)/2,PA_MAX=12,PM_MAX=6,SWAP_RANGE=4; // grille interne 25×25 ; la zone jouable (Songe) est réglable via state.mapW/mapH ; SWAP_RANGE = portée de l'Échange
   const A2D={0:{x:0,y:-1},90:{x:1,y:0},180:{x:0,y:1},270:{x:-1,y:0}};
   const allyColors=[0xbcd0ff,0x8effc4,0xffcf6b,0xff9ad2,0xc9a0ff,0xff8f6b,0x7be0d0,0xe8e06b];
+  const POUTCH_NAME='Acnoh le poutch', POUTCH_MAX=7; // le mob ennemi de base : 7 au plus sur le terrain
   function makeAlly(i){return{id:i,x:HALF-2+i,y:HALF,hp:4000,hpMax:4000,pa:PA_MAX,pm:PM_MAX,pmPen:0,placed:false,className:'—',classSpells:[],head:null,ring:allyColors[i],obj:null,vitaTier:null};}
   const state={phase:'setup',placeMode:'player',withInvocs:true,map:'songe',obstacles:new Set(),
     mapW:15,mapH:15, // Songe : zone jouable centrée, réglable (9..N) via les boutons +/- de l'outil terrain
@@ -1182,6 +1220,7 @@
       pt.textContent=!C?'🔄 pose le Comte':(piv?'🔄 CE TOUR : le COMTE pivote — délock possible':'🔄 CE TOUR : TOI tu pivotes');
       pt.classList.toggle('boss',piv&&!!C);}}
     {const ab=el('assistBtn');if(ab)ab.classList.toggle('on',state.showDelock);} // l'état est mémorisé PAR CARTE (saveMapState) : le bouton doit suivre
+    renderRoster(); // compteurs du bac à entités (posé / à poser · n sur 7)
     renderTeam(); // (plus d'afficheur de confusion ni d'indicateur « ❓ Délock ? » en haut : tout se lit dans les conseils de l'assistant)
     const C=comte();{const it=el('invTag');const vul=C&&C.vulnerable;
       if(vul){it.className='invtag off';it.textContent='🎯 VULNÉRABLE';}else{it.className='invtag on';it.textContent='🛡️ INVULNÉRABLE';}}
@@ -1609,7 +1648,7 @@
       const t=tierOf(ctxAlly);m.querySelectorAll('.cpbtns button').forEach(b=>b.classList.toggle('on',+b.dataset.t===t)); // sa tranche en cours = bulle allumée
       m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');}
     else if(ent&&ent.t==='enemy'){ctxEnemy=ent.e;const m=el('ctxMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');
-      el('ctxComte').style.display=(ent.e.name==='Poutch'&&ent.e.alive&&!comte())?'':'none'; // transformer un Poutch en Comte (un seul Comte à la fois)
+      el('ctxComte').style.display=(ent.e.name===POUTCH_NAME&&ent.e.alive&&!comte())?'':'none'; // transformer un poutch en Comte (un seul Comte à la fois)
       el('ctxMulti').style.display=(ent.e.kind==='count'&&ent.e.alive)?'':'none';} // son sort Multicomte : seulement sur LUI
     else if(u&&!ent&&!blocked(u.x,u.y)){ // clic droit sur case LIBRE → poser un allié / un ennemi / le Comte (si absent)
       placeCell={x:u.x,y:u.y};const m=el('placeMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');
@@ -1631,8 +1670,53 @@
   function spawnPoutch(){ // clic droit sur une case libre → Poutch (entité ennemie) ; les joueurs, eux, se posent au clic gauche
     if(!placeCell)return;const{x,y}=placeCell;placeCell=null;el('placeMenu').classList.remove('show');
     if(entityAt(x,y)||blocked(x,y)){toast('Case occupée ou bloquée.');return;}
-    spawnMobFrom({name:'Poutch',kind:'mob',friendly:false,hpMax:500,ring:0xff5b5b,x,y,img:API+'/img/monsters/278.png'}); // Poutch Ingball (DofusDB)
-    refreshTiles();refreshHUD();toast('🔴 Poutch posé en '+x+','+y+' (clic droit dessus pour le retirer).');}
+    if(poutchCount()>=POUTCH_MAX){toast('Déjà '+POUTCH_MAX+' × '+POUTCH_NAME+' sur le terrain.');return;}
+    spawnMobFrom({name:POUTCH_NAME,kind:'mob',friendly:false,hpMax:500,ring:0xff5b5b,x,y,img:API+'/img/monsters/278.png'}); // Poutch Ingball (DofusDB)
+    refreshTiles();refreshHUD();toast('🔴 '+POUTCH_NAME+' posé en '+x+','+y+' (clic droit dessus pour le retirer).');}
+  /* ===== BAC À ENTITÉS (haut-gauche) : on glisse une vignette sur une case ===== */
+  const poutchCount=()=>state.enemies.filter(e=>e.alive&&e.name===POUTCH_NAME).length;
+  function allySlot(i){ // l'allié n° i, créé à la volée si l'équipe est plus courte (freshMapState n'en garde qu'un)
+    while(state.allies.length<=i){const j=state.allies.length,na=makeAlly(j);
+      na.obj=buildAllyObj(j);syncAlly(na);na.obj.position.copy(na.obj.userData.tp);na.obj.visible=false;state.allies.push(na);}
+    return state.allies[i];}
+  function renderRoster(){const box=el('roster');if(!box)return;
+    const set=(k,plein,txt)=>{const it=box.querySelector('[data-k="'+k+'"]');if(!it)return;
+      it.classList.toggle('full',plein);it.draggable=!plein;it.querySelector('.rs').textContent=txt;};
+    [0,1].forEach(i=>{const a=state.allies[i],pose=!!(a&&a.placed&&a.hp>0);
+      set('a'+i,pose,pose?'sur le terrain':'à poser');});
+    set('comte',!!comte(),comte()?'sur le terrain':'à poser');
+    const n=poutchCount();set('poutch',n>=POUTCH_MAX,n+' / '+POUTCH_MAX);}
+  function dropEntity(k,x,y){ // lâcher d'une vignette sur une case
+    if(!inGrid(x,y)||!tiles[x]||!tiles[x][y].visible||blocked(x,y)){toast('Case bloquée ou hors carte.');return;}
+    if(entityAt(x,y)){toast('Il y a déjà quelqu\'un sur cette case.');return;}
+    if(k==='comte'){
+      if(comte()){toast('Le Comte est déjà sur le terrain.');return;}
+      transformToComte(spawnMobFrom({name:'Comte',kind:'mob',friendly:false,hpMax:3000,ring:0x8fe4ff,x,y}),true);renderRoster();return;}
+    if(k==='poutch'){
+      if(poutchCount()>=POUTCH_MAX){toast('Déjà '+POUTCH_MAX+' × '+POUTCH_NAME+' sur le terrain.');return;}
+      spawnMobFrom({name:POUTCH_NAME,kind:'mob',friendly:false,hpMax:500,ring:0xff5b5b,x,y,img:API+'/img/monsters/278.png'});
+      refreshTiles();refreshHUD();toast('🔴 '+POUTCH_NAME+' posé en '+x+','+y+'.');return;}
+    const i=+k.slice(1),a=allySlot(i); // a0 / a1 : SON perso, un seul exemplaire de chaque
+    if(a.placed&&a.hp>0){toast(skinOf(a).name+' est déjà sur le terrain.');return;}
+    a.x=x;a.y=y;a.placed=true;syncAlly(a);a.obj.position.copy(a.obj.userData.tp);a.obj.visible=true;
+    if(state.phase==='playing'){a.hp=a.hpMax;a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;} // posé en plein combat : il arrive frais
+    setActive(i);if(a.className==='—')selectClass(9); // Crâ : ses sorts
+    refreshTiles();refreshHUD();toast('🔵 '+skinOf(a).name+' posé en '+x+','+y+'.');maybeAutoStart();}
+  (()=>{const box=el('roster');if(!box)return;
+    box.querySelectorAll('.ritem').forEach(it=>{
+      it.addEventListener('dragstart',e=>{
+        if(it.classList.contains('full')){e.preventDefault();return;} // plus de place : rien à glisser
+        e.dataTransfer.setData('text/plain',it.dataset.k);e.dataTransfer.effectAllowed='copy';it.classList.add('drag');});
+      it.addEventListener('dragend',()=>it.classList.remove('drag'));});
+    // le canvas accepte le lâcher : sans preventDefault sur dragover, « drop » ne se déclenche jamais
+    renderer.domElement.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';
+      const u=pickTile(e.clientX,e.clientY);const k=u?(u.x+','+u.y):'';
+      if(k!==(hoverCell?hoverCell.x+','+hoverCell.y:'')){hoverCell=u?{x:u.x,y:u.y}:null;refreshTiles();}}); // la case survolée s'allume pendant le glissé
+    renderer.domElement.addEventListener('drop',e=>{e.preventDefault();
+      const k=e.dataTransfer.getData('text/plain');if(!k)return;
+      const u=pickTile(e.clientX,e.clientY);
+      if(!u){toast('Lâche-le sur une case de la carte.');return;}
+      dropEntity(k,u.x,u.y);});})();
   function killEnemyEntity(e){if(!e)return;if(e.obj)scene.remove(e.obj);e.alive=false;state.enemies=state.enemies.filter(x=>x!==e);
     if(state.initiative)state.initiative=state.initiative.filter(it=>it.t!=='enemy'||it.e!==e);toast((e.name||'Monstre')+' retiré (mort).');refreshTiles();refreshHUD();}
   renderer.domElement.addEventListener('pointermove',e=>{
