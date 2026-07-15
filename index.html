@@ -190,8 +190,11 @@
   @keyframes cdepop{to{opacity:0;transform:translate(-50%,-115%) scale(.55)}}
   .cptitle{font-family:var(--display);font-size:11px;font-weight:700;color:var(--ice);letter-spacing:.4px;margin-bottom:7px;white-space:nowrap}
   .cpbtns{display:flex;gap:5px;align-items:center;justify-content:center}
-  .cpbtns button{border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--frost);font-family:var(--display);font-weight:700;font-size:11.5px;padding:6px 9px;border-radius:8px;cursor:pointer;white-space:nowrap}
+  .cpbtns button{border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--frost);font-family:var(--display);font-weight:700;font-size:11.5px;padding:6px 9px;border-radius:8px;cursor:pointer;white-space:nowrap;display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.2;transition:.12s}
   .cpbtns button:hover{border-color:var(--ice);background:rgba(75,184,240,.2)}
+  .cpbtns button i{font-style:normal;font-weight:700;font-size:9.5px;color:var(--muted)} /* rotation induite par la tranche */
+  .cpbtns button.on{border-color:var(--ice);background:rgba(75,184,240,.28);color:#fff;box-shadow:inset 0 0 0 1px rgba(143,228,255,.35)} /* tranche en cours */
+  .cpbtns button.on i{color:var(--ice)}
   #editBrush{display:inline-flex}
   @media(max-width:620px){#left,#right{width:calc(50vw - 16px)}}
   /* Dofus-style bottom spell bar */
@@ -329,13 +332,12 @@
 <div id="cellCount"></div>
 <div id="ctxMenu"><button id="ctxComte" style="display:none;color:#8fe4ff">🔷 Transformer en Comte</button><button id="ctxDead">☠ Mort — retirer du terrain</button></div>
 <div id="placeMenu"><button id="pmAlly">🔵 Ajouter un joueur (Crâ)</button><button id="pmEnemy">🔴 Poser un ennemi (Poutch)</button><button id="pmComte" style="color:#8fe4ff">🔷 Poser le Comte</button></div>
-<div id="confPop"><div class="cptitle">🔄 Confusion du perso</div><div class="cpbtns">
-  <button data-c="0">Aucune</button><button data-c="90">90° ↻</button><button data-c="180">180°</button><button data-c="270">90° ↺</button></div></div>
+<div id="confPop"><div class="cptitle">❤ Tranche de vita → 🔄 confusion</div><div class="cpbtns"></div></div>
 <div id="hpPop"><div class="cptitle">❤ Vitalité du perso</div><div class="cpbtns">
   <input id="hpPopIn" type="number" min="100" max="20000" step="1"><button id="hpPopOk">OK</button></div></div>
 <div id="allyMenu">
   <button id="amCtl">🎯 Contrôler ce perso</button>
-  <button id="amConf">🔄 Confusion…</button>
+  <button id="amConf">🔄 Tranche de vita…</button>
   <button id="amHp">❤ Vitalité…</button>
   <button id="amOff" style="color:#ff8a95">✕ Retirer du terrain</button>
 </div>
@@ -370,7 +372,7 @@
   const N=25,TILE=1,HALF=(N-1)/2,PA_MAX=12,PM_MAX=6,SWAP=3; // grille interne 25×25 ; la zone jouable (Songe) est réglable via state.mapW/mapH
   const A2D={0:{x:0,y:-1},90:{x:1,y:0},180:{x:0,y:1},270:{x:-1,y:0}};
   const allyColors=[0xbcd0ff,0x8effc4,0xffcf6b,0xff9ad2,0xc9a0ff,0xff8f6b,0x7be0d0,0xe8e06b];
-  function makeAlly(i){return{id:i,x:HALF-2+i,y:HALF,hp:4000,hpMax:4000,pa:PA_MAX,pm:PM_MAX,pmPen:0,placed:false,className:'—',classSpells:[],head:null,ring:allyColors[i],obj:null,confOverride:null};}
+  function makeAlly(i){return{id:i,x:HALF-2+i,y:HALF,hp:4000,hpMax:4000,pa:PA_MAX,pm:PM_MAX,pmPen:0,placed:false,className:'—',classSpells:[],head:null,ring:allyColors[i],obj:null,vitaTier:null};}
   const state={phase:'setup',placeMode:'player',withInvocs:true,map:'songe',obstacles:new Set(),hpMode:0,
     mapW:15,mapH:15, // Songe : zone jouable centrée, réglable (9..N) via les boutons +/- de l'outil terrain
     tour:1,comtePivot:false,showDelock:false,mode:'idle',confusion:0,vitaOverride:null,glyph:new Set(),view:'iso',edit:false,brush:'block',
@@ -821,10 +823,10 @@
   function pips(c,n,max,cls){let h='';for(let i=0;i<max;i++)h+=`<span class="pip ${i<n?cls:''}"></span>`;el(c).innerHTML=h;}
   const cmap={0:'aucune',90:'90° ↻',180:'180°',270:'90° ↺'};
   const VITA=[{l:'100-90%',rot:90},{l:'89-75%',rot:270},{l:'74-45%',rot:180},{l:'44-30%',rot:270},{l:'29-0%',rot:90}];
-  function confFromHp(pct){if(pct>=90)return 90;if(pct>=75)return 270;if(pct>=45)return 180;if(pct>=30)return 270;return 90;}
-  function currentConf(){const p=state.player;
-    const base=(p&&p.confOverride!=null)?p.confOverride // confusion CHOISIE via le widget du perso (prioritaire)
-      :(state.vitaOverride!=null?VITA[state.vitaOverride].rot:confFromHp(Math.max(0,p.hp)/(p.hpMax||1)*100));
+  function tierFromPct(pct){return pct>=90?0:pct>=75?1:pct>=45?2:pct>=30?3:4;} // les 5 tranches de vitalité du Comte
+  function tierOf(p){return (p&&p.vitaTier!=null)?p.vitaTier // tranche CHOISIE via le widget du perso (prioritaire)
+    :(state.vitaOverride!=null?state.vitaOverride:tierFromPct(p?Math.max(0,p.hp)/(p.hpMax||1)*100:100));}
+  function currentConf(){const base=VITA[tierOf(state.player)].rot; // la confusion DÉCOULE de la tranche de vitalité
     return ((base+270*(state.meleeHits||0))%360+360)%360;} // +90° anti-horaire par coup mêlée
   function deflect(tx,ty){let dx=tx-state.player.x,dy=ty-state.player.y;let n=((state.confusion/90)%4+4)%4;
     for(let i=0;i<n;i++){const nx=-dy,ny=dx;dx=nx;dy=ny;} // rotation 90° horaire (grille y vers le bas)
@@ -1400,10 +1402,10 @@
       const nm=setup
         ? '<select class="allySel" data-si="'+i+'">'+opts+'</select>'
         : '<span class="nm">'+(a.className==='—'?'—':a.className)+(ko?' ☠':'')+'</span>';
-      const cf=a.className!=='—'?('<span class="cf">🔄 '+cmap[a.confOverride!=null?a.confOverride:confFromHp(Math.max(0,a.hp)/(a.hpMax||1)*100)]+'</span>'):''; // confusion AU-DESSUS de la vitalité (choisie via widget si définie)
+      const cf=a.className!=='—'?('<span class="cf">🔄 '+cmap[VITA[tierOf(a)].rot]+'</span>'):''; // confusion AU-DESSUS de la vitalité (déduite de la tranche du widget)
       const molSvg='<svg width="11" height="15" viewBox="0 0 12 16" fill="none"><rect x="1.4" y="1.4" width="9.2" height="13.2" rx="4.6" stroke="currentColor" stroke-width="1.3"/><line x1="6" y1="3.6" x2="6" y2="6.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
       const vit=setup?('<span class="molhint">'+molSvg+' scroll avec la molette</span><span class="cl"><span class="hrt">❤</span><input class="hpEdit" type="number" data-si="'+i+'" value="'+a.hpMax+'" min="100" max="20000" step="1" title="Vitalité de ce perso — molette = ±1 (Shift = ±1000), ou tape la valeur">')
-                     :('<span class="cl"><span class="hrt">❤</span> '+Math.max(0,Math.min(100,Math.round(Math.max(0,a.hp)/(a.hpMax||1)*100)))+' %</span>'); // en combat : PV en POURCENTAGE
+                     :('<span class="cl"><span class="hrt">❤</span> '+(a.vitaTier!=null?VITA[a.vitaTier].l:Math.max(0,Math.min(100,Math.round(Math.max(0,a.hp)/(a.hpMax||1)*100)))+' %')+'</span>'); // en combat : tranche choisie, sinon PV en POURCENTAGE
       return '<div class="ally'+(i===state.active?' on':'')+(ko?' ko':'')+'" data-i="'+i+'">'
         +'<span class="av" style="background:'+col+'">'+av+'</span>'
         +'<span class="info">'+nm+cf+vit+'</span>'
@@ -1431,15 +1433,17 @@
   el('pmAlly').onclick=()=>spawnToken(true);
   el('pmEnemy').onclick=()=>spawnToken(false);
   el('pmComte').onclick=()=>spawnComteToken();
-  let confPopAlly=null,confPopAt=0; // widget de CONFUSION du perso : pop au dépôt sur le terrain, choix parmi les 4 confusions
+  let confPopAlly=null,confPopAt=0; // widget de TRANCHE DE VITALITÉ du perso : pop au dépôt sur le terrain, la confusion en découle
+  el('confPop').querySelector('.cpbtns').innerHTML=VITA.map((v,i)=>'<button data-t="'+i+'"><b>'+v.l+'</b><i>🔄 '+cmap[v.rot]+'</i></button>').join(''); // les 5 tranches viennent de VITA (source unique)
   function showConfPop(a){confPopAlly=a;confPopAt=performance.now();const c=el('confPop');
+    const t=tierOf(a);c.querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.t===t)); // tranche en cours = bouton allumé
     const p=projectCell(a.x,a.y,2.3);c.style.left=p.sx+'px';c.style.top=p.sy+'px';
     c.classList.remove('hide');c.classList.add('show');}
   function hideConfPop(force){const c=el('confPop');if(!c.classList.contains('show'))return;
     if(!force&&performance.now()-confPopAt<250)return; // ignore le clic natif qui suit immédiatement le dépôt
     confPopAlly=null;c.classList.add('hide');setTimeout(()=>c.classList.remove('show','hide'),150);}
   el('confPop').querySelectorAll('button').forEach(b=>b.onclick=ev=>{ev.stopPropagation();
-    if(confPopAlly){confPopAlly.confOverride=+b.dataset.c;toast('🔄 Confusion de Perso '+(confPopAlly.id+1)+' : '+cmap[+b.dataset.c]+'.');}
+    if(confPopAlly){const t=+b.dataset.t;confPopAlly.vitaTier=t;toast('❤ Perso '+(confPopAlly.id+1)+' : vitalité '+VITA[t].l+' → 🔄 confusion '+cmap[VITA[t].rot]+'.');}
     hideConfPop(true);refreshTiles();refreshHUD();});
   // widget VITALITÉ du perso (même style animé que la confusion)
   let hpPopAlly=null,hpPopAt=0;
