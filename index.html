@@ -40,19 +40,6 @@
   #tips h3{font-family:var(--display);font-size:13px;letter-spacing:.4px;color:var(--ice);display:flex;align-items:center;gap:6px;margin-bottom:2px}
   .tiplist{list-style:none;display:flex;flex-direction:column;gap:7px;margin:0;padding:0}
   .tiplist li{font-size:11.5px;line-height:1.45;color:var(--txt);display:flex;gap:6px;align-items:flex-start}
-  /* Légende des couleurs de cases — MÊME palette que refreshTiles() : changer une couleur là-bas = la changer ici */
-  #legend{bottom:12px;right:12px;width:254px;max-height:calc(100vh - 262px);overflow-y:auto;padding:10px 12px;z-index:6} /* -262 = la place réservée au Pense-bête au-dessus : le haut de la légende se cale à 250px, jamais dessus */
-  #legend h3{font-family:var(--display);font-size:12.5px;letter-spacing:.4px;color:var(--ice);display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
-  #legend h3:hover{color:var(--frost)}
-  .legchev{margin-left:auto;font-size:10px;color:var(--muted);transition:transform .18s}
-  #legend.fold .legchev{transform:rotate(-90deg)}
-  #legend.fold #legBody{display:none}
-  #legBody{display:flex;flex-direction:column;gap:7px;margin-top:9px}
-  .leggrp{font-size:9px;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--border);padding-top:8px;margin-top:2px}
-  .leggrp:first-child{border-top:0;padding-top:0;margin-top:0}
-  .legrow{display:flex;gap:8px;align-items:flex-start;font-size:11px;line-height:1.42;color:var(--txt)}
-  .legsw{width:14px;height:14px;border-radius:4px;flex:0 0 auto;margin-top:1px;border:1px solid rgba(255,255,255,.22)}
-  .legtx b{color:var(--frost);font-weight:700}
   select,input[type=text]{width:100%;background:rgba(8,18,32,.7);border:1px solid var(--border);color:var(--frost);
     font-family:var(--font);font-size:13px;padding:9px 10px;border-radius:9px;outline:none}
   select:focus,input:focus{border-color:var(--border-strong)}
@@ -265,11 +252,14 @@
   /* Vignette de survol façon Dofus : blason + guilde (vert) + pseudo (or). Les monstres n'ont ni blason ni guilde → seule la classe .joueur les affiche. */
   #hoverHp{position:absolute;z-index:8;display:none;transform:translate(-50%,-100%);pointer-events:none;background:rgba(8,18,32,.94);border:1px solid var(--border-strong);border-radius:8px;padding:4px 8px;min-width:86px;text-align:center;box-shadow:0 6px 16px rgba(0,8,20,.5)}
   #hoverHp.show{display:block}
-  #hoverHp .hhtop{display:none;align-items:center;justify-content:center;gap:6px;margin-bottom:1px} /* blason + guilde : réservés aux persos joués */
-  #hoverHp.joueur .hhtop{display:flex}
-  #hoverHp .hhblz{width:26px;height:26px;border-radius:50%;flex:0 0 auto;display:block} /* le PNG est CARRÉ (fond damier dans les coins) : le rond le découpe pile sur le disque */
-  #hoverHp .hhg{font-family:var(--display);font-size:12.5px;font-weight:700;color:#ffd24a;letter-spacing:.2px;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.8)} /* nom de guilde, en or */
-  #hoverHp .hhn{font-family:var(--display);font-size:22px;color:#fff;font-weight:800;letter-spacing:.3px;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85);margin-bottom:4px} /* le pseudo, en GROS et centré */
+  /* Blason à GAUCHE · guilde puis pseudo CENTRÉS dans la place qui reste */
+  #hoverHp .hhtop{display:flex;align-items:center;gap:9px;margin-bottom:5px}
+  #hoverHp .hhblz{width:46px;height:46px;border-radius:50%;flex:0 0 auto;display:none} /* le PNG est CARRÉ (fond damier dans les coins) : le rond le découpe pile sur le disque */
+  #hoverHp.joueur .hhblz{display:block} /* un monstre n'a pas de guilde : ni blason ni ligne verte */
+  #hoverHp .hhtx{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;line-height:1.16} /* centré dans le reste de la bulle */
+  #hoverHp .hhg{display:none;font-family:var(--display);font-size:13px;font-weight:700;color:#ffd24a;letter-spacing:.2px;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.8)} /* nom de guilde, en or */
+  #hoverHp.joueur .hhg{display:block}
+  #hoverHp .hhn{font-family:var(--display);font-size:22px;color:#fff;font-weight:800;letter-spacing:.3px;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85)} /* le pseudo, en GROS, sous la guilde */
   #hoverHp.joueur .hhn{color:#ffd24a} /* or Dofus */
   #cellCount{position:absolute;z-index:8;display:none;transform:translate(-50%,-100%);pointer-events:none;background:rgba(10,26,44,.95);border:1px solid var(--ice);border-radius:8px;padding:3px 9px;text-align:center;box-shadow:0 6px 16px rgba(0,8,20,.55)}
   #cellCount.show{display:block}
@@ -338,30 +328,7 @@
 
 <div class="hud card" id="tips"></div>
 
-<!-- Légende des cases : chaque pastille porte la couleur EXACTE peinte par refreshTiles() (les 2 damiers sont rendus en dégradé, comme sur le terrain) -->
-<div class="hud card" id="legend">
-  <h3 id="legHead" title="Clique pour replier">🎨 Légende des cases<span class="legchev">▾</span></h3>
-  <div id="legBody">
-    <div class="leggrp">🔓 Délock</div>
-    <div class="legrow"><span class="legsw" style="background:#f29a3c"></span><span class="legtx"><b>Case pivot</b> — le Comte atterrira ici quand tu le frapperas : il lui faut une entité dessus.</span></div>
-    <div class="legrow"><span class="legsw" style="background:#2fe0ff"></span><span class="legtx"><b>① Invoque ici</b> — la confusion enverra ta cawotte sur la case orange.</span></div>
-    <div class="legrow"><span class="legsw" style="background:#c44dff"></span><span class="legtx"><b>② Tape ici</b> — ton sort déviera pile sur le Comte.</span></div>
-    <div class="legrow"><span class="legsw" style="background:#e03535"></span><span class="legtx"><b>Délock prêt</b> — une entité amie est déjà sur la case miroir : frappe le Comte avec l'allié d'en face.</span></div>
-    <div class="legrow"><span class="legsw" style="background:#7a2222"></span><span class="legtx"><b>Délock à préparer</b> — case miroir libre : pose-y une entité d'abord.</span></div>
-    <div class="legrow"><span class="legsw" style="background:#7fd0ff"></span><span class="legtx"><b>Arrivée du pivot</b> — le fantôme montre qui bouge et où il atterrit.</span></div>
-    <div class="leggrp">✨ Sorts</div>
-    <div class="legrow"><span class="legsw" style="background:linear-gradient(135deg,#244d86 50%,#315b98 50%)"></span><span class="legtx"><b>À portée</b> — case atteignable, ligne de vue OK.</span></div>
-    <div class="legrow"><span class="legsw" style="background:linear-gradient(135deg,#586678 50%,#627287 50%)"></span><span class="legtx"><b>Sans ligne de vue</b> — un mur coupe le trajet : tir refusé.</span></div>
-    <div class="legrow"><span class="legsw" style="background:#d8b544"></span><span class="legtx"><b>Visée / sélection</b> — la case que tu vises, ou l'entité sélectionnée.</span></div>
-    <div class="legrow"><span class="legsw" style="background:#2fae6a"></span><span class="legtx"><b>Impact réel</b> — aucune déviation : le sort part bien là.</span></div>
-    <div class="legrow"><span class="legsw" style="background:#c0392b"></span><span class="legtx"><b>Impact dévié</b> — la confusion envoie le sort ICI, pas sur la case visée. Sur un pivot : rotation impossible → tu meurs.</span></div>
-    <div class="leggrp">🧭 Terrain</div>
-    <div class="legrow"><span class="legsw" style="background:#35c46a"></span><span class="legtx"><b>Chemin</b> — trajet du déplacement, et case conseillée par l'assistant.</span></div>
-    <div class="legrow"><span class="legsw" style="background:#2f9ee0"></span><span class="legtx"><b>Perso actif</b> — celui que tu joues.</span></div>
-    <div class="legrow"><span class="legsw" style="background:#5fb8e8"></span><span class="legtx"><b>Survol</b> — la case sous ton curseur.</span></div>
-    <div class="legrow"><span class="legsw" style="background:#0b1a28"></span><span class="legtx"><b>Obstacle / trou</b> — infranchissable, coupe la ligne de vue.</span></div>
-  </div>
-</div>
+<!-- (panneau « Légende des cases » retiré : une nouvelle légende viendra plus tard) -->
 
 <!-- (timeline d'initiative supprimée : plus de tours) -->
 
@@ -391,9 +358,11 @@
 <div id="hoverHp">
   <div class="hhtop">
     <img class="hhblz" src="blason.png" alt="" onerror="this.style.display='none'">
-    <span class="hhg">Neo Midgard</span>
+    <span class="hhtx">
+      <span class="hhg">Neo Midgard</span>
+      <span class="hhn" id="hhName"></span>
+    </span>
   </div>
-  <div class="hhn" id="hhName"></div>
   <div class="hhbar"><i id="hhFill"></i></div>
   <div class="hhv" id="hhVal"></div>
 </div>
@@ -671,17 +640,20 @@
   /* ---- persos alliés (jeton coloré, ou sprite perso.png / perso2.png / perso3.png / perso4.png) ---- */
   const RING_ENEMY=0xff4d4d, RING_ALLY=0x4db2ff; // anneaux au sol : rouge = ennemi, bleu = allié
   function ring(c){const r=new THREE.Mesh(new THREE.TorusGeometry(0.42,0.038,12,40),new THREE.MeshBasicMaterial({color:c}));r.rotation.x=-Math.PI/2;r.position.y=0.03;return r;}
-  /* ---- Marqueur du perso qui JOUE : gros anneau doré pulsant (par-dessus son anneau bleu d'allié) + chevron au-dessus de sa tête.
-     Objet UNIQUE réutilisé, animé dans animate() — aucune ambiguïté sur « qui est sélectionné ». ---- */
-  const ACTIVE_COL=0xffd24a;
+  /* ---- Marqueur du perso qui JOUE : anneau BLEU pulsant à ses pieds + cône bleu (cone.png) planté au-dessus de sa tête.
+     Objet UNIQUE réutilisé, animé en continu dans animate() — aucune ambiguïté sur « qui est sélectionné ».
+     ⚠️ La texture du cône est chargée PLUS BAS (texLoader n'existe pas encore ici) : le sprite naît sans map. ---- */
+  const ACTIVE_COL=0x4a7dff; // le bleu du cône
+  const CONE_RATIO=150/258, CONE_H=0.8; // cone.png : 150×258 (détouré depuis son image, qui n'avait pas d'alpha)
   const activeMark=(()=>{const g=new THREE.Group();
     // ⚠️ L'anneau est OPAQUE et sans depthTest:false, exactement comme les anneaux rouges/bleus des entités (ring()) :
     // c'est ce qui garantit qu'il est rendu AVANT les sprites (passe opaque) → le skin passe toujours devant, jamais l'inverse.
     // Sa pulsation joue donc sur l'ÉCHELLE et la LUMINOSITÉ, pas sur l'opacité (qui le ferait basculer en passe transparente).
     const r=new THREE.Mesh(new THREE.TorusGeometry(0.46,0.05,10,48),new THREE.MeshBasicMaterial({color:ACTIVE_COL}));
     r.rotation.x=-Math.PI/2;r.position.y=0.03;g.add(r); // y=0.03 : au sol, à ses pieds
-    const c=new THREE.Mesh(new THREE.ConeGeometry(0.15,0.32,4),new THREE.MeshBasicMaterial({color:ACTIVE_COL,transparent:true,depthTest:false}));
-    c.rotation.x=Math.PI;c.rotation.y=Math.PI/4;c.renderOrder=6;g.add(c); // le chevron ▼, lui, reste toujours visible au-dessus de sa tête
+    const c=new THREE.Sprite(new THREE.SpriteMaterial({transparent:true,depthTest:false,fog:false,opacity:0})); // opacity 0 tant que cone.png n'est pas arrivé
+    c.center.set(0.5,0.13); // ancré sur la POINTE du cône (elle est à ~13 % du bas de l'image) → position.y = où pointe la flèche
+    c.scale.set(CONE_H*CONE_RATIO,CONE_H,1);c.renderOrder=6;g.add(c); // le cône reste toujours visible, même derrière un mur
     g.userData={ring:r,cone:c};g.visible=false;scene.add(g);return g;})();
   function updateActiveMark(t){ // suit le perso ACTIF (sa position d'objet : le marqueur colle à lui même en pleine marche)
     const a=(state.phase==='playing'&&!state.enemyTurn)?state.player:null;
@@ -691,8 +663,9 @@
     activeMark.position.set(p.x,0,p.z);
     const s=1+puls*0.06;activeMark.userData.ring.scale.set(s,s,1); // pulse en permanence (0.46→0.49 : reste dans la case)
     activeMark.userData.ring.material.color.setHex(ACTIVE_COL).multiplyScalar(0.62+puls*0.38); // respire par la luminosité (l'anneau reste opaque)
-    activeMark.userData.cone.position.y=1.72+puls*0.09; // flotte au-dessus de sa tête
-    activeMark.userData.cone.material.opacity=0.7+puls*0.3;}
+    const c=activeMark.userData.cone;
+    c.position.y=1.6+puls*0.1; // la pointe flotte au-dessus de sa tête
+    if(c.material.map)c.material.opacity=0.72+puls*0.28;}
   function tokenTex(label,color){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
     x.beginPath();x.arc(64,64,52,0,6.28);x.fillStyle='#'+color.toString(16).padStart(6,'0');x.fill();
     x.lineWidth=7;x.strokeStyle='rgba(255,255,255,.8)';x.stroke();
@@ -777,6 +750,9 @@
     if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
     skinTex[s.pre+d]=t;skinFoot[s.pre+d]=measureFoot(t.image); // pieds mesurés sur CETTE vue → posé pile sur sa case
     state.allies.forEach(a=>{if(a.obj)a.obj.userData.facing=null;});},undefined,()=>{}))); // facing=null → la vue est (re)posée au prochain refreshTiles/animate
+  texLoader.load('cone.png',t=>{ // le cône du marqueur : créé plus haut sans texture (texLoader n'existait pas encore)
+    if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
+    const c=activeMark.userData.cone;c.material.map=t;c.material.needsUpdate=true;},undefined,()=>{}); // absent → le sprite reste à opacity 0, rien ne casse
   // échelles calées sur le vrai jeu (proportion monstres / décor) ; FOOT_PAD = marge basse transparente des images DofusDB à enfoncer pour poser les pieds au sol
   const SC_MOB=1.4, SC_COMTE=1.85, FOOT_PAD=0.12;
   function spriteEntity(imgUrl,ringColor,fallbackColor,sc,friendly){
@@ -917,8 +893,8 @@
       const occ=occupant(mx,my);
       if(occ&&occ.t==='enemy'&&!occ.e.friendly)return; // un ENNEMI occupe la case miroir → inutilisable : SEULS TES ALLIÉS peuvent délock
       seen.add(kk);
-      res.push({x:mx,y:my,via:'Perso '+(a.id+1),ready:!!occ, // ready = un ALLIÉ / une entité AMIE est déjà sur la case miroir → frappe avec cet allié = délock
-        who:occ?(occ.t==='ally'?('Perso '+(occ.a.id+1)):(occ.e.name||'entité')):null});});
+      res.push({x:mx,y:my,via:skinOf(a).name,ready:!!occ, // ready = un ALLIÉ / une entité AMIE est déjà sur la case miroir → frappe avec cet allié = délock
+        who:occ?(occ.t==='ally'?skinOf(occ.a).name:(occ.e.name||'entité')):null});});
     return res;}
   function pivotCell(){ // case PIVOT (miroir M=2P−C) de la position ACTUELLE du joueur actif : y poser/invoquer une entité = délock au prochain coup
     const C=comte();
@@ -929,7 +905,7 @@
     if(!inGrid(mx,my)||blocked(mx,my))return{x:mx,y:my,status:'invalid'};
     const o=occupant(mx,my);
     if(o&&o.t==='enemy'&&!o.e.friendly)return{x:mx,y:my,status:'invalid'}; // un ENNEMI y est : inutilisable (seuls tes alliés délock)
-    return{x:mx,y:my,status:o?'occupied':'free',who:o?(o.t==='ally'?('Perso '+(o.a.id+1)):(o.e.name||'une entité')):null};}
+    return{x:mx,y:my,status:o?'occupied':'free',who:o?(o.t==='ally'?skinOf(o.a).name:(o.e.name||'une entité')):null};}
   /* ---- Ce qu'il y a à faire, montré SUR le terrain (la case à cliquer n'est jamais celle visée : le tir est dévié) :
      ① case CYAN   : mini Cawotte translucide + étiquette « 1. Invoque une cawotte ici »
      ② case VIOLETTE : étiquette « 2. Tape le Comte ici »
@@ -1004,6 +980,8 @@
     return{center:{x:cx,y:cy},clones};}
   function updateMultiGhost(){ // prévisu : les 4 Comtes en transparence sur la croix, avant même de cliquer
     const plan=(state.multi&&hoverCell)?multiPlan(hoverCell.x,hoverCell.y):null;
+    {const C=comte(); // le VRAI Comte s'efface tant que le sort est armé : il fait partie des 4 fantômes qu'on déplace, on ne doit pas le voir en double sur son ancienne case
+     if(C&&C.obj)C.obj.visible=!state.multi&&C.alive;}
     const k=plan?(plan.center.x+','+plan.center.y+'|'+plan.clones.map(c=>c.x+','+c.y).join(';')):'';
     if(k===multiGhostKey)return;multiGhostKey=k;
     if(multiGhost){scene.remove(multiGhost);multiGhost=null;}
@@ -1024,7 +1002,8 @@
     state.enemies.filter(e=>e.kind==='illusion').forEach(e=>{if(e.obj)scene.remove(e.obj);});
     state.enemies=state.enemies.filter(e=>e.kind!=='illusion');
     if(state.initiative)state.initiative=state.initiative.filter(it=>it.t!=='enemy'||it.e.kind!=='illusion');}
-  function cancelMulti(){state.multi=false;multiGhostKey='';if(multiGhost){scene.remove(multiGhost);multiGhost=null;}}
+  function cancelMulti(){state.multi=false;multiGhostKey='';if(multiGhost){scene.remove(multiGhost);multiGhost=null;}
+    const C=comte();if(C&&C.obj)C.obj.visible=C.alive;} // le vrai Comte réapparaît tout de suite, sans attendre un refreshTiles
   function castMulti(cx,cy){ // le clic pose la croix : le vrai se téléporte au centre, les illusions autour
     const C=comte();
     if(!C||!C.alive){toast('Le Comte n\'est pas sur le terrain.');cancelMulti();return;}
@@ -1195,20 +1174,21 @@
     return{x:P.x+dx,y:P.y+dy};}
   /* ---- L'assistant parle SIMPLE : il donne le clic à faire, sans jamais expliquer la confusion ni la symétrie.
      C'est undeflect() qui fait le calcul ; l'utilisateur n'a qu'à cliquer la case de couleur annoncée. ---- */
+  // (aucune coordonnée dans les conseils : la case est peinte sur le terrain avec son étiquette, le chiffre n'apporte rien)
   function aimHint(mx,my){ // → « clique la case CYAN » + peint cette case sur le terrain
-    if(!state.confusion)return' clique la <b>case '+mx+','+my+'</b>.';
+    if(!state.confusion)return' clique-la <b>directement</b>.';
     const v=undeflect(mx,my);
     if(!inGrid(v.x,v.y)||blocked(v.x,v.y))return' mais d\'ici c\'est impossible : <b>déplace ton perso</b> d\'abord.';
     state.aimCell={x:v.x,y:v.y}; // ① case CYAN : le clic à faire, montré sur la carte
     const occ=occupant(v.x,v.y); // la case à cliquer peut être OCCUPÉE : on clique alors l'entité elle-même (ça marche : seule la case d'arrivée doit être libre)
-    return occ?(' clique <b>sur '+entLabel(occ)+'</b> (case CYAN '+v.x+','+v.y+').')
-              :(' clique la <b>case CYAN '+v.x+','+v.y+'</b>.');}
+    return occ?(' clique <b>sur '+entLabel(occ)+'</b> (la <b>case CYAN</b>).')
+              :(' clique la <b>case CYAN</b>.');}
   function hitHint(t){ // → « clique la case VIOLETTE » + peint cette case sur le terrain
     if(!state.confusion)return' clique-le <b>directement</b>.';
     const v=undeflect(t.x,t.y);
     if(!inGrid(v.x,v.y)||blocked(v.x,v.y))return' mais d\'ici, aucun angle ne le touche : <b>déplace ton perso</b>.';
     state.hitCell={x:v.x,y:v.y}; // ② case VIOLETTE : le clic à faire pour que le sort dévie sur lui
-    return' clique la <b>case VIOLETTE '+v.x+','+v.y+'</b>.';}
+    return' clique la <b>case VIOLETTE</b>.';}
   function moveForDelock(){ // aucune symétrie réalisable : où amener un perso pour qu'il en existe une ?
     const C=delockTarget();if(!C||!C.alive)return null;
     let best=null;
@@ -1237,22 +1217,22 @@
     if(C.vulnerable)return'🎯 <b>C\'est bon, '+nom+' est TOUCHABLE !</b> Frappe-le vite :'+hitHint(C)+closerHint(C); // il a bougé → hitHint recalcule la case à cliquer depuis sa NOUVELLE position
     if(!comtePivots())return'🔒 <b>Rien à faire ce tour-ci.</b> Passe au <b>tour '+(state.tour+1)+'</b> (bouton <b>+</b> en haut) : c\'est là que ça marchera.'+closerHint(C); // tour « perdu » = le bon moment pour se rapprocher
     // Priorité au perso que tu CONTRÔLES : sa case miroir est la case ORANGE affichée sur le terrain
-    const pv=pivotCell(),moi='Perso '+(state.player.id+1);
+    const pv=pivotCell(),moi='le personnage sélectionné'; // on ne le nomme pas : c'est celui qui porte le marqueur sur le terrain
     if(pv&&pv.status==='occupied')
       return'✅ <b>Tout est prêt !</b> Frappe '+nom+' avec <b>'+moi+'</b> :'+hitHint(C)
         +'<br>→ Il ira sur la <b>case orange</b>, échangera de place avec '+(pv.who||'ton entité')+' et deviendra <b>TOUCHABLE</b>.'+closerHint(C);
     if(pv&&pv.status==='free')
-      return'① <b>Mets une invocation</b> (🥕/💀/🕷️, ou glisse un perso) sur la <b>case ORANGE '+pv.x+','+pv.y+'</b> :'+aimHint(pv.x,pv.y)
+      return'① <b>Mets une invocation</b> (🥕/💀/🕷️, ou glisse un perso) sur la <b>case ORANGE</b> :'+aimHint(pv.x,pv.y)
         +'<br>② <b>Frappe '+nom+'</b> avec <b>'+moi+'</b> :'+hitHint(C)
         +'<br>→ Il ira sur la case orange, échangera de place et deviendra <b>TOUCHABLE</b>.'+closerHint(C);
     const cells=delockCells(),ready=cells.find(c=>c.ready);
     if(ready)return'✅ <b>Tout est prêt !</b> Frappe '+nom+' avec <b>'+ready.via+'</b> → il échangera de place avec '+(ready.who||'ton entité')+' et deviendra <b>TOUCHABLE</b>.'+closerHint(C);
     if(cells.length){const c=cells[0]; // (pas d'adviceCell ici : la case est déjà peinte en ROUGE par delockCells)
-      return'① <b>Mets une invocation</b> sur la <b>case ROUGE '+c.x+','+c.y+'</b> :'+aimHint(c.x,c.y)
+      return'① <b>Mets une invocation</b> sur la <b>case ROUGE</b> :'+aimHint(c.x,c.y)
         +'<br>② <b>Frappe '+nom+'</b> avec <b>'+c.via+'</b> → il échangera de place et deviendra <b>TOUCHABLE</b>.'+closerHint(C);}
     const mv=moveForDelock();
-    if(mv){state.adviceCell={x:mv.x,y:mv.y,who:'Perso '+(mv.a.id+1)}; // `who` : repris tel quel par l'étiquette « Va ici avec … »
-      return'🧭 <b>D\'ici, c\'est impossible.</b> Va sur la <b>case VERTE '+mv.x+','+mv.y+'</b> avec <b>Perso '+(mv.a.id+1)+'</b> (glisse-le) : c\'est la case la plus proche '+(C.kind==='count'?'du Comte':'de la cible')+' d\'où ça marche.';}
+    if(mv){state.adviceCell={x:mv.x,y:mv.y,who:skinOf(mv.a).name}; // `who` : repris tel quel par l'étiquette « Va ici avec … »
+      return'🧭 <b>D\'ici, c\'est impossible.</b> Va sur la <b>case VERTE</b> avec <b>'+skinOf(mv.a).name+'</b> (glisse-le) : c\'est la case la plus proche '+(C.kind==='count'?'du Comte':'de la cible')+' d\'où ça marche.';}
     return'🔒 <b>Impossible pour l\'instant.</b> Rapproche tes persos '+(C.kind==='count'?'du Comte':'de la cible')+', ou fais de la place autour de lui.';}
   function updateHints(){const m=el('delockMsg');if(!m)return; // l'assistant parle tout seul, en permanence (state.showDelock est toujours vrai)
     const sig=()=>[state.adviceCell,state.aimCell,state.hitCell].map(c=>c?key(c.x,c.y):'-').join('|'); // les 3 cases (verte, cyan, violette)
@@ -1860,7 +1840,6 @@
   el('retreatCancel').onclick=()=>el('retreatBox').classList.remove('show');
   el('retreatKeep').onclick=()=>{el('retreatBox').classList.remove('show');restoreLaunch();};
   el('retreatWipe').onclick=()=>{el('retreatBox').classList.remove('show');fullReset();};
-  el('legHead').onclick=()=>el('legend').classList.toggle('fold'); // légende repliable (elle reste ouverte par défaut)
 
   addEventListener('resize',()=>{perspCam.aspect=innerWidth/innerHeight;perspCam.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);updateCam();});
   const clock=new THREE.Clock();
