@@ -873,22 +873,9 @@
     const t=new THREE.CanvasTexture(c);if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
     const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,fog:false}));
     const H=0.5;s.scale.set(H*c.width/c.height,H,1);return s;} // hauteur fixe, largeur selon le texte : pas de déformation
-  function arrow3D(from,to,col){ // fine flèche au sol : « ce que tu poses ICI finira LÀ »
-    const a=worldPos(from.x,from.y),b=worldPos(to.x,to.y);a.y=0.14;b.y=0.14;
-    const dir=new THREE.Vector3().subVectors(b,a),len=dir.length();
-    if(len<0.05)return null;
-    const u=dir.clone().normalize(),q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),u);
-    const g=new THREE.Group(),m=()=>new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.92,depthTest:false});
-    const shaft=Math.max(0.06,len-0.28);
-    const cyl=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.022,shaft,8),m()); // tige FINE
-    cyl.quaternion.copy(q);cyl.position.copy(a).addScaledVector(u,shaft/2);g.add(cyl);
-    const head=new THREE.Mesh(new THREE.ConeGeometry(0.075,0.24,10),m()); // pointe sur la case d'arrivée
-    head.quaternion.copy(q);head.position.copy(b).addScaledVector(u,-0.12);g.add(head);
-    return g;}
   function updateAimGhost(a){
-    const pv=pivotCell(),dest=(pv&&pv.status==='free')?pv:null; // la case ORANGE : là où l'invocation atterrira
     const occ=a?occupant(a.x,a.y):null; // la case à cliquer est-elle occupée ? alors c'est SUR cette entité qu'il faut cliquer
-    const k=a?(a.x+','+a.y+(dest?('>'+dest.x+','+dest.y):'')+(occ?('@'+entLabel(occ)):'')):'';
+    const k=a?(a.x+','+a.y+(occ?('@'+entLabel(occ)):'')):'';
     if(k===aimGhostKey)return;aimGhostKey=k;
     if(aimGhost){scene.remove(aimGhost);aimGhost=null;}
     if(!a||!cawTex)return;
@@ -902,7 +889,6 @@
       cone.rotation.x=Math.PI;cone.position.set(p.x,1.55,p.z);g.add(cone);
       const cyl=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.22,8),new THREE.MeshBasicMaterial({color:0x2fe0ff,transparent:true,opacity:.9,depthTest:false}));
       cyl.position.set(p.x,1.82,p.z);g.add(cyl);}
-    if(dest){const ar=arrow3D(a,dest,0x2fe0ff);if(ar)g.add(ar);} // fine flèche : case cyan → case orange
     g.userData.ghost=true;scene.add(g);aimGhost=g;}
   function updateHitGhost(h){
     const k=h?(h.x+','+h.y):'';
