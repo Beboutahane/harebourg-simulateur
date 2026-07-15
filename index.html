@@ -296,7 +296,8 @@
   <div id="terrainRow">
     <span id="editBrush" style="display:inline-flex;gap:5px;align-items:center">
       <button class="sbtn" data-brush="block" title="Poser un bloc — re-clique l'outil pour revenir au placement, ou re-clique un bloc pour le retirer">🧱 Bloc</button>
-      <button class="sbtn" data-brush="hole" title="Creuser un trou — re-clique l'outil pour revenir au placement, ou re-clique un trou pour le reboucher">🕳️ Trou</button>
+      <button class="sbtn" data-brush="hole" title="Creuser un trou — re-clique l'outil pour revenir au placement, ou re-clique un trou pour le reboucher (ne pose jamais de case dans le vide)">🕳️ Trou</button>
+      <button class="sbtn" id="brushFloor" data-brush="floor" title="Ajouter une case jouable, même dans le vide — pour redessiner la salle comme tu veux">➕ Case</button>
       <button class="sbtn" id="clearObs" title="Vider tous les obstacles">Tout vider</button>
     </span>
   </div>
@@ -507,22 +508,8 @@
       cap.position.set(p.x,0.29,p.z);obstacleGroup.add(cap);
       [[-0.2,-0.14],[0.15,0.17]].forEach(([ox,oz])=>{const d=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.045,0.03,10),new THREE.MeshStandardMaterial(dotMat));d.position.set(p.x+ox,0.35,p.z+oz);obstacleGroup.add(d);});});
   }
-  /* ---- trous : gouffres glacés (façon Frigost) rendus pour les trous INTÉRIEURS de la carte ---- */
-  const holeGroup=new THREE.Group();scene.add(holeGroup);
-  function iceTex(){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
-    x.fillStyle='#0a1622';x.fillRect(0,0,64,64); // fond sombre du gouffre
-    x.fillStyle='#d3ecff';for(let i=0;i<7;i++){const bx=Math.random()*64;x.beginPath();x.moveTo(bx,64);x.lineTo(bx+5,38+Math.random()*16);x.lineTo(bx+10,64);x.closePath();x.fill();} // stalagmites de glace (bas)
-    x.fillStyle='rgba(143,214,255,.55)';for(let i=0;i<5;i++){const bx=Math.random()*64;x.beginPath();x.moveTo(bx,0);x.lineTo(bx+4,16+Math.random()*12);x.lineTo(bx+9,0);x.closePath();x.fill();} // stalactites (haut)
-    return new THREE.CanvasTexture(c);}
-  const _iceTex=iceTex();
-  const tileVisibleAt=(x,y)=>inGrid(x,y)&&!(state.voids&&state.voids.has(key(x,y)));
-  function buildHoles(){holeGroup.clear();if(!state.voids)return;
-    state.voids.forEach(k=>{const[x,y]=k.split(',').map(Number);
-      const ns=tileVisibleAt(x,y-1)&&tileVisibleAt(x,y+1), ew=tileVisibleAt(x-1,y)&&tileVisibleAt(x+1,y);
-      if(!ns&&!ew)return; // entouré de sol sur au moins un axe = vrai TROU (sinon = hors-arène, on ne dessine rien)
-      const p=worldPos(x,y);
-      const pit=new THREE.Mesh(new THREE.PlaneGeometry(0.9,0.9),new THREE.MeshBasicMaterial({map:_iceTex,side:THREE.DoubleSide}));
-      pit.rotation.x=-Math.PI/2;pit.position.set(p.x,-0.36,p.z);holeGroup.add(pit);});}
+  /* ---- trous : de VRAIS trous, nets. Rien n'est dessiné au fond : le trou = absence de case (noir) + liseré néon des voisines.
+         (l'ancien « gouffre glacé » texturé — stalagmites sur un plan à y=-0.36 — laissait des marques blanches dans les trous) ---- */
   /* ---- portails (Eliotrope) & pièges au sol ---- */
   function buildPortal(x,y){const g=new THREE.Group();const p=worldPos(x,y);
     const tor=new THREE.Mesh(new THREE.TorusGeometry(0.34,0.07,12,26),new THREE.MeshBasicMaterial({color:0x39d0ff,transparent:true,opacity:.92}));
@@ -580,7 +567,7 @@
       'radial-gradient(1100px 600px at 12% -8%, rgba(120,180,255,.16), transparent 60%),linear-gradient(160deg,'+a.bg+',#050a14)';
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){tiles[x][y].userData.base=(x+y)%2===0?a.tileA:a.tileB;}
     decorGroup.clear(); // aucun décor (plots, pics, statues…) : mode tactique pur pour construire ses maps
-    buildObstacles();buildHoles();refreshTiles();buildNeonFloor();
+    buildObstacles();refreshTiles();buildNeonFloor();
     buildEdgeArrows(); // (re)place les flèches d'étirement aux bords de la zone jouable
   }
   function applyAmbiance(){ // GÉNÈRE le terrain de la carte courante (1re visite / remise à zéro) puis le dessine
@@ -823,9 +810,11 @@
       else{
         if(state.startCells&&state.phase==='setup'&&state.startCells.has(key(x,y)))c=0x2f6fd0; // cases BLEUES de départ (Donjon) : placement des persos uniquement
         if(state.mode==='move'&&state.hoverPath&&state.hoverPath.has(key(x,y)))c=0x35c46a; // cases empruntées jusqu'à la destination (prévisu de déplacement) = VERT
-        if((state.mode==='swap'||state.mode==='spell')&&state.targets.has(key(x,y))){ // zone du sort : bleu TRÈS translucide ; ligne de vue bloquée = encore plus estompé
+        if((state.mode==='swap'||state.mode==='spell')&&state.targets.has(key(x,y))){ // zone du sort : bleu TRÈS translucide
           const zb=(x+y)%2===0?0x16273c:0x2b3f5a; // damier ACCENTUÉ sous la teinte → le quadrillage reste lisible case par case
-          c=mixHex(zb,0x3d8bff,(state.noLoS&&state.noLoS.has(key(x,y)))?0.12:0.38);}
+          c=(state.noLoS&&state.noLoS.has(key(x,y)))
+            ?mixHex(zb,0x9aa6b4,0.5)    // aucune LIGNE DE VUE (obstacle sur le trajet) : case GRISE = intapable, tes sorts ne passent pas derrière les murs
+            :mixHex(zb,0x3d8bff,0.38);} // à portée ET visible : bleu translucide
       }
       m.color.setHex(c);m.opacity=.96;}
     if(state.showDelock)delockCells().forEach(dc=>{const t=tiles[dc.x]&&tiles[dc.x][dc.y]; // bouton « Délock ? » actif : ROUGE vif = entité déjà en place (délock prêt), rouge sombre = pose une entité ici
@@ -931,8 +920,9 @@
     el('setup').style.display=(state.phase==='setup')?'flex':'none'; // outils de map : dans les DEUX cartes (Songe et Donjon)
     {const dj=state.map==='dj';
      el('setupTitle').textContent=dj?'🏰 Modifie la salle':'🏖️ Construis ta map';
-     el('mapHint').style.display=dj?'none':''; // étirement de la zone : Songe seulement (la salle du donjon garde sa taille réelle)
-     el('mobAdd').style.display=dj?'':'none';} // ajout de monstre : Donjon seulement
+     el('mapHint').style.display=dj?'none':''; // étirement de la zone : Songe seulement (en Donjon on redessine case par case avec ➕ Case)
+     el('mobAdd').style.display=dj?'':'none'; // ajout de monstre : Donjon seulement
+     el('brushFloor').style.display=dj?'':'none';} // ➕ Case : Donjon seulement (le Songe s'agrandit en tirant sur les bords)
     edgeArrowGroup.visible=(state.phase==='setup'&&state.map==='songe'); // flèches d'étirement : même condition que l'outil Songe
     const hasChar=!!(state.player&&state.player.className!=='—'); // classe choisie → cœur actif (prévisualisation confusion possible avant même le placement)
     {const t=hasChar?tierOf(state.player):null,pct=hasChar?VITA[t].mid/100:0,f=el('heartFill'),v=el('heartVal'); // le cœur = la TRANCHE de vita choisie sur le perso (rien d'autre)
@@ -1092,6 +1082,7 @@
     refreshTiles();refreshHUD();}
   function castCell(x,y){if(!state.spell)return;const sp=state.spell; // aucun coût en PA
     if(!state.targets.has(key(x,y))){toast('Case hors de portée du sort.');return;}
+    if(state.noLoS&&state.noLoS.has(key(x,y))){toast('🚫 Pas de ligne de vue : un obstacle bloque le tir (cases GRISES) — tes sorts ne passent pas derrière les murs.');return;}
     if(isTrap(sp)){state.mode='idle';state.targets=new Set(); // sort piège : se pose au sol, pas de projectile
       placeTrap(x,y,sp.name);burst(worldPos(x,y),0xffc24b);restMove();refreshTiles();refreshHUD();toast('🪤 « '+sp.name+' » posé au sol en '+x+','+y+'.');return;}
     const d=sp.noDeflect?{x:x,y:y}:deflect(x,y),rx=d.x,ry=d.y,dev=(rx!==x||ry!==y); // confusion : le sort part sur la case réelle (rx,ry) ; l'arme ne dévie pas
@@ -1222,11 +1213,18 @@
     state.classSpells=state.player.classSpells||[];state.spell=null;
     rebuildSpellBar(state.classSpells);
     if(state.phase==='playing')restMove();refreshTiles();refreshHUD();}
-  function applyEditVisual(){for(let x=0;x<N;x++)for(let y=0;y<N;y++)tiles[x][y].visible=!(state.voids&&state.voids.has(key(x,y)));buildObstacles();buildHoles();refreshTiles();buildNeonFloor();}
+  function applyEditVisual(){for(let x=0;x<N;x++)for(let y=0;y<N;y++)tiles[x][y].visible=!(state.voids&&state.voids.has(key(x,y)));buildObstacles();refreshTiles();buildNeonFloor();}
   function editAt(x,y){if(entityAt(x,y)){toast('Case occupée par une entité — déplace-la d\'abord.');return;}
     const k=key(x,y);
     if(state.brush==='block'){if(state.obstacles.has(k))state.obstacles.delete(k);else{state.obstacles.add(k);state.voids.delete(k);}}
-    else if(state.brush==='hole'){if(state.voids.has(k))state.voids.delete(k);else{state.voids.add(k);state.obstacles.delete(k);}}
+    else if(state.brush==='hole'){
+      if(state.voids.has(k)){ // re-clic sur un trou = le reboucher… mais JAMAIS créer une case dans le vide (hors salle)
+        if(state._baseVoids&&state._baseVoids.has(k)){toast('Ici c\'est le VIDE (hors salle) — utilise ➕ Case pour y poser une case.');return;}
+        state.voids.delete(k);}
+      else{state.voids.add(k);state.obstacles.delete(k);}}
+    else if(state.brush==='floor'){ // ➕ Case : pose une case jouable N'IMPORTE OÙ (vide compris) → salle 100 % customisable
+      if(!state.voids.has(k)&&!state.obstacles.has(k)){toast('Il y a déjà une case ici.');return;}
+      state.voids.delete(k);state.obstacles.delete(k);}
     else{state.obstacles.delete(k);state.voids.delete(k);}
     applyEditVisual();}
   function onTileClick(u){
@@ -1391,7 +1389,7 @@
   el('editBrush').querySelectorAll('[data-brush]').forEach(b=>b.onclick=()=>{
     if(state.edit&&state.brush===b.dataset.brush){state.edit=false;state.setupSel=null;updateSetupBtns();refreshTiles();toast('✋ Retour au placement : clique une case pour placer/déplacer tes persos et monstres.');return;} // re-clic sur l'outil actif = revenir au placement
     state.brush=b.dataset.brush;state.edit=true;state.setupSel=null;updateSetupBtns();refreshTiles();
-    toast('🧱 Édition : clique les cases pour '+(b.dataset.brush==='block'?'poser des blocs':'creuser des trous')+' · re-clique l\'outil pour revenir au placement.');});
+    toast('🧱 Édition : clique les cases pour '+({block:'poser des blocs',hole:'creuser des trous',floor:'ajouter des cases'}[b.dataset.brush]||'éditer')+' · re-clique l\'outil pour revenir au placement.');});
   el('clearObs').onclick=()=>{state.obstacles=new Set();state.voids=new Set(state._baseVoids||[]);applyEditVisual();toast('Obstacles vidés.');};
   function updateMapSizeLabels(){if(el('mapWval'))el('mapWval').textContent=state.mapW;if(el('mapHval'))el('mapHval').textContent=state.mapH;}
   function setMapDims(w,h){ // taille ABSOLUE (bornée 9..N, impaire pour rester centrée) — silencieux (utilisé par l'étirement au bord)
