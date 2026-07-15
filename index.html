@@ -627,15 +627,24 @@
   /* ---- BASE DES PERSOS : un nom = un jeu de 4 vues (fichiers <pre>bd/bg/hg/hd.png) ----
      Perso 1 = Beboucafe, Perso 2 = Mikassa-Ackerman, puis on recommence. Si les images d'un perso
      manquent, il garde simplement l'apparence par défaut (Dopeul) : rien ne casse. */
-  const SKINS=[{name:'Beboucafe',pre:'skin-'},{name:'Mikassa-Ackerman',pre:'mikassa-'}];
+  const SKINS=[{name:'Mikassa-Ackerman',pre:'mika-'},{name:'Beboucafe',pre:'bebou-'}]; // Perso 1 = Mikassa, Perso 2 = Beboucafe, puis on alterne
   const skinOf=a=>SKINS[(a.id||0)%SKINS.length];
   /* ---- SKIN DU PERSO : 4 vues (déjà détourées, 300×500) — il REGARDE toujours le Comte ----
      Les fichiers sont nommés d'après la direction ÉCRAN vers laquelle il regarde, en repères isométriques :
        bd = bas-droite (+x)  ·  bg = bas-gauche (+y)  ·  hg = haut-gauche (−x)  ·  hd = haut-droite (−y)
      (worldPos : +x part en bas-droite de l'écran, +y grille = +z monde part en bas-gauche.) */
   const SKIN_RATIO=300/500, SKIN_H=1.5; // les 4 vues ont la même taille : aucun « saut » quand il pivote
-  const SKIN_FOOT=449/500; // mesuré : ses pieds sont à 89,8 % de la hauteur de l'image (le reste = son ombre)
-  const SKIN_Y=SKIN_H*(SKIN_FOOT-0.5); // hauteur du sprite qui pose EXACTEMENT ses pieds sur la case (≈0.6)
+  const skinFoot={}; // fraction de hauteur où sont les PIEDS, MESURÉE image par image (elle varie de 0.86 à 0.93
+                     // selon la vue : une constante unique les ferait léviter ou s'enfoncer)
+  function measureFoot(img){ // dernière ligne vraiment opaque = les pieds (en dessous il ne reste que son ombre)
+    try{const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
+      const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(img,0,0);
+      const p=x.getImageData(0,0,img.width,img.height).data;
+      for(let y=img.height-1;y>=0;y--){let n=0;
+        for(let X=0;X<img.width;X++)if(p[(y*img.width+X)*4+3]>205&&++n>2)return (y+1)/img.height;}
+    }catch(e){}
+    return 0.9;}
+  const skinY=k=>SKIN_H*((skinFoot[k]||0.9)-0.5); // hauteur du sprite qui pose EXACTEMENT ses pieds sur la case
   const skinTex={}; // clé = pré + direction (ex. 'skin-bd') — rempli APRÈS la création de texLoader (cf. plus bas)
   function facingOf(a){ // vers quelle diagonale doit-il se tourner pour faire face au Comte ?
     const C=comte();if(!C)return 'bd'; // pas de Comte sur le terrain : il regarde la caméra
@@ -656,7 +665,7 @@
       mat.map=t;mat.color.setHex(0xffffff);mat.needsUpdate=true;
       a.obj.userData.hasPerso=true; // priorité sur le Dopeul DofusDB (cf. applyAllyLook)
       spr.scale.set(SKIN_H*SKIN_RATIO,SKIN_H,1);
-      a.obj.userData.baseY=SKIN_Y;spr.position.y=SKIN_Y;});} // baseY : animate() s'y cale (sinon il le ferait flotter)
+      const y=skinY(k);a.obj.userData.baseY=y;spr.position.y=y;});} // baseY : animate() s'y cale (sinon il le ferait flotter)
   function buildAllyObj(i){const col=allyColors[i];
     const g=new THREE.Group();
     const sh=new THREE.Mesh(new THREE.CircleGeometry(0.36,24),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.34,depthWrite:false}));
@@ -692,7 +701,8 @@
   // ligne lève un ReferenceError (zone morte temporelle) qui tuerait tout le script au démarrage.
   SKINS.forEach(s=>['bd','bg','hg','hd'].forEach(d=>texLoader.load(s.pre+d+'.png',t=>{
     if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
-    skinTex[s.pre+d]=t;state.allies.forEach(a=>{if(a.obj)a.obj.userData.facing=null;});},undefined,()=>{}))); // facing=null → la vue est (re)posée au prochain refreshTiles/animate
+    skinTex[s.pre+d]=t;skinFoot[s.pre+d]=measureFoot(t.image); // pieds mesurés sur CETTE vue → posé pile sur sa case
+    state.allies.forEach(a=>{if(a.obj)a.obj.userData.facing=null;});},undefined,()=>{}))); // facing=null → la vue est (re)posée au prochain refreshTiles/animate
   // échelles calées sur le vrai jeu (proportion monstres / décor) ; FOOT_PAD = marge basse transparente des images DofusDB à enfoncer pour poser les pieds au sol
   const SC_MOB=1.4, SC_COMTE=1.85, FOOT_PAD=0.12;
   function spriteEntity(imgUrl,ringColor,fallbackColor,sc,friendly){
