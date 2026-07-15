@@ -190,8 +190,8 @@
   #ctxMenu button,#placeMenu button,#allyMenu button{display:block;width:100%;border:0;background:transparent;color:var(--danger);font-family:var(--font);font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:7px;cursor:pointer;text-align:left;white-space:nowrap}
   #ctxMenu button:hover{background:rgba(255,107,125,.14)}
   #allyMenu button{color:var(--frost)}#allyMenu button:hover{background:rgba(75,184,240,.16)}
-  #placeMenu #pmAlly{color:#7fd0ff}#placeMenu #pmAlly:hover{background:rgba(75,184,240,.16)}
   #placeMenu #pmEnemy{color:#ff8a95}#placeMenu #pmEnemy:hover{background:rgba(255,107,125,.14)}
+  #placeMenu .pmico{width:19px;height:19px;object-fit:contain;vertical-align:-5px;margin-right:6px} /* Coiffe du Comte (DofusDB) */
   #confPop{position:absolute;z-index:13;display:none;transform:translate(-50%,-115%);background:var(--panel);border:1px solid var(--border-strong);border-radius:12px;padding:10px 11px;box-shadow:0 12px 28px rgba(0,8,20,.65);pointer-events:auto;text-align:center;backdrop-filter:blur(10px)}
   #confPop.show{display:block;animation:cpop .18s cubic-bezier(.34,1.56,.64,1)}
   #confPop.hide{animation:cdepop .14s ease-in forwards}
@@ -350,7 +350,7 @@
 <div id="hoverHp"><div class="hhn" id="hhName"></div><div class="hhbar"><i id="hhFill"></i></div><div class="hhv" id="hhVal"></div></div>
 <div id="cellCount"></div>
 <div id="ctxMenu"><button id="ctxComte" style="display:none;color:#8fe4ff">🔷 Transformer en Comte</button><button id="ctxDead">☠ Mort — retirer du terrain</button></div>
-<div id="placeMenu"><button id="pmAlly">🔵 Ajouter un joueur (Crâ)</button><button id="pmEnemy">🔴 Poser un ennemi (Poutch)</button><button id="pmComte" style="color:#8fe4ff">🔷 Poser le Comte</button></div>
+<div id="placeMenu"><button id="pmEnemy">🔴 Poser un ennemi (Poutch)</button><button id="pmComte" style="color:#8fe4ff"><img class="pmico" src="https://api.dofusdb.fr/img/items/16362.png" alt="" onerror="this.replaceWith('🔷')">Poser le Comte</button></div>
 <div id="confPop"><div class="cptitle">❤ Tranche de vita → 🔄 confusion</div><div class="cpbtns"></div></div>
 <div id="allyMenu">
   <button id="amCtl">🎯 Contrôler ce perso</button>
@@ -1193,12 +1193,13 @@
       moveEntity(state.setupSel,x,y);state.setupSel=null;refreshTiles();refreshHUD();toast('Placé.');return;}
     const ent=entityAt(x,y);
     if(ent){state.setupSel=ent;toast(selName(ent)+' sélectionné — clique une case pour le (re)placer.');refreshTiles();return;}
-    const un=state.allies.find(a=>!a.placed);
-    if(un&&!allyCellOk(x,y)){toast('🔵 En Donjon, clique une case BLEUE pour poser ton personnage.');refreshTiles();return;}
-    if(un&&!blocked(x,y)){un.x=x;un.y=y;un.placed=true;syncAlly(un);un.obj.position.copy(un.obj.userData.tp);un.obj.visible=true;
+    if(!allyCellOk(x,y)){toast('🔵 En Donjon, clique une case BLEUE pour poser ton personnage.');refreshTiles();return;}
+    if(blocked(x,y)){toast('Clique une case LIBRE pour ajouter un personnage.');return;}
+    const un=state.allies.find(a=>!a.placed); // un perso attend d'être posé → c'est lui qu'on place…
+    if(un){un.x=x;un.y=y;un.placed=true;syncAlly(un);un.obj.position.copy(un.obj.userData.tp);un.obj.visible=true;
       setActive(state.allies.indexOf(un));if(un.className==='—')selectClass(9); // classe Crâ automatique (plus de panneau d'équipe)
       toast('🔵 Perso '+(un.id+1)+' placé.');refreshTiles();refreshHUD();showConfPop(un);maybeAutoStart();return;}
-    toast('Clique une entité pour la sélectionner, puis une case libre.');}
+    addPlayerAt(x,y);} // …sinon le clic gauche AJOUTE un nouveau joueur (le clic droit ne sert plus qu'au Comte et aux ennemis)
   function setActive(i){if(i<0||i>=state.allies.length)return;state.active=i;
     state.classSpells=state.player.classSpells||[];state.spell=null;
     rebuildSpellBar(state.classSpells);
@@ -1268,17 +1269,16 @@
     else if(u&&!ent&&!blocked(u.x,u.y)){ // clic droit sur case LIBRE → poser un allié / un ennemi / le Comte (si absent)
       placeCell={x:u.x,y:u.y};const m=el('placeMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');
       el('pmComte').style.display=comte()?'none':'';}});
-  function spawnToken(friendly){ // clic droit : allié = NOUVEAU JOUEUR Crâ (rejoint l'équipe) ; ennemi = Poutch (entité)
+  function addPlayerAt(x,y){ // NOUVEAU joueur Crâ (rejoint l'équipe, contrôlable) posé sur la case — clic gauche sur une case libre
+    if(state.allies.length>=8){toast('Maximum 8 persos.');return;}
+    const i=state.allies.length,a=makeAlly(i);state.allies.push(a);
+    a.obj=buildAllyObj(i);a.x=x;a.y=y;a.placed=true;syncAlly(a);a.obj.position.copy(a.obj.userData.tp);a.obj.visible=true;
+    if(state.phase==='playing'){a.hp=a.hpMax;a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;}
+    setActive(i);selectClass(9); // Crâ (la seule classe) : tête + sorts + corps entier chargés
+    refreshTiles();refreshHUD();toast('🔵 Joueur '+(i+1)+' (Crâ) ajouté en '+x+','+y+'.');showConfPop(a);maybeAutoStart();}
+  function spawnPoutch(){ // clic droit sur une case libre → Poutch (entité ennemie) ; les joueurs, eux, se posent au clic gauche
     if(!placeCell)return;const{x,y}=placeCell;placeCell=null;el('placeMenu').classList.remove('show');
     if(entityAt(x,y)||blocked(x,y)){toast('Case occupée ou bloquée.');return;}
-    if(friendly){ // un VRAI joueur ajouté à l'équipe (vignette, classe Crâ, contrôlable), placé sur la case
-      if(state.allies.length>=8){toast('Maximum 8 persos.');return;}
-      if(!allyCellOk(x,y)){toast('🔵 En Donjon, les personnages se placent sur les cases bleues.');return;}
-      const i=state.allies.length,a=makeAlly(i);state.allies.push(a);
-      a.obj=buildAllyObj(i);a.x=x;a.y=y;a.placed=true;syncAlly(a);a.obj.position.copy(a.obj.userData.tp);a.obj.visible=true;
-      if(state.phase==='playing'){a.hp=a.hpMax;a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;}
-      setActive(i);selectClass(9); // Crâ (la seule classe) : tête + sorts + corps entier chargés
-      refreshTiles();refreshHUD();toast('🔵 Joueur '+(i+1)+' (Crâ) ajouté à l\'équipe en '+x+','+y+'.');showConfPop(a);maybeAutoStart();return;}
     spawnMobFrom({name:'Poutch',kind:'mob',friendly:false,hpMax:500,ring:0xff5b5b,x,y,img:API+'/img/monsters/278.png'}); // Poutch Ingball (DofusDB)
     refreshTiles();refreshHUD();toast('🔴 Poutch posé en '+x+','+y+' (clic droit dessus pour le retirer).');}
   function killEnemyEntity(e){if(!e)return;if(e.obj)scene.remove(e.obj);e.alive=false;state.enemies=state.enemies.filter(x=>x!==e);
@@ -1473,8 +1473,7 @@
     state.active=Math.min(state.active,state.allies.length-1);setActive(state.active);refreshHUD();toast('Allié retiré.');}
   el('ctxDead').onclick=()=>{killEnemyEntity(ctxEnemy);ctxEnemy=null;el('ctxMenu').classList.remove('show');};
   el('ctxComte').onclick=()=>{transformToComte(ctxEnemy);ctxEnemy=null;el('ctxMenu').classList.remove('show');};
-  el('pmAlly').onclick=()=>spawnToken(true);
-  el('pmEnemy').onclick=()=>spawnToken(false);
+  el('pmEnemy').onclick=()=>spawnPoutch();
   el('pmComte').onclick=()=>spawnComteToken();
   let confPopAlly=null,confPopAt=0; // widget de TRANCHE DE VITALITÉ du perso : pop au dépôt sur le terrain, la confusion en découle
   el('confPop').querySelector('.cpbtns').innerHTML=VITA.map((v,i)=>'<button data-t="'+i+'"><b>'+v.l+'</b><i>🔄 '+cmap[v.rot]+'</i></button>').join(''); // les 5 tranches viennent de VITA (source unique)
