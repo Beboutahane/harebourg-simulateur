@@ -39,6 +39,17 @@
 
   #left{top:12px;left:12px;width:246px;max-height:calc(100vh - 150px);display:flex;flex-direction:column;padding:13px;overflow-y:auto}
   #left h3{font-family:var(--display);font-size:14px;letter-spacing:.4px;color:var(--ice);margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  #tuto{top:12px;left:12px;width:268px;max-height:calc(100vh - 150px);overflow-y:auto;padding:13px 14px;display:flex;flex-direction:column;gap:9px}
+  #tuto h3{font-family:var(--display);font-size:13px;letter-spacing:.4px;color:var(--ice);display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+  #tuto h3 .chev{margin-left:auto;font-size:10px;opacity:.75;transition:transform .16s}
+  #tuto.folded h3 .chev{transform:rotate(-90deg)}
+  #tuto.folded .tutolist{display:none} /* replié : le tuto ne gêne pas la vue de la carte */
+  .tutolist{list-style:none;display:flex;flex-direction:column;gap:8px;margin:0;padding:0;counter-reset:tuto}
+  .tutolist li{font-size:11.5px;line-height:1.45;color:var(--txt);display:flex;gap:8px;align-items:flex-start}
+  .tutolist li b{color:var(--frost)}
+  .tutolist li::before{counter-increment:tuto;content:counter(tuto);flex:0 0 auto;width:17px;height:17px;border-radius:50%;
+    background:linear-gradient(180deg,rgba(75,184,240,.34),rgba(8,18,32,.6));border:1px solid var(--border-strong);
+    color:var(--ice);font-family:var(--display);font-weight:800;font-size:9.5px;display:flex;align-items:center;justify-content:center;margin-top:1px}
   #tips{top:12px;right:12px;width:262px;max-height:calc(100vh - 150px);overflow-y:auto;padding:13px 14px;display:flex;flex-direction:column;gap:8px}
   #tips h3{font-family:var(--display);font-size:13px;letter-spacing:.4px;color:var(--ice);display:flex;align-items:center;gap:6px;margin-bottom:2px}
   .tiplist{list-style:none;display:flex;flex-direction:column;gap:7px;margin:0;padding:0}
@@ -296,6 +307,19 @@
 </div>
 
 <!-- (panneau d'équipe supprimé : tout se gère sur le terrain — clic gauche = contrôler/placer, clic droit = menu du perso) -->
+
+<div class="hud card" id="tuto">
+  <h3 title="Clique pour replier / déplier">🎓 Tuto<span class="chev">▾</span></h3>
+  <ol class="tutolist">
+    <li><span>Crée ta map avec l'outil de <b>Build</b> (🧱 Bloc / 🕳️ Trou).</span></li>
+    <li><span>Sélectionne une case pour ajouter un personnage.</span></li>
+    <li><span>Choisis le <b>% de vitalité</b> de tes personnages (ou clic gauche).</span></li>
+    <li><span><b>Clic droit</b> sur une case pour ajouter le <b>Comte Harebourg</b> ou une entité ennemie (Poutch).</span></li>
+    <li><span>Tous les déplacements se font en <b>drag &amp; drop</b>.</span></li>
+    <li><span>Simule ton combat sur la carte pour savoir où taper, avec les sorts disponibles dans la barre des tâches.</span></li>
+    <li><span>Utilise l'<b>assistant</b> pour <b>délock</b> le Boss.</span></li>
+  </ol>
+</div>
 
 <div class="hud card" id="tips"></div>
 
@@ -1328,6 +1352,7 @@
     updateSetupBtns();updateMapSizeLabels();setActive(state.active);refreshTiles();refreshHUD();renderTips();
     el('modeDj').classList.toggle('on',m==='dj');el('modeSonge').classList.toggle('on',m==='songe');
     toast(m==='dj'?'🏰 Donjon : sa map, ses monstres, ses persos — totalement séparé du Songe.':'🌙 Songe : sa map, ses monstres, ses persos — totalement séparé du Donjon.');}
+  el('tuto').querySelector('h3').onclick=()=>el('tuto').classList.toggle('folded'); // clic sur le titre = replier/déplier le tuto
   el('modeDj').onclick=()=>setMapMode('dj');
   el('modeSonge').onclick=()=>setMapMode('songe');
   el('invTag').onclick=()=>{const C=comte();if(!C){toast('Le boss apparaîtra au lancement du combat.');return;}
