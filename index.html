@@ -646,6 +646,47 @@
     x.lineWidth=7;x.strokeStyle='rgba(255,255,255,.8)';x.stroke();
     x.fillStyle='#06121f';x.font='bold 60px Segoe UI';x.textAlign='center';x.textBaseline='middle';x.fillText(label,64,70);
     return new THREE.CanvasTexture(c);}
+  /* ---- PLANCHE DE PERSO (perso-planche.png) : 6 vues sur fond blanc → on en découpe UNE, détourée ----
+     Le fond est retiré par PROPAGATION DEPUIS LES BORDS (pas par seuil global) : le blanc ENFERMÉ dans le
+     dessin (crâne, cheveux clairs) est ainsi préservé. Puis recadrage auto sur ce qui reste. */
+  const PERSO_NAME='Beboucafe'; // nom affiché de TES persos (le perso de la planche)
+  const SHEET_URL='perso-planche.png', SHEET_COLS=3, SHEET_ROWS=2, SHEET_COL=1, SHEET_ROW=0; // vue de 3/4 face (rangée du haut, colonne du milieu) : la mieux orientée pour l'isométrique
+  let sheetTex=null,sheetTried=false;const sheetWaiters=[];
+  function cutSheet(im){
+    const cw=Math.floor(im.width/SHEET_COLS),ch=Math.floor(im.height/SHEET_ROWS);
+    const c=document.createElement('canvas');c.width=cw;c.height=ch;
+    const x=c.getContext('2d',{willReadFrequently:true});
+    x.drawImage(im,SHEET_COL*cw,SHEET_ROW*ch,cw,ch,0,0,cw,ch);
+    const d=x.getImageData(0,0,cw,ch),p=d.data;
+    const bg=(i)=>p[i]>228&&p[i+1]>228&&p[i+2]>228; // « quasi blanc » (tolère l'antialiasing et le JPEG)
+    const seen=new Uint8Array(cw*ch),stack=[];
+    for(let px=0;px<cw;px++){stack.push(px,(ch-1)*cw+px);}      // bords haut/bas
+    for(let py=0;py<ch;py++){stack.push(py*cw,py*cw+cw-1);}     // bords gauche/droite
+    while(stack.length){const k=stack.pop();
+      if(k<0||k>=cw*ch||seen[k])continue;const i4=k*4;if(!bg(i4))continue; // on ne franchit PAS le dessin
+      seen[k]=1;p[i4+3]=0; // fond → transparent
+      const kx=k%cw;
+      if(kx>0)stack.push(k-1);if(kx<cw-1)stack.push(k+1);stack.push(k-cw,k+cw);}
+    let x0=cw,y0=ch,x1=-1,y1=-1; // recadrage auto sur les pixels gardés
+    for(let py=0;py<ch;py++)for(let px=0;px<cw;px++){if(p[(py*cw+px)*4+3]>10){if(px<x0)x0=px;if(px>x1)x1=px;if(py<y0)y0=py;if(py>y1)y1=py;}}
+    x.putImageData(d,0,0);
+    if(x1<x0||y1<y0)return new THREE.CanvasTexture(c); // rien de gardé : on rend la découpe telle quelle
+    const pad=4,ax=Math.max(0,x0-pad),ay=Math.max(0,y0-pad),aw=Math.min(cw,x1+pad)-ax+1,ah=Math.min(ch,y1+pad)-ay+1;
+    const o=document.createElement('canvas');o.width=aw;o.height=ah;
+    o.getContext('2d').drawImage(c,ax,ay,aw,ah,0,0,aw,ah);
+    const t=new THREE.CanvasTexture(o);t.userData={ratio:aw/ah};return t;}
+  function loadSheet(cb){ // chargée UNE fois, partagée par tous les persos (le fichier peut ne pas exister : on retombe alors sur le jeton)
+    if(sheetTex)return cb(sheetTex);
+    sheetWaiters.push(cb);if(sheetTried)return;sheetTried=true;
+    const im=new Image();
+    im.onload=()=>{try{sheetTex=cutSheet(im);}catch(e){sheetTex=null;}
+      if(sheetTex&&renderer.capabilities)sheetTex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+      if(sheetTex)sheetWaiters.splice(0).forEach(f=>f(sheetTex));};
+    im.onerror=()=>{sheetWaiters.length=0;}; // pas de planche déposée : rien à faire
+    im.src=SHEET_URL;}
+  function applySheet(g,mat,spr){loadSheet(t=>{mat.map=t;mat.color.setHex(0xffffff);mat.needsUpdate=true;
+    g.userData.hasPerso=true; // même priorité qu'un persoN.png fourni : la planche gagne sur le Crâ DofusDB
+    const r=(t.userData&&t.userData.ratio)||0.7;spr.scale.set(1.35*r,1.35,1);spr.position.y=0.88;});}
   function buildAllyObj(i){const col=allyColors[i];
     const g=new THREE.Group();
     const sh=new THREE.Mesh(new THREE.CircleGeometry(0.36,24),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.34,depthWrite:false}));
@@ -657,14 +698,17 @@
     const spr=new THREE.Sprite(mat);spr.scale.set(0.86,0.86,1);spr.position.y=0.72;g.add(spr); // médaillon/tête à taille raisonnable
     g.add(ring(RING_ALLY)); // allié = anneau bleu
     const img='perso'+(i===0?'':(i+1))+'.png';
-    texLoader.load(img,t=>{if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();mat.map=t;mat.needsUpdate=true;g.userData.hasPerso=true;spr.scale.set(1.25,1.25,1);spr.position.y=0.88;},undefined,()=>{}); // persoN.png (corps entier) : un peu plus grand
+    texLoader.load(img,t=>{if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();mat.map=t;mat.needsUpdate=true;g.userData.hasPerso=true;spr.scale.set(1.25,1.25,1);spr.position.y=0.88;},
+      undefined,()=>applySheet(g,mat,spr)); // pas de persoN.png dédié → la PLANCHE (Beboucafe) sert d'apparence à tous les persos
     g.userData.spr=spr;g.userData.mat=mat;g.userData.ally=i;g.visible=false;scene.add(g);return g;}
   function applyAllyLook(a){if(!a.obj)return;const mat=a.obj.userData.mat,spr=a.obj.userData.spr;
     if(a.obj.userData.hasPerso)return; // l'utilisateur a fourni persoN.png → priorité
-    if(a.body){texLoader.load(a.body,t=>{if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();mat.map=t;mat.color.setHex(0xffffff);mat.needsUpdate=true;
+    if(a.body){texLoader.load(a.body,t=>{if(a.obj.userData.hasPerso)return; // la planche/persoN.png est arrivée entre-temps : elle garde la priorité
+        if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();mat.map=t;mat.color.setHex(0xffffff);mat.needsUpdate=true;
         a.obj.userData.hasBody=true;spr.scale.set(1.3,1.3,1);},undefined,()=>{a.body=null;applyAllyLook(a);});return;} // personnage CORPS ENTIER (Dopeul / PNJ de la classe, base monstres DofusDB)
     a.obj.userData.hasBody=false;spr.scale.set(0.86,0.86,1);
-    if(a.head){texLoader.load(a.head,t=>{if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();mat.map=t;mat.color.setHex(0xffffff);mat.needsUpdate=true;},undefined,()=>{mat.map=tokenTex('P'+(a.id+1),a.ring);mat.needsUpdate=true;});} // repli : tête de la classe (DofusDB)
+    if(a.head){texLoader.load(a.head,t=>{if(a.obj.userData.hasPerso)return; // idem : ne jamais écraser la planche
+        if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();mat.map=t;mat.color.setHex(0xffffff);mat.needsUpdate=true;},undefined,()=>{mat.map=tokenTex('P'+(a.id+1),a.ring);mat.needsUpdate=true;});} // repli : tête de la classe (DofusDB)
     else{mat.map=tokenTex('P'+(a.id+1),a.ring);mat.color.setHex(0xffffff);mat.needsUpdate=true;}}
   async function fetchClassBody(cn){ // personnage corps entier de la classe : Dopeul du temple d'abord, sinon un PNJ/monstre du même nom (ex: « Iop en cape brakmarienne »)
     const slug=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
@@ -1336,7 +1380,7 @@
     a.obj=buildAllyObj(i);a.x=x;a.y=y;a.placed=true;syncAlly(a);a.obj.position.copy(a.obj.userData.tp);a.obj.visible=true;
     if(state.phase==='playing'){a.hp=a.hpMax;a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;}
     setActive(i);selectClass(9); // Crâ (la seule classe) : tête + sorts + corps entier chargés
-    refreshTiles();refreshHUD();toast('🔵 Joueur '+(i+1)+' (Crâ) ajouté en '+x+','+y+'.');showConfPop(a);maybeAutoStart();}
+    refreshTiles();refreshHUD();toast('🔵 Joueur '+(i+1)+' ('+PERSO_NAME+') ajouté en '+x+','+y+'.');showConfPop(a);maybeAutoStart();}
   function putPlayerAt(x,y){ // clic gauche sur une case libre : pose le perso qui attend, sinon en AJOUTE un nouveau (préparation comme combat)
     const un=state.allies.find(a=>!a.placed);
     if(!un){addPlayerAt(x,y);return;}
@@ -1501,10 +1545,10 @@
     refreshTiles();refreshHUD();toast('🔆 Invocation « '+s.name+' » : clique une case libre pour la poser.');}
   async function selectClass(id){
     if(!id){state.player.className='—';state.player.classSpells=[];state.classSpells=[];state.player.head=null;state.player.body=null;applyAllyLook(state.player);rebuildSpellBar([]);refreshHUD();return;}
-    const b=(state.breeds||[]).find(x=>x.id==id);state.player.className=b?b.name:('Classe '+id);
+    const b=(state.breeds||[]).find(x=>x.id==id);state.player.className=PERSO_NAME; // nom AFFICHÉ du perso (les sorts, eux, sont fixes — cf. FIXED_SPELLS)
     state.player.head=b?b.head:null;state.player.body=null;applyAllyLook(state.player); // tête en attendant…
-    {const a=state.player,cn=a.className; // …puis personnage CORPS ENTIER de la classe (comme « Iop en cape brakmarienne »)
-     fetchClassBody(cn).then(img=>{if(img&&a.className===cn){a.body=img;applyAllyLook(a);}});}
+    {const a=state.player,cn=b?b.name:''; // …puis corps entier de la VRAIE classe (Crâ) : sert de repli tant qu'aucune planche n'est déposée
+     if(cn)fetchClassBody(cn).then(img=>{if(img&&a.className===PERSO_NAME){a.body=img;applyAllyLook(a);}});}
     el('spellSlots').innerHTML='<span class="loadmsg" style="padding:0 6px">…</span>';status('Chargement des sorts '+state.player.className+' (Perso '+(state.active+1)+')…');
     let spells=FIXED_SPELLS.slice();status(''); // barre UNIQUE : Flèche d'Immo + Flamiche (+ invocations en combat) — plus de sorts de classe
     state.player.classSpells=spells;state.classSpells=spells;
