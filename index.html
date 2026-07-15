@@ -848,6 +848,11 @@
      if(pv&&pv.status==='free'){const t=tiles[pv.x]&&tiles[pv.x][pv.y];if(t&&t.visible)t.material.color.setHex(0xf29a3c);}}
     if(state.showDelock&&state.adviceCell){const a=state.adviceCell,t=tiles[a.x]&&tiles[a.x][a.y]; // case conseillée par l'assistant : VERT
       if(t&&t.visible)t.material.color.setHex(0x35c46a);}
+    // Les 2 cases où CLIQUER, posées par aimHint/hitHint : plus besoin de les chercher au curseur case par case
+    if(state.showDelock&&state.aimCell){const a=state.aimCell,t=tiles[a.x]&&tiles[a.x][a.y]; // ① CYAN : clique ici → l'invocation atterrit sur la case ORANGE
+      if(t&&t.visible)t.material.color.setHex(0x2fe0ff);}
+    if(state.showDelock&&state.hitCell){const h=state.hitCell,t=tiles[h.x]&&tiles[h.x][h.y]; // ② VIOLET : clique ici → le sort dévie SUR le Comte
+      if(t&&t.visible)t.material.color.setHex(0xc44dff);}
     if(state.phase==='playing'&&!state.enemyTurn&&state.player&&state.player.placed&&tiles[state.player.x]&&tiles[state.player.x][state.player.y])
       tiles[state.player.x][state.player.y].material.color.setHex(0x2f9ee0); // case de l'allié actif
     if(state.enemyTurn&&state.curEnt&&state.curEnt.t==='enemy'&&state.curEnt.e.alive){const ce=state.curEnt.e;
@@ -974,16 +979,18 @@
     const n=(4-(((state.confusion/90)%4+4)%4))%4;
     for(let i=0;i<n;i++){const nx=-dy,ny=dx;dx=nx;dy=ny;}
     return{x:P.x+dx,y:P.y+dy};}
-  function aimHint(mx,my){ // « clique ICI pour que ça tombe LÀ »
-    if(!state.confusion)return'';
+  function aimHint(mx,my){ // « clique ICI pour que ça tombe LÀ » + peint la case à viser en CYAN sur le terrain
+    if(!state.confusion)return' Clique <b>directement</b> la case <b>'+mx+','+my+'</b> (aucune confusion).';
     const v=undeflect(mx,my);
     if(!inGrid(v.x,v.y)||blocked(v.x,v.y))return' ⤳ <b>Confusion '+cmap[state.confusion]+'</b> : la case à viser tombe hors jeu — déplace le perso avant d\'invoquer.';
-    return' ⤳ <b>Confusion '+cmap[state.confusion]+'</b> : vise la case <b>'+v.x+','+v.y+'</b> pour que l\'invocation atterrisse en '+mx+','+my+'.';}
-  function hitHint(t){ // où CLIQUER pour que le sort touche vraiment la cible (la confusion dévie aussi les sorts)
-    if(!state.confusion)return' Clique-le <b>directement</b> (aucune confusion).';
+    state.aimCell={x:v.x,y:v.y}; // ① case CYAN : le clic à faire, montré sur la carte
+    return' ⤳ <b>Confusion '+cmap[state.confusion]+'</b> : clique la <b>case CYAN '+v.x+','+v.y+'</b> → l\'invocation atterrira en '+mx+','+my+'.';}
+  function hitHint(t){ // où CLIQUER pour que le sort touche vraiment la cible + peint la case en VIOLET
+    if(!state.confusion)return' clique-le <b>directement</b> (aucune confusion).';
     const v=undeflect(t.x,t.y);
     if(!inGrid(v.x,v.y)||blocked(v.x,v.y))return' ⚠️ <b>Confusion '+cmap[state.confusion]+'</b> : d\'ici, aucune case à viser ne le touche — déplace ton perso.';
-    return' avec la <b>confusion '+cmap[state.confusion]+'</b>, clique la case <b>'+v.x+','+v.y+'</b> (le sort déviera sur lui).';}
+    state.hitCell={x:v.x,y:v.y}; // ② case VIOLETTE : le clic à faire pour que le sort dévie sur lui
+    return' avec la <b>confusion '+cmap[state.confusion]+'</b>, clique la <b>case VIOLETTE '+v.x+','+v.y+'</b> → le sort déviera sur lui.';}
   function moveForDelock(){ // aucune symétrie réalisable : où amener un perso pour qu'il en existe une ? (la plus proche de lui)
     const C=delockTarget();if(!C||!C.alive)return null;
     let best=null;
@@ -998,7 +1005,7 @@
         if(!best||d<best.d)best={a,x,y,mx,my,d};}});
     return best;}
   function delockAdvice(){ // le texte de l'assistant (+ state.adviceCell = la case à cibler, peinte en vert)
-    state.adviceCell=null;
+    state.adviceCell=null;state.aimCell=null;state.hitCell=null; // recalculées à chaque conseil par aimHint/hitHint
     const C=delockTarget();
     if(!C||!C.alive)return'Pose le <b>Comte</b> 🔷 (clic droit sur une case) pour lancer l\'assistant.';
     const nom=C.kind==='count'?'le Comte':(C.name||'la cible');
@@ -1020,11 +1027,14 @@
       return'🧭 <b>Pas de case de symétrie d\'ici.</b> Rapproche-toi : glisse <b>Perso '+(mv.a.id+1)+'</b> sur la <b>case verte '+mv.x+','+mv.y+'</b> → sa case de délock deviendra <b>'+mv.mx+','+mv.my+'</b>.';}
     return'🔒 Aucun délock possible dans cette configuration : rapproche tes persos du Comte, ou libère de la place autour de lui.';}
   function updateHints(){const m=el('delockMsg');if(!m)return; // l'assistant ne parle que quand on le lui demande (bouton « ❓ Délock ? »)
-    if(!state.showDelock||state.phase!=='playing'){m.classList.remove('show');state.adviceCell=null;return;}
-    const was=state.adviceCell?key(state.adviceCell.x,state.adviceCell.y):'';
+    const sig=()=>[state.adviceCell,state.aimCell,state.hitCell].map(c=>c?key(c.x,c.y):'-').join('|'); // les 3 cases peintes par l'assistant (verte, cyan, violette)
+    if(!state.showDelock||state.phase!=='playing'){m.classList.remove('show');
+      const av=sig();state.adviceCell=null;state.aimCell=null;state.hitCell=null;
+      if(av!==sig())refreshTiles(); // assistant refermé → on efface ses cases du terrain
+      return;}
+    const was=sig();
     m.innerHTML=delockAdvice();m.classList.add('show');
-    const now=state.adviceCell?key(state.adviceCell.x,state.adviceCell.y):'';
-    if(was!==now)refreshTiles();} // la case conseillée a changé → on la repeint (refreshTiles est appelé AVANT refreshHUD par les appelants)
+    if(was!==sig())refreshTiles();} // une case conseillée a changé → on repeint (refreshTiles est appelé AVANT refreshHUD par les appelants)
   let toastT;function toast(t){const e=el('toast');e.innerHTML=t;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),2600);}
 
   /* ===== MOVEMENT ===== */
