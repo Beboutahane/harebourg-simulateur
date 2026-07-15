@@ -422,6 +422,7 @@
   const alive=()=>state.enemies.filter(e=>e.alive);
   function occupant(x,y){const a=state.allies.find(a=>a.placed&&a.hp>0&&a.x===x&&a.y===y);if(a)return{t:'ally',a};
     const e=state.enemies.find(e=>e.alive&&e.x===x&&e.y===y);return e?{t:'enemy',e}:null;}
+  const entLabel=o=>!o?'':(o.t==='ally'?skinOf(o.a).name:(o.e.kind==='count'?'le Comte':(o.e.name||'cette entité'))); // nom parlant d'une entité
 
   /* ===== THREE ===== */
   const app=document.getElementById('app');
@@ -639,8 +640,12 @@
   function facingOf(a){ // vers quelle diagonale doit-il se tourner pour faire face au Comte ?
     const C=comte();if(!C)return 'bd'; // pas de Comte sur le terrain : il regarde la caméra
     const P=livePos(a),dx=C.x-P.x,dy=C.y-P.y; // livePos : pendant un drag, il pivote en direct
-    if(dx===0&&dy===0)return 'bd';
-    return (Math.abs(dx)>=Math.abs(dy))?(dx>=0?'bd':'hg'):(dy>=0?'bg':'hd');} // l'axe dominant décide
+    if(!dx&&!dy)return 'bd';
+    // On raisonne en coordonnées ÉCRAN, pas en axes de la grille : en iso, +x part en bas-droite et +y en bas-gauche.
+    const eX=dx-dy, eY=dx+dy; // eX>0 : le Comte est à DROITE · eY>0 : il est EN BAS
+    if(eY===0)return eX>0?'bd':'bg'; // pile à gauche/droite : de FACE, tourné du bon côté (l'axe dominant seul se trompait ici)
+    if(eX===0)return eY>0?'bd':'hg'; // pile en bas/haut : face ou dos (le côté est indifférent)
+    return eY>0?(eX>0?'bd':'bg'):(eX>0?'hd':'hg');}
   function updateAllyFacing(){ // applique la bonne vue à chaque perso (ne fait rien tant qu'elle n'a pas changé)
     state.allies.forEach(a=>{
       if(!a.obj||!a.placed)return;
@@ -872,14 +877,21 @@
     return g;}
   function updateAimGhost(a){
     const pv=pivotCell(),dest=(pv&&pv.status==='free')?pv:null; // la case ORANGE : là où l'invocation atterrira
-    const k=a?(a.x+','+a.y+(dest?('>'+dest.x+','+dest.y):'')):''; // la clé inclut la destination : la flèche suit
+    const occ=a?occupant(a.x,a.y):null; // la case à cliquer est-elle occupée ? alors c'est SUR cette entité qu'il faut cliquer
+    const k=a?(a.x+','+a.y+(dest?('>'+dest.x+','+dest.y):'')+(occ?('@'+entLabel(occ)):'')):'';
     if(k===aimGhostKey)return;aimGhostKey=k;
     if(aimGhost){scene.remove(aimGhost);aimGhost=null;}
     if(!a||!cawTex)return;
     const p=worldPos(a.x,a.y),g=new THREE.Group();
     const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:cawTex,transparent:true,opacity:.72,depthTest:false,fog:false}));
-    spr.scale.set(1.15,1.15,1);spr.position.set(p.x,0.72,p.z);g.add(spr); // ~1 case et bien lisible : plus petit, elle se noyait dans la couleur de la case
-    const tag=tagSprite('1. Invoque une cawotte ici','47,224,255');tag.position.set(p.x,1.55,p.z);g.add(tag);
+    spr.scale.set(1.15,1.15,1);spr.position.set(p.x,0.72,p.z);g.add(spr); // la cawotte en transparence, À SA PLACE (même si quelqu'un occupe la case)
+    const tag=tagSprite(occ?('1. Invoque une cawotte sur '+entLabel(occ)):'1. Invoque une cawotte ici','47,224,255');
+    tag.position.set(p.x,occ?2.05:1.55,p.z);g.add(tag);
+    if(occ){ // flèche ↓ plantée au-dessus de sa tête : c'est LUI qu'il faut cliquer
+      const cone=new THREE.Mesh(new THREE.ConeGeometry(0.13,0.32,12),new THREE.MeshBasicMaterial({color:0x2fe0ff,transparent:true,opacity:.95,depthTest:false}));
+      cone.rotation.x=Math.PI;cone.position.set(p.x,1.55,p.z);g.add(cone);
+      const cyl=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.22,8),new THREE.MeshBasicMaterial({color:0x2fe0ff,transparent:true,opacity:.9,depthTest:false}));
+      cyl.position.set(p.x,1.82,p.z);g.add(cyl);}
     if(dest){const ar=arrow3D(a,dest,0x2fe0ff);if(ar)g.add(ar);} // fine flèche : case cyan → case orange
     g.userData.ghost=true;scene.add(g);aimGhost=g;}
   function updateHitGhost(h){
@@ -1051,7 +1063,11 @@
     const v=undeflect(mx,my);
     if(!inGrid(v.x,v.y)||blocked(v.x,v.y))return' ⤳ <b>Confusion '+cmap[state.confusion]+'</b> : la case à viser tombe hors jeu — déplace le perso avant d\'invoquer.';
     state.aimCell={x:v.x,y:v.y}; // ① case CYAN : le clic à faire, montré sur la carte
-    return' ⤳ <b>Confusion '+cmap[state.confusion]+'</b> : clique la <b>case CYAN '+v.x+','+v.y+'</b> → l\'invocation atterrira en '+mx+','+my+'.';}
+    const occ=occupant(v.x,v.y); // la case à viser peut être OCCUPÉE : on vise alors l'entité elle-même (ça marche : seule la case d'arrivée doit être libre)
+    return' ⤳ <b>Confusion '+cmap[state.confusion]+'</b> : '
+      +(occ?('clique <b>sur '+entLabel(occ)+'</b> (case CYAN '+v.x+','+v.y+')')
+           :('clique la <b>case CYAN '+v.x+','+v.y+'</b>'))
+      +' → l\'invocation atterrira en '+mx+','+my+'.';}
   function hitHint(t){ // où CLIQUER pour que le sort touche vraiment la cible + peint la case en VIOLET
     if(!state.confusion)return' clique-le <b>directement</b> (aucune confusion).';
     const v=undeflect(t.x,t.y);
