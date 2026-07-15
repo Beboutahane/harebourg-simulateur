@@ -232,10 +232,6 @@
   #turnNum{font-family:var(--display);font-size:19px;font-weight:800;color:var(--ice);min-width:20px;text-align:center;line-height:1}
   .tstep{width:23px;height:23px;border:1px solid var(--border-strong);background:rgba(42,111,192,.28);color:var(--frost);font-family:var(--display);font-weight:800;font-size:14px;line-height:1;border-radius:7px;cursor:pointer;pointer-events:auto;display:flex;align-items:center;justify-content:center}
   .tstep:hover{border-color:var(--ice);background:rgba(75,184,240,.4)}
-  #delockMsg{top:88px;left:50%;transform:translateX(-50%);width:min(92vw,640px);padding:10px 14px;font-size:12.5px;line-height:1.55;color:var(--txt);display:none;pointer-events:auto;text-align:center}
-  #delockMsg.show{display:block;animation:dmpop .18s ease-out}
-  @keyframes dmpop{from{opacity:0;transform:translateX(-50%) translateY(-6px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-  #delockMsg b{color:var(--frost)}
   /* Indicateur (PAS un bouton) : l'assistant parle tout seul, il n'y a plus rien à cliquer */
   #aEnd{border:0;border-radius:9px;padding:9px 16px;font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.5px;cursor:pointer;
     background:linear-gradient(180deg,#8fe27a,#4fa83a);color:#06210a;box-shadow:0 4px 0 #2f6a22,0 8px 14px rgba(0,0,0,.4);white-space:nowrap}
@@ -292,7 +288,7 @@
     <span class="invtag on" id="invTag" title="Clique pour signaler que le boss est vulnérable / invulnérable">🛡️ INVULNÉRABLE</span>
   </span>
 </div></div>
-<div class="hud card" id="delockMsg"></div>
+<!-- (bandeau de conseil retiré : les cases colorées et leurs étiquettes sur le terrain disent déjà quoi cliquer) -->
 <div id="status"></div>
 
 <div class="hud card" id="setup">
@@ -1241,13 +1237,13 @@
     if(mv){state.adviceCell={x:mv.x,y:mv.y,who:skinOf(mv.a).name}; // `who` : repris tel quel par l'étiquette « Va ici avec … »
       return'🧭 <b>D\'ici, c\'est impossible.</b> Va sur la <b>case VERTE</b> avec <b>'+skinOf(mv.a).name+'</b> (glisse-le) : c\'est la case la plus proche '+(C.kind==='count'?'du Comte':'de la cible')+' d\'où ça marche.';}
     return'🔒 <b>Impossible pour l\'instant.</b> Rapproche tes persos '+(C.kind==='count'?'du Comte':'de la cible')+', ou fais de la place autour de lui.';}
-  function updateHints(){const m=el('delockMsg');if(!m)return; // l'assistant parle tout seul, en permanence (state.showDelock est toujours vrai)
+  /* Le bandeau de texte a été RETIRÉ, mais surtout pas son calcul : c'est `delockAdvice()` qui pose les 3 cases
+     où cliquer (cyan · violette · verte) et donc leurs étiquettes 3D. On l'appelle pour ses EFFETS, son texte est jeté. */
+  function updateHints(){
     const sig=()=>[state.adviceCell,state.aimCell,state.hitCell].map(c=>c?key(c.x,c.y):'-').join('|'); // les 3 cases (verte, cyan, violette)
     const was=sig();
-    // Le conseil est TOUJOURS calculé, même assistant fermé : c'est lui qui pose les cases où CLIQUER (cyan/violette + la mini Cawotte)
-    const txt=state.phase==='playing'?delockAdvice():(state.adviceCell=state.aimCell=state.hitCell=null,'');
-    if(state.showDelock&&state.phase==='playing'){m.innerHTML=txt;m.classList.add('show');}
-    else m.classList.remove('show'); // hors combat : pas de bandeau — les cases colorées, elles, restent gérées plus haut
+    if(state.phase==='playing')delockAdvice();
+    else{state.adviceCell=null;state.aimCell=null;state.hitCell=null;} // hors combat : aucune case d'aide
     if(was!==sig())refreshTiles();} // une case a changé → on repeint (refreshTiles est appelé AVANT refreshHUD par les appelants)
   let toastT;function toast(t){const e=el('toast');e.innerHTML=t;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),2600);}
 
