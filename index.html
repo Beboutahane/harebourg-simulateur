@@ -260,6 +260,8 @@
   #hoverHp .hhg{display:none;font-family:var(--display);font-size:13px;font-weight:700;color:#ffd24a;letter-spacing:.2px;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.8)} /* nom de guilde, en or */
   #hoverHp.joueur .hhg{display:block}
   #hoverHp .hhn{font-family:var(--display);font-size:22px;color:#fff;font-weight:800;letter-spacing:.3px;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85)} /* le pseudo : BLANC, en GROS, sous la guilde (qui, elle, est en or : les deux ne se confondent pas) */
+  #hoverHp .hht{display:none;font-family:var(--display);font-size:11.5px;font-weight:600;color:#fff;opacity:.88;letter-spacing:.2px;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.85);margin-top:1px} /* son ORNEMENT, en petit sous le pseudo */
+  #hoverHp.joueur .hht{display:block} /* un monstre n'en a pas */
   /* Un PERSO n'affiche pas sa vitalité ici : elle se lit sur son cœur et se règle au clic droit. Les monstres, eux, gardent leur barre. */
   #hoverHp.joueur .hhbar,#hoverHp.joueur .hhv{display:none}
   #hoverHp.joueur .hhtop{margin-bottom:0}
@@ -363,6 +365,7 @@
     <span class="hhtx">
       <span class="hhg">Neo Midgard</span>
       <span class="hhn" id="hhName"></span>
+      <span class="hht" id="hhTitle"></span>
     </span>
   </div>
   <div class="hhbar"><i id="hhFill"></i></div>
@@ -676,7 +679,9 @@
   /* ---- BASE DES PERSOS : un nom = un jeu de 4 vues (fichiers <pre>bd/bg/hg/hd.png) ----
      Perso 1 = Mika, Perso 2 = Beboucafe, puis on recommence. Si les images d'un perso
      manquent, il garde simplement l'apparence par défaut (Dopeul) : rien ne casse. */
-  const SKINS=[{name:'Mika-sans-mérite',pre:'mika-'},{name:'Beboucafe Le Goat',pre:'bebou-'}]; // Perso 1 = Mika, Perso 2 = Beboucafe, puis on alterne (le `pre` = les fichiers PNG, il ne bouge pas quand le pseudo change)
+  // `title` = son ornement, affiché en petit sous le pseudo dans la vignette. Le `pre` (fichiers PNG) ne bouge JAMAIS quand le pseudo change.
+  const SKINS=[{name:'Mikassa-Ackerman',title:'Je ne mérite pas mon ornement',pre:'mika-'},
+               {name:'Beboucafe',title:'Le Goat',pre:'bebou-'}]; // Perso 1 = Mikassa, Perso 2 = Beboucafe, puis on alterne
   const skinOf=a=>SKINS[(a.id||0)%SKINS.length];
   /* ---- SKIN DU PERSO : 4 vues (déjà détourées, 300×500) — il REGARDE toujours le Comte ----
      Les fichiers sont nommés d'après la direction ÉCRAN vers laquelle il regarde, en repères isométriques :
@@ -1452,14 +1457,14 @@
   function updateHoverHp(){const box=el('hoverHp');
     const ent=hoverCell?entityAt(hoverCell.x,hoverCell.y):null;
     if(!ent){box.classList.remove('show');return;}
-    let name,hp,max,col;
-    if(ent.t==='ally'){name=skinOf(ent.a).name;hp=ent.a.hp;max=ent.a.hpMax;col='linear-gradient(90deg,#7fd0ff,#3a9be0)';} // son NOM, en gros (cf. #hoverHp .hhn)
+    let name,hp,max,col,title='';
+    if(ent.t==='ally'){const sk=skinOf(ent.a);name=sk.name;title=sk.title||'';hp=ent.a.hp;max=ent.a.hpMax;col='linear-gradient(90deg,#7fd0ff,#3a9be0)';} // son NOM en gros + son ornement dessous (cf. .hhn / .hht)
     else if(ent.t==='enemy'){name=(ent.e.kind==='count'?'🔷 ':'👹 ')+ent.e.name;hp=ent.e.hp;max=ent.e.hpMax;col='linear-gradient(90deg,#ff6b7d,#ff9a6b)';}
     else{const B=BOSSES[state.map]||{name:'Comte Harebourg',hp:3000};name='🔷 '+B.name;hp=B.hp;max=B.hp;col='linear-gradient(90deg,#8fe4ff,#4bb8f0)';}
     const pct=Math.max(0,Math.min(100,Math.round(Math.max(0,hp)/(max||1)*100)));
     const quart=pct>=100?100:pct>=75?75:pct>=50?50:pct>=25?25:0; // palier par QUART (100 / 75 / 50 / 25)
     box.classList.toggle('joueur',ent.t==='ally'); // seul un perso joué a un blason, une guilde et un pseudo doré
-    el('hhName').textContent=name;el('hhVal').textContent=pct+' %'+(quart<100&&pct>0?' · palier '+quart+' %':'');
+    el('hhName').textContent=name;el('hhTitle').textContent=title;el('hhVal').textContent=pct+' %'+(quart<100&&pct>0?' · palier '+quart+' %':'');
     const f=el('hhFill');f.style.width=pct+'%';f.style.background=col;
     const p=projectCell(hoverCell.x,hoverCell.y,1.6);box.style.left=p.sx+'px';box.style.top=(p.sy-6)+'px';box.classList.add('show');}
   function entityAt(x,y){ // entité sur une case : {t:'ally',a} | {t:'count'} (fantôme setup) | {t:'enemy',e} | null
