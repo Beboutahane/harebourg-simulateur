@@ -256,6 +256,8 @@
   #cellCount.show{display:block}
   #cellCount b{font-family:var(--display);font-size:13.5px;color:#fff;white-space:nowrap}
   #cellCount span{display:block;font-size:12px;color:var(--ice);font-weight:800;margin-top:1px;white-space:nowrap;letter-spacing:1px}
+  #cellCount span.mort{color:#ff5566;letter-spacing:.3px} /* rotation impossible = mort : le message doit sauter aux yeux */
+  #cellCount.danger{border-color:#ff5566;background:rgba(52,10,16,.96);box-shadow:0 0 14px rgba(255,85,102,.5)}
   #hoverHp .hhn{font-size:10px;color:var(--frost);font-weight:700;white-space:nowrap;margin-bottom:3px}
   #hoverHp .hhbar{position:relative;height:8px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
   #hoverHp .hhbar>i{display:block;height:100%;width:100%}
@@ -901,8 +903,9 @@
     if(state.hitCell){const h=state.hitCell,t=tiles[h.x]&&tiles[h.x][h.y]; // ② VIOLET : clique ici → le sort dévie SUR le Comte
       if(t&&t.visible)t.material.color.setHex(0xc44dff);}
     updateAimGhost(state.aimCell);updateHitGhost(state.hitCell); // les 2 étiquettes fléchées : ① invoque ici · ② tape le Comte ici
-    if(state.phase==='playing'&&!state.enemyTurn&&state.player&&state.player.placed&&tiles[state.player.x]&&tiles[state.player.x][state.player.y])
-      tiles[state.player.x][state.player.y].material.color.setHex(0x2f9ee0); // case de l'allié actif
+    if(state.phase==='playing'&&!state.enemyTurn&&state.player&&state.player.placed){
+      const P=livePos(state.player); // en plein drag : la case suit le curseur, celle de DÉPART est libérée aussitôt
+      if(tiles[P.x]&&tiles[P.x][P.y])tiles[P.x][P.y].material.color.setHex(0x2f9ee0);} // case de l'allié actif
     if(state.enemyTurn&&state.curEnt&&state.curEnt.t==='enemy'&&state.curEnt.e.alive){const ce=state.curEnt.e;
       if(tiles[ce.x]&&tiles[ce.x][ce.y]&&tiles[ce.x][ce.y].visible)tiles[ce.x][ce.y].material.color.setHex(0xd8b544);} // case du monstre dont c'est le tour
     if(state.setupSel){const s=state.setupSel;
@@ -1258,13 +1261,16 @@
     const o=projectCell(px,py,0.3),ex=projectCell(px+1,py,0.3),ey=projectCell(px,py+1,0.3),parts=[]; // directions écran réelles des axes de la grille (vue iso)
     if(dx!==0)parts.push(Math.abs(dx)+arrowFor((ex.sx-o.sx)*Math.sign(dx),(ex.sy-o.sy)*Math.sign(dx)));
     if(dy!==0)parts.push(Math.abs(dy)+arrowFor((ey.sx-o.sx)*Math.sign(dy),(ey.sy-o.sy)*Math.sign(dy)));
-    let swp='';const sw=swapPreviewInfo(); // qui pivote / échange si ce sort touche le Comte ?
+    let swp='',mortel=false;const sw=swapPreviewInfo(); // qui pivote / échange si ce sort touche le Comte ?
     if(sw){const nm=o=>o.t==='ally'?('Perso '+(o.a.id+1)):(o.e.name||'une entité');let t;
-      if(!sw.ok)t='☠ rotation impossible — WIPE !';
+      if(!sw.ok){mortel=true; // la case d'arrivée est hors map ou dans un mur → la rotation ne peut pas se faire = WIPE
+        const ou=(inGrid(sw.x,sw.y)&&state.obstacles.has(key(sw.x,sw.y)))?'DANS UN MUR':'HORS DE LA MAP'; // blocked() = obstacle OU vide : seul un obstacle est un « mur »
+        t='☠ '+(sw.mover==='count'?('le COMTE atterrit '+ou):('TU atterris '+ou))+' → rotation impossible : TU MEURS !';}
       else if(sw.mover==='count'){const amie=sw.swapWith&&(sw.swapWith.t==='ally'||(sw.swapWith.e&&sw.swapWith.e.friendly));
         t=sw.swapWith?('🔀 le COMTE échange avec '+nm(sw.swapWith)+(amie?' → DÉLOCK !':' (ennemi : PAS de délock)')):'↔️ le COMTE pivote (case vide : pas de délock)';}
       else t=sw.swapWith?('🔀 TU échanges ta place avec '+nm(sw.swapWith)):'🔁 TOI, tu pivotes de 180°';
-      swp='<span>'+t+'</span>';}
+      swp='<span'+(mortel?' class="mort"':'')+'>'+t+'</span>';}
+    box.classList.toggle('danger',mortel);
     box.innerHTML='<b>'+tag+dist+' case'+(dist>1?'s':'')+'</b><span>'+parts.join('  ')+'</span>'+swp;
     const p=projectCell(tx,ty,1.1);box.style.left=p.sx+'px';box.style.top=(p.sy-2)+'px';box.classList.add('show');}
   function updateHoverHp(){const box=el('hoverHp');
