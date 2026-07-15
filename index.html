@@ -39,17 +39,6 @@
 
   #left{top:12px;left:12px;width:246px;max-height:calc(100vh - 150px);display:flex;flex-direction:column;padding:13px;overflow-y:auto}
   #left h3{font-family:var(--display);font-size:14px;letter-spacing:.4px;color:var(--ice);margin-bottom:8px;display:flex;align-items:center;gap:7px}
-  #tuto{top:12px;left:12px;width:268px;max-height:calc(100vh - 150px);overflow-y:auto;padding:13px 14px;display:flex;flex-direction:column;gap:9px}
-  #tuto h3{font-family:var(--display);font-size:13px;letter-spacing:.4px;color:var(--ice);display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
-  #tuto h3 .chev{margin-left:auto;font-size:10px;opacity:.75;transition:transform .16s}
-  #tuto.folded h3 .chev{transform:rotate(-90deg)}
-  #tuto.folded .tutolist{display:none} /* replié : le tuto ne gêne pas la vue de la carte */
-  .tutolist{list-style:none;display:flex;flex-direction:column;gap:8px;margin:0;padding:0;counter-reset:tuto}
-  .tutolist li{font-size:11.5px;line-height:1.45;color:var(--txt);display:flex;gap:8px;align-items:flex-start}
-  .tutolist li b{color:var(--frost)}
-  .tutolist li::before{counter-increment:tuto;content:counter(tuto);flex:0 0 auto;width:17px;height:17px;border-radius:50%;
-    background:linear-gradient(180deg,rgba(75,184,240,.34),rgba(8,18,32,.6));border:1px solid var(--border-strong);
-    color:var(--ice);font-family:var(--display);font-weight:800;font-size:9.5px;display:flex;align-items:center;justify-content:center;margin-top:1px}
   #tips{top:12px;right:12px;width:262px;max-height:calc(100vh - 150px);overflow-y:auto;padding:13px 14px;display:flex;flex-direction:column;gap:8px}
   #tips h3{font-family:var(--display);font-size:13px;letter-spacing:.4px;color:var(--ice);display:flex;align-items:center;gap:6px;margin-bottom:2px}
   .tiplist{list-style:none;display:flex;flex-direction:column;gap:7px;margin:0;padding:0}
@@ -327,21 +316,6 @@
 </div>
 
 <!-- (panneau d'équipe supprimé : tout se gère sur le terrain — clic gauche = contrôler/placer, clic droit = menu du perso) -->
-
-<div class="hud card" id="tuto">
-  <h3 title="Clique pour replier / déplier">🎓 Tuto<span class="chev">▾</span></h3>
-  <ol class="tutolist">
-    <li><span>Choisis ta carte en bas à gauche : <b>Donjon</b> (la vraie salle), <b>Songe</b> ou <b>Bac à sable</b> — chacune est indépendante.</span></li>
-    <li><span>En Songe / Bac à sable, crée ta map avec l'outil de <b>Build</b> (🧱 Bloc / 🕳️ Trou / ➕ Case).</span></li>
-    <li><span>Sélectionne une case pour ajouter un personnage.</span></li>
-    <li><span>Choisis le <b>% de vitalité</b> de tes personnages (ou clic gauche).</span></li>
-    <li><span><b>Clic droit</b> sur une case pour ajouter le <b>Comte Harebourg</b> ou une entité ennemie (Poutch).</span></li>
-    <li><span>Tous les déplacements se font en <b>drag &amp; drop</b>.</span></li>
-    <li><span>Simule ton combat sur la carte pour savoir où taper, avec les sorts disponibles dans la barre des tâches.</span></li>
-    <li><span>Règle le <b>n° de tour</b> en haut : le délock se calcule tout seul.</span></li>
-    <li><span>Utilise l'<b>assistant</b> (<b>❓ Délock ?</b>) pour <b>délock</b> le Boss : il te dit quoi faire.</span></li>
-  </ol>
-</div>
 
 <div class="hud card" id="tips"></div>
 
@@ -646,47 +620,7 @@
     x.lineWidth=7;x.strokeStyle='rgba(255,255,255,.8)';x.stroke();
     x.fillStyle='#06121f';x.font='bold 60px Segoe UI';x.textAlign='center';x.textBaseline='middle';x.fillText(label,64,70);
     return new THREE.CanvasTexture(c);}
-  /* ---- PLANCHE DE PERSO (perso-planche.png) : 6 vues sur fond blanc → on en découpe UNE, détourée ----
-     Le fond est retiré par PROPAGATION DEPUIS LES BORDS (pas par seuil global) : le blanc ENFERMÉ dans le
-     dessin (crâne, cheveux clairs) est ainsi préservé. Puis recadrage auto sur ce qui reste. */
-  const PERSO_NAME='Beboucafe'; // nom affiché de TES persos (le perso de la planche)
-  const SHEET_URL='perso-planche.png', SHEET_COLS=3, SHEET_ROWS=2, SHEET_COL=1, SHEET_ROW=0; // vue de 3/4 face (rangée du haut, colonne du milieu) : la mieux orientée pour l'isométrique
-  let sheetTex=null,sheetTried=false;const sheetWaiters=[];
-  function cutSheet(im){
-    const cw=Math.floor(im.width/SHEET_COLS),ch=Math.floor(im.height/SHEET_ROWS);
-    const c=document.createElement('canvas');c.width=cw;c.height=ch;
-    const x=c.getContext('2d',{willReadFrequently:true});
-    x.drawImage(im,SHEET_COL*cw,SHEET_ROW*ch,cw,ch,0,0,cw,ch);
-    const d=x.getImageData(0,0,cw,ch),p=d.data;
-    const bg=(i)=>p[i]>228&&p[i+1]>228&&p[i+2]>228; // « quasi blanc » (tolère l'antialiasing et le JPEG)
-    const seen=new Uint8Array(cw*ch),stack=[];
-    for(let px=0;px<cw;px++){stack.push(px,(ch-1)*cw+px);}      // bords haut/bas
-    for(let py=0;py<ch;py++){stack.push(py*cw,py*cw+cw-1);}     // bords gauche/droite
-    while(stack.length){const k=stack.pop();
-      if(k<0||k>=cw*ch||seen[k])continue;const i4=k*4;if(!bg(i4))continue; // on ne franchit PAS le dessin
-      seen[k]=1;p[i4+3]=0; // fond → transparent
-      const kx=k%cw;
-      if(kx>0)stack.push(k-1);if(kx<cw-1)stack.push(k+1);stack.push(k-cw,k+cw);}
-    let x0=cw,y0=ch,x1=-1,y1=-1; // recadrage auto sur les pixels gardés
-    for(let py=0;py<ch;py++)for(let px=0;px<cw;px++){if(p[(py*cw+px)*4+3]>10){if(px<x0)x0=px;if(px>x1)x1=px;if(py<y0)y0=py;if(py>y1)y1=py;}}
-    x.putImageData(d,0,0);
-    if(x1<x0||y1<y0)return new THREE.CanvasTexture(c); // rien de gardé : on rend la découpe telle quelle
-    const pad=4,ax=Math.max(0,x0-pad),ay=Math.max(0,y0-pad),aw=Math.min(cw,x1+pad)-ax+1,ah=Math.min(ch,y1+pad)-ay+1;
-    const o=document.createElement('canvas');o.width=aw;o.height=ah;
-    o.getContext('2d').drawImage(c,ax,ay,aw,ah,0,0,aw,ah);
-    const t=new THREE.CanvasTexture(o);t.userData={ratio:aw/ah};return t;}
-  function loadSheet(cb){ // chargée UNE fois, partagée par tous les persos (le fichier peut ne pas exister : on retombe alors sur le jeton)
-    if(sheetTex)return cb(sheetTex);
-    sheetWaiters.push(cb);if(sheetTried)return;sheetTried=true;
-    const im=new Image();
-    im.onload=()=>{try{sheetTex=cutSheet(im);}catch(e){sheetTex=null;}
-      if(sheetTex&&renderer.capabilities)sheetTex.anisotropy=renderer.capabilities.getMaxAnisotropy();
-      if(sheetTex)sheetWaiters.splice(0).forEach(f=>f(sheetTex));};
-    im.onerror=()=>{sheetWaiters.length=0;}; // pas de planche déposée : rien à faire
-    im.src=SHEET_URL;}
-  function applySheet(g,mat,spr){loadSheet(t=>{mat.map=t;mat.color.setHex(0xffffff);mat.needsUpdate=true;
-    g.userData.hasPerso=true; // même priorité qu'un persoN.png fourni : la planche gagne sur le Crâ DofusDB
-    const r=(t.userData&&t.userData.ratio)||0.7;spr.scale.set(1.35*r,1.35,1);spr.position.y=0.88;});}
+  const PERSO_NAME='Beboucafe'; // nom affiché de TES persos (l'apparence, elle, vient du Dopeul de la classe — cf. fetchClassBody)
   function buildAllyObj(i){const col=allyColors[i];
     const g=new THREE.Group();
     const sh=new THREE.Mesh(new THREE.CircleGeometry(0.36,24),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.34,depthWrite:false}));
@@ -699,7 +633,7 @@
     g.add(ring(RING_ALLY)); // allié = anneau bleu
     const img='perso'+(i===0?'':(i+1))+'.png';
     texLoader.load(img,t=>{if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();mat.map=t;mat.needsUpdate=true;g.userData.hasPerso=true;spr.scale.set(1.25,1.25,1);spr.position.y=0.88;},
-      undefined,()=>applySheet(g,mat,spr)); // pas de persoN.png dédié → la PLANCHE (Beboucafe) sert d'apparence à tous les persos
+      undefined,()=>{}); // pas de persoN.png dédié → apparence par défaut : le Dopeul de la classe (applyAllyLook)
     g.userData.spr=spr;g.userData.mat=mat;g.userData.ally=i;g.visible=false;scene.add(g);return g;}
   function applyAllyLook(a){if(!a.obj)return;const mat=a.obj.userData.mat,spr=a.obj.userData.spr;
     if(a.obj.userData.hasPerso)return; // l'utilisateur a fourni persoN.png → priorité
@@ -872,20 +806,43 @@
     const o=occupant(mx,my);
     if(o&&o.t==='enemy'&&!o.e.friendly)return{x:mx,y:my,status:'invalid'}; // un ENNEMI y est : inutilisable (seuls tes alliés délock)
     return{x:mx,y:my,status:o?'occupied':'free',who:o?(o.t==='ally'?('Perso '+(o.a.id+1)):(o.e.name||'une entité')):null};}
-  /* ---- « Pose ta cawotte ICI » : mini Cawotte TRANSLUCIDE sur la case à cliquer (case CYAN) ----
-     Avec la confusion, la case à cliquer n'est PAS celle où l'invocation atterrit : ce fantôme montre le clic à faire. */
-  let cawTex=null,aimGhost=null,aimGhostKey='';
+  /* ---- Les 2 clics à faire, montrés SUR le terrain (avec la confusion, la case à cliquer n'est jamais celle visée) :
+     ① case CYAN   : mini Cawotte translucide + étiquette « 1. Invoque une cawotte ici »
+     ② case VIOLETTE : étiquette « 2. Tape le Comte ici » */
+  let cawTex=null,aimGhost=null,aimGhostKey='',hitGhost=null,hitGhostKey='';
   fetch(API+'/monsters?slug.fr[$search]=cawotte&$limit=1&lang=fr').then(r=>r.json()) // image officielle (DofusDB), chargée UNE fois
     .then(d=>{const m=d.data&&d.data[0];if(m&&m.img)texLoader.load(m.img,t=>{cawTex=t;aimGhostKey='';refreshTiles();});}).catch(()=>{});
+  function tagSprite(txt,rgb){ // étiquette lisible + flèche qui pointe la case, dessinée sur un canvas
+    const F='bold 30px "Segoe UI",sans-serif',c=document.createElement('canvas'),g=c.getContext('2d');
+    g.font=F;const tw=Math.ceil(g.measureText(txt).width),PAD=20,BW=tw+PAD*2,BH=50,AR=18;
+    c.width=BW+8;c.height=BH+AR+8;
+    const x=c.getContext('2d');x.font=F;x.textAlign='center';x.textBaseline='middle';
+    const col='rgb('+rgb+')',X=4,Y=2,r=11;
+    x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+BW,Y,X+BW,Y+BH,r);x.arcTo(X+BW,Y+BH,X,Y+BH,r);x.arcTo(X,Y+BH,X,Y,r);x.arcTo(X,Y,X+BW,Y,r);x.closePath();
+    x.fillStyle='rgba(6,18,31,.94)';x.fill();x.lineWidth=3;x.strokeStyle=col;x.stroke();
+    x.beginPath();x.moveTo(X+BW/2-13,Y+BH-1);x.lineTo(X+BW/2+13,Y+BH-1);x.lineTo(X+BW/2,Y+BH+AR);x.closePath();x.fillStyle=col;x.fill(); // flèche vers la case
+    x.fillStyle='#fff';x.fillText(txt,X+BW/2,Y+BH/2);
+    const t=new THREE.CanvasTexture(c);if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
+    const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,fog:false}));
+    const H=0.92;s.scale.set(H*c.width/c.height,H,1);return s;} // hauteur fixe, largeur selon le texte : pas de déformation
   function updateAimGhost(a){
-    const k=a?(a.x+','+a.y):''; // ne reconstruit le fantôme que si la case CHANGE (refreshTiles tourne souvent)
+    const k=a?(a.x+','+a.y):''; // ne reconstruit que si la case CHANGE (refreshTiles tourne souvent)
     if(k===aimGhostKey)return;aimGhostKey=k;
     if(aimGhost){scene.remove(aimGhost);aimGhost=null;}
     if(!a||!cawTex)return;
     const p=worldPos(a.x,a.y),g=new THREE.Group();
     const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:cawTex,transparent:true,opacity:.72,depthTest:false,fog:false}));
     spr.scale.set(1.15,1.15,1);spr.position.set(p.x,0.72,p.z);g.add(spr); // ~1 case et bien lisible : plus petit, elle se noyait dans la couleur de la case
+    const tag=tagSprite('1. Invoque une cawotte ici','47,224,255');tag.position.set(p.x,1.72,p.z);g.add(tag);
     g.userData.ghost=true;scene.add(g);aimGhost=g;}
+  function updateHitGhost(h){
+    const k=h?(h.x+','+h.y):'';
+    if(k===hitGhostKey)return;hitGhostKey=k;
+    if(hitGhost){scene.remove(hitGhost);hitGhost=null;}
+    if(!h)return;
+    const p=worldPos(h.x,h.y),g=new THREE.Group();
+    const tag=tagSprite('2. Tape le Comte ici','196,77,255');tag.position.set(p.x,1.05,p.z);g.add(tag);
+    g.userData.ghost=true;scene.add(g);hitGhost=g;}
   const _mixA=new THREE.Color(),_mixB=new THREE.Color();
   function mixHex(a,b,t){_mixA.setHex(a);_mixB.setHex(b);return _mixA.lerp(_mixB,t).getHex();}
   function refreshTiles(){ // rendu À PLAT : chaque case = UNE couleur unie (bi-couleur, zéro effet de lumière)
@@ -911,7 +868,7 @@
       if(t&&t.visible)t.material.color.setHex(0x2fe0ff);}
     if(state.hitCell){const h=state.hitCell,t=tiles[h.x]&&tiles[h.x][h.y]; // ② VIOLET : clique ici → le sort dévie SUR le Comte
       if(t&&t.visible)t.material.color.setHex(0xc44dff);}
-    updateAimGhost(state.aimCell); // mini Cawotte translucide posée sur la case CYAN : « pose ta cawotte ici »
+    updateAimGhost(state.aimCell);updateHitGhost(state.hitCell); // les 2 étiquettes fléchées : ① invoque ici · ② tape le Comte ici
     if(state.phase==='playing'&&!state.enemyTurn&&state.player&&state.player.placed&&tiles[state.player.x]&&tiles[state.player.x][state.player.y])
       tiles[state.player.x][state.player.y].material.color.setHex(0x2f9ee0); // case de l'allié actif
     if(state.enemyTurn&&state.curEnt&&state.curEnt.t==='enemy'&&state.curEnt.e.alive){const ce=state.curEnt.e;
@@ -1012,8 +969,7 @@
      const showSetup=(state.phase==='setup'||!comte())&&!dj; // les outils de map restent tant que le COMTE n'est pas là (le combat, lui, démarre dès le 1er perso posé)
      el('setup').style.display=showSetup?'flex':'none';
      if(!showSetup&&state.edit){state.edit=false;updateSetupBtns();} // le Comte arrive, les outils disparaissent → on sort de l'édition pour ne pas creuser en cliquant
-     el('tuto').style.display=(dj||sable)?'none':''; // Tuto + Pense-bête : ni en Donjon, ni en Bac à sable (bac = terrain d'essai libre)
-     if(el('tips'))el('tips').style.display=sable?'none':'';
+     if(el('tips'))el('tips').style.display=sable?'none':''; // Pense-bête : pas en Bac à sable (terrain d'essai libre)
      el('setupTitle').textContent=sable?'🧪 Bac à sable':'🏖️ Construis ta map';
      el('mapHint').style.display=''; // étirement de la zone : Songe ET Bac à sable
      el('mobAdd').style.display=sable?'':'none'; // ajout de monstre : Bac à sable seulement
@@ -1482,7 +1438,6 @@
     toast({dj:'🏰 Donjon : la vraie salle du Comte — pose tes persos et le boss à la main.',
            songe:'🌙 Songe : grande map à construire.',
            sable:'🧪 Bac à sable : grande carte, tous les outils (cases, blocs, trous, monstres).'}[m]+' Chaque carte est totalement séparée des autres.');}
-  el('tuto').querySelector('h3').onclick=()=>el('tuto').classList.toggle('folded'); // clic sur le titre = replier/déplier le tuto
   el('modeDj').onclick=()=>setMapMode('dj');
   el('modeSonge').onclick=()=>setMapMode('songe');
   el('modeSable').onclick=()=>setMapMode('sable');
