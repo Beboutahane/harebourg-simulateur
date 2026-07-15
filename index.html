@@ -42,6 +42,19 @@
   #tips h3{font-family:var(--display);font-size:13px;letter-spacing:.4px;color:var(--ice);display:flex;align-items:center;gap:6px;margin-bottom:2px}
   .tiplist{list-style:none;display:flex;flex-direction:column;gap:7px;margin:0;padding:0}
   .tiplist li{font-size:11.5px;line-height:1.45;color:var(--txt);display:flex;gap:6px;align-items:flex-start}
+  /* Légende des couleurs de cases — MÊME palette que refreshTiles() : changer une couleur là-bas = la changer ici */
+  #legend{bottom:12px;right:12px;width:254px;max-height:calc(100vh - 262px);overflow-y:auto;padding:10px 12px;z-index:6} /* -262 = la place réservée au Pense-bête au-dessus : le haut de la légende se cale à 250px, jamais dessus */
+  #legend h3{font-family:var(--display);font-size:12.5px;letter-spacing:.4px;color:var(--ice);display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+  #legend h3:hover{color:var(--frost)}
+  .legchev{margin-left:auto;font-size:10px;color:var(--muted);transition:transform .18s}
+  #legend.fold .legchev{transform:rotate(-90deg)}
+  #legend.fold #legBody{display:none}
+  #legBody{display:flex;flex-direction:column;gap:7px;margin-top:9px}
+  .leggrp{font-size:9px;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--border);padding-top:8px;margin-top:2px}
+  .leggrp:first-child{border-top:0;padding-top:0;margin-top:0}
+  .legrow{display:flex;gap:8px;align-items:flex-start;font-size:11px;line-height:1.42;color:var(--txt)}
+  .legsw{width:14px;height:14px;border-radius:4px;flex:0 0 auto;margin-top:1px;border:1px solid rgba(255,255,255,.22)}
+  .legtx b{color:var(--frost);font-weight:700}
   select,input[type=text]{width:100%;background:rgba(8,18,32,.7);border:1px solid var(--border);color:var(--frost);
     font-family:var(--font);font-size:13px;padding:9px 10px;border-radius:9px;outline:none}
   select:focus,input:focus{border-color:var(--border-strong)}
@@ -319,6 +332,31 @@
 <!-- (panneau d'équipe supprimé : tout se gère sur le terrain — clic gauche = contrôler/placer, clic droit = menu du perso) -->
 
 <div class="hud card" id="tips"></div>
+
+<!-- Légende des cases : chaque pastille porte la couleur EXACTE peinte par refreshTiles() (les 2 damiers sont rendus en dégradé, comme sur le terrain) -->
+<div class="hud card" id="legend">
+  <h3 id="legHead" title="Clique pour replier">🎨 Légende des cases<span class="legchev">▾</span></h3>
+  <div id="legBody">
+    <div class="leggrp">🔓 Délock</div>
+    <div class="legrow"><span class="legsw" style="background:#f29a3c"></span><span class="legtx"><b>Case pivot</b> — le Comte atterrira ici quand tu le frapperas : il lui faut une entité dessus.</span></div>
+    <div class="legrow"><span class="legsw" style="background:#2fe0ff"></span><span class="legtx"><b>① Invoque ici</b> — la confusion enverra ta cawotte sur la case orange.</span></div>
+    <div class="legrow"><span class="legsw" style="background:#c44dff"></span><span class="legtx"><b>② Tape ici</b> — ton sort déviera pile sur le Comte.</span></div>
+    <div class="legrow"><span class="legsw" style="background:#e03535"></span><span class="legtx"><b>Délock prêt</b> — une entité amie est déjà sur la case miroir : frappe le Comte avec l'allié d'en face.</span></div>
+    <div class="legrow"><span class="legsw" style="background:#7a2222"></span><span class="legtx"><b>Délock à préparer</b> — case miroir libre : pose-y une entité d'abord.</span></div>
+    <div class="legrow"><span class="legsw" style="background:#7fd0ff"></span><span class="legtx"><b>Arrivée du pivot</b> — le fantôme montre qui bouge et où il atterrit.</span></div>
+    <div class="leggrp">✨ Sorts</div>
+    <div class="legrow"><span class="legsw" style="background:linear-gradient(135deg,#244d86 50%,#315b98 50%)"></span><span class="legtx"><b>À portée</b> — case atteignable, ligne de vue OK.</span></div>
+    <div class="legrow"><span class="legsw" style="background:linear-gradient(135deg,#586678 50%,#627287 50%)"></span><span class="legtx"><b>Sans ligne de vue</b> — un mur coupe le trajet : tir refusé.</span></div>
+    <div class="legrow"><span class="legsw" style="background:#d8b544"></span><span class="legtx"><b>Visée / sélection</b> — la case que tu vises, ou l'entité sélectionnée.</span></div>
+    <div class="legrow"><span class="legsw" style="background:#2fae6a"></span><span class="legtx"><b>Impact réel</b> — aucune déviation : le sort part bien là.</span></div>
+    <div class="legrow"><span class="legsw" style="background:#c0392b"></span><span class="legtx"><b>Impact dévié</b> — la confusion envoie le sort ICI, pas sur la case visée. Sur un pivot : rotation impossible → tu meurs.</span></div>
+    <div class="leggrp">🧭 Terrain</div>
+    <div class="legrow"><span class="legsw" style="background:#35c46a"></span><span class="legtx"><b>Chemin</b> — trajet du déplacement, et case conseillée par l'assistant.</span></div>
+    <div class="legrow"><span class="legsw" style="background:#2f9ee0"></span><span class="legtx"><b>Perso actif</b> — celui que tu joues.</span></div>
+    <div class="legrow"><span class="legsw" style="background:#5fb8e8"></span><span class="legtx"><b>Survol</b> — la case sous ton curseur.</span></div>
+    <div class="legrow"><span class="legsw" style="background:#0b1a28"></span><span class="legtx"><b>Obstacle / trou</b> — infranchissable, coupe la ligne de vue.</span></div>
+  </div>
+</div>
 
 <!-- (timeline d'initiative supprimée : plus de tours) -->
 
@@ -1704,6 +1742,7 @@
   el('retreatCancel').onclick=()=>el('retreatBox').classList.remove('show');
   el('retreatKeep').onclick=()=>{el('retreatBox').classList.remove('show');restoreLaunch();};
   el('retreatWipe').onclick=()=>{el('retreatBox').classList.remove('show');fullReset();};
+  el('legHead').onclick=()=>el('legend').classList.toggle('fold'); // légende repliable (elle reste ouverte par défaut)
 
   addEventListener('resize',()=>{perspCam.aspect=innerWidth/innerHeight;perspCam.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);updateCam();});
   const clock=new THREE.Clock();
