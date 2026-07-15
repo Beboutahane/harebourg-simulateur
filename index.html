@@ -807,8 +807,9 @@
       else{
         if(state.startCells&&state.phase==='setup'&&state.startCells.has(key(x,y)))c=0x2f6fd0; // cases BLEUES de départ (Donjon) : placement des persos uniquement
         if(state.mode==='move'&&state.hoverPath&&state.hoverPath.has(key(x,y)))c=0x35c46a; // cases empruntées jusqu'à la destination (prévisu de déplacement) = VERT
-        if((state.mode==='swap'||state.mode==='spell')&&state.targets.has(key(x,y))) // zone du sort : BLEU translucide (le damier reste visible) ; ligne de vue bloquée = très estompé
-          c=mixHex(t.userData.base,0x3d8bff,(state.noLoS&&state.noLoS.has(key(x,y)))?0.18:0.58);
+        if((state.mode==='swap'||state.mode==='spell')&&state.targets.has(key(x,y))){ // zone du sort : bleu TRÈS translucide ; ligne de vue bloquée = encore plus estompé
+          const zb=(x+y)%2===0?0x16273c:0x2b3f5a; // damier ACCENTUÉ sous la teinte → le quadrillage reste lisible case par case
+          c=mixHex(zb,0x3d8bff,(state.noLoS&&state.noLoS.has(key(x,y)))?0.12:0.38);}
       }
       m.color.setHex(c);m.opacity=.96;}
     if(state.showDelock)delockCells().forEach(dc=>{const t=tiles[dc.x]&&tiles[dc.x][dc.y]; // bouton « Délock ? » actif : ROUGE vif = entité déjà en place (délock prêt), rouge sombre = pose une entité ici
@@ -1006,9 +1007,10 @@
     if(state.mode==='spell'){state.targets=spellZone();if(!state.targets.size){toast('Aucune case valide pour ce sort.');restMove();}else toast('Sort « '+state.spell.name+' » : clique une cible dans la zone.');}
     refreshTiles();refreshHUD();}
   function selectSpell(sp){
-    if(state.phase==='playing'&&state.mode==='spell'&&state.spell&&state.spell.id===sp.id){ // re-clic sur le même sort → annule la sélection
+    if(state.spell&&state.spell.id===sp.id){ // re-clic sur le sort DÉJÀ sélectionné → on le désélectionne (en combat comme en préparation, quel que soit le mode)
       state.spell=null;document.querySelectorAll('#spellSlots .slot').forEach(x=>x.classList.remove('on'));
-      restMove();refreshTiles();refreshHUD();toast('Sort désélectionné.');return;}
+      if(state.phase==='playing')restMove();
+      refreshTiles();refreshHUD();toast('Sort désélectionné.');return;}
     state.spell=sp;
     document.querySelectorAll('#spellSlots .slot').forEach(x=>x.classList.toggle('on',+x.dataset.id===sp.id));
     if(state.phase==='playing'){
