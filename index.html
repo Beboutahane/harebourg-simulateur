@@ -650,7 +650,10 @@
      Objet UNIQUE réutilisé, animé en continu dans animate() — aucune ambiguïté sur « qui est sélectionné ».
      ⚠️ La texture du cône est chargée PLUS BAS (texLoader n'existe pas encore ici) : le sprite naît sans map. ---- */
   const ACTIVE_COL=0x4a7dff; // le bleu du cône
-  const CONE_RATIO=150/258, CONE_H=0.8; // cone.png : 150×258 (détouré depuis son image, qui n'avait pas d'alpha)
+  // cone.png : 150×258 (détouré depuis son image, qui n'avait pas d'alpha). ⚠️ En vue iso, tout ce qui monte en Y
+  // se décale vers le haut de l'écran : un cône haut/gros « appartient » visuellement à la case du dessus.
+  // → petit, et sa pointe posée JUSTE sur la tête (le sprite du perso culmine à ~1.35).
+  const CONE_RATIO=150/258, CONE_H=0.52;
   const activeMark=(()=>{const g=new THREE.Group();
     // ⚠️ L'anneau est OPAQUE et sans depthTest:false, exactement comme les anneaux rouges/bleus des entités (ring()) :
     // c'est ce qui garantit qu'il est rendu AVANT les sprites (passe opaque) → le skin passe toujours devant, jamais l'inverse.
@@ -670,7 +673,7 @@
     const s=1+puls*0.06;activeMark.userData.ring.scale.set(s,s,1); // pulse en permanence (0.46→0.49 : reste dans la case)
     activeMark.userData.ring.material.color.setHex(ACTIVE_COL).multiplyScalar(0.62+puls*0.38); // respire par la luminosité (l'anneau reste opaque)
     const c=activeMark.userData.cone;
-    c.position.y=1.6+puls*0.1; // la pointe flotte au-dessus de sa tête
+    c.position.y=1.42+puls*0.07; // la pointe reste COLLÉE à sa tête : plus elle monte, plus elle a l'air d'être sur la case voisine
     if(c.material.map)c.material.opacity=0.72+puls*0.28;}
   function tokenTex(label,color){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
     x.beginPath();x.arc(64,64,52,0,6.28);x.fillStyle='#'+color.toString(16).padStart(6,'0');x.fill();
@@ -699,6 +702,25 @@
         for(let X=0;X<img.width;X++)if(p[(y*img.width+X)*4+3]>205&&++n>2)return (y+1)/img.height;}
     }catch(e){}
     return 0.9;}
+  /* ⚠️ Un personnage n'est PAS centré dans son image : DofusDB (et les planches de skin) le calent souvent de biais.
+     Sans ça, le sprite est centré sur son CADRE, pas sur le perso → il flotte à côté de son anneau.
+     On mesure donc le milieu horizontal de sa SEMELLE (ce qui touche le sol) et on s'en sert comme point d'ancrage (Sprite.center). */
+  function measureCx(img){
+    try{const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
+      const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(img,0,0);
+      const p=g.getImageData(0,0,img.width,img.height).data,A=(x,y)=>p[(y*img.width+x)*4+3];
+      let footY=-1;
+      for(let y=img.height-1;y>=0&&footY<0;y--){let n=0;
+        for(let x=0;x<img.width;x++)if(A(x,y)>205&&++n>2){footY=y;break;}}
+      if(footY<0)return 0.5;
+      const band=Math.max(2,Math.round(img.height*0.06)); // la « semelle » : la bande juste au-dessus des pieds
+      let minX=img.width,maxX=-1;
+      for(let y=Math.max(0,footY-band);y<=footY;y++)
+        for(let x=0;x<img.width;x++)if(A(x,y)>205){if(x<minX)minX=x;if(x>maxX)maxX=x;}
+      return maxX>=minX?((minX+maxX)/2+0.5)/img.width:0.5;
+    }catch(e){} // image cross-origin non lisible (CORS) → on garde le centre du cadre
+    return 0.5;}
+  const skinCx={}; // milieu horizontal MESURÉ, vue par vue
   const skinY=k=>SKIN_H*((skinFoot[k]||0.9)-0.5); // hauteur du sprite qui pose EXACTEMENT ses pieds sur la case
   const skinTex={}; // clé = pré + direction (ex. 'skin-bd') — rempli APRÈS la création de texLoader (cf. plus bas)
   function facingOf(a){ // vers quelle diagonale doit-il se tourner pour faire face au Comte ?
@@ -720,6 +742,7 @@
       mat.map=t;mat.color.setHex(0xffffff);mat.needsUpdate=true;
       a.obj.userData.hasPerso=true; // priorité sur le Dopeul DofusDB (cf. applyAllyLook)
       spr.scale.set(SKIN_H*SKIN_RATIO,SKIN_H,1);
+      spr.center.set(skinCx[k]!=null?skinCx[k]:0.5,0.5); // ancré sur SES pieds, pas sur le milieu du cadre → pile au centre de sa case
       const y=skinY(k);a.obj.userData.baseY=y;spr.position.y=y;});} // baseY : animate() s'y cale (sinon il le ferait flotter)
   function buildAllyObj(i){const col=allyColors[i];
     const g=new THREE.Group();
@@ -756,7 +779,7 @@
   // ligne lève un ReferenceError (zone morte temporelle) qui tuerait tout le script au démarrage.
   SKINS.forEach(s=>['bd','bg','hg','hd'].forEach(d=>texLoader.load(s.pre+d+'.png',t=>{
     if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
-    skinTex[s.pre+d]=t;skinFoot[s.pre+d]=measureFoot(t.image); // pieds mesurés sur CETTE vue → posé pile sur sa case
+    skinTex[s.pre+d]=t;skinFoot[s.pre+d]=measureFoot(t.image);skinCx[s.pre+d]=measureCx(t.image); // pieds mesurés sur CETTE vue (hauteur ET milieu) → posé pile au centre de sa case
     state.allies.forEach(a=>{if(a.obj)a.obj.userData.facing=null;});},undefined,()=>{}))); // facing=null → la vue est (re)posée au prochain refreshTiles/animate
   texLoader.load('cone.png',t=>{ // le cône du marqueur : créé plus haut sans texture (texLoader n'existait pas encore)
     if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
@@ -770,7 +793,9 @@
     const mat=new THREE.SpriteMaterial({color:fallbackColor||0xffffff,transparent:true,fog:false});
     const base=sc*(0.5-FOOT_PAD); // pieds posés au sol : enfoncement PROPORTIONNEL à la taille (les grands sprites ne flottent plus)
     const spr=new THREE.Sprite(mat);spr.center.set(0.5,0.5);spr.scale.set(sc,sc,1);spr.position.y=base;g.add(spr);
-    if(imgUrl)texLoader.load(imgUrl,t=>{if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();mat.map=t;mat.color.setHex(0xffffff);mat.needsUpdate=true;},undefined,()=>{});
+    // ⚠️ Les monstres DofusDB ne sont PAS centrés dans leur PNG (le Chafer penche nettement à droite) : on ré-ancre sur sa semelle dès que l'image arrive.
+    if(imgUrl)texLoader.load(imgUrl,t=>{if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
+      mat.map=t;mat.color.setHex(0xffffff);mat.needsUpdate=true;spr.center.set(measureCx(t.image),0.5);},undefined,()=>{});
     g.add(ring(friendly?RING_ALLY:RING_ENEMY));g.userData.spr=spr;g.userData.mat=mat;g.userData.baseY=base;return g; // ennemi = rouge, invocation amie = bleu
   }
   function syncAlly(a){if(a.obj)a.obj.userData.tp=worldPos(a.x,a.y);}
@@ -798,7 +823,9 @@
     const e=spawnMobFrom({name:'Comte',kind:'mob',friendly:false,hpMax:3000,ring:0x8fe4ff,x,y});
     transformToComte(e,true);}
   function fetchMobImg(e){fetch(API+'/monsters?slug.fr[$search]='+encodeURIComponent(e.search)+'&$limit=1&lang=fr').then(r=>r.json())
-    .then(d=>{const m=d.data&&d.data[0];if(m&&m.img){e.name=m.name.fr||e.name;texLoader.load(m.img,t=>{e.obj.userData.mat.map=t;e.obj.userData.mat.color.setHex(0xffffff);e.obj.userData.mat.needsUpdate=true;refreshHUD();});}}).catch(()=>{});}
+    .then(d=>{const m=d.data&&d.data[0];if(m&&m.img){e.name=m.name.fr||e.name;texLoader.load(m.img,t=>{e.obj.userData.mat.map=t;e.obj.userData.mat.color.setHex(0xffffff);e.obj.userData.mat.needsUpdate=true;
+      if(e.obj.userData.spr)e.obj.userData.spr.center.set(measureCx(t.image),0.5); // recentré sur sa semelle, comme dans spriteEntity
+      refreshHUD();});}}).catch(()=>{});}
   function syncPlayer(){syncAlly(state.player);}
   function syncEnemy(e){e.tp=worldPos(e.x,e.y);}
   function invulnTag(){ // état « INVULNÉRABLE » au-dessus de la tête du Comte (disparaît une fois délock)
