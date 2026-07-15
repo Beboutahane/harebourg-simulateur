@@ -260,6 +260,9 @@
   #hoverHp .hhg{display:none;font-family:var(--display);font-size:13px;font-weight:700;color:#ffd24a;letter-spacing:.2px;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.8)} /* nom de guilde, en or */
   #hoverHp.joueur .hhg{display:block}
   #hoverHp .hhn{font-family:var(--display);font-size:22px;color:#fff;font-weight:800;letter-spacing:.3px;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85)} /* le pseudo : BLANC, en GROS, sous la guilde (qui, elle, est en or : les deux ne se confondent pas) */
+  /* Un PERSO n'affiche pas sa vitalité ici : elle se lit sur son cœur et se règle au clic droit. Les monstres, eux, gardent leur barre. */
+  #hoverHp.joueur .hhbar,#hoverHp.joueur .hhv{display:none}
+  #hoverHp.joueur .hhtop{margin-bottom:0}
   #cellCount{position:absolute;z-index:8;display:none;transform:translate(-50%,-100%);pointer-events:none;background:rgba(10,26,44,.95);border:1px solid var(--ice);border-radius:8px;padding:3px 9px;text-align:center;box-shadow:0 6px 16px rgba(0,8,20,.55)}
   #cellCount.show{display:block}
   #cellCount b{font-family:var(--display);font-size:13.5px;color:#fff;white-space:nowrap}
