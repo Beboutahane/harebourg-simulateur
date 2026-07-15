@@ -872,6 +872,20 @@
     const o=occupant(mx,my);
     if(o&&o.t==='enemy'&&!o.e.friendly)return{x:mx,y:my,status:'invalid'}; // un ENNEMI y est : inutilisable (seuls tes alliés délock)
     return{x:mx,y:my,status:o?'occupied':'free',who:o?(o.t==='ally'?('Perso '+(o.a.id+1)):(o.e.name||'une entité')):null};}
+  /* ---- « Pose ta cawotte ICI » : mini Cawotte TRANSLUCIDE sur la case à cliquer (case CYAN) ----
+     Avec la confusion, la case à cliquer n'est PAS celle où l'invocation atterrit : ce fantôme montre le clic à faire. */
+  let cawTex=null,aimGhost=null,aimGhostKey='';
+  fetch(API+'/monsters?slug.fr[$search]=cawotte&$limit=1&lang=fr').then(r=>r.json()) // image officielle (DofusDB), chargée UNE fois
+    .then(d=>{const m=d.data&&d.data[0];if(m&&m.img)texLoader.load(m.img,t=>{cawTex=t;aimGhostKey='';refreshTiles();});}).catch(()=>{});
+  function updateAimGhost(a){
+    const k=a?(a.x+','+a.y):''; // ne reconstruit le fantôme que si la case CHANGE (refreshTiles tourne souvent)
+    if(k===aimGhostKey)return;aimGhostKey=k;
+    if(aimGhost){scene.remove(aimGhost);aimGhost=null;}
+    if(!a||!cawTex)return;
+    const p=worldPos(a.x,a.y),g=new THREE.Group();
+    const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:cawTex,transparent:true,opacity:.72,depthTest:false,fog:false}));
+    spr.scale.set(1.15,1.15,1);spr.position.set(p.x,0.72,p.z);g.add(spr); // ~1 case et bien lisible : plus petit, elle se noyait dans la couleur de la case
+    g.userData.ghost=true;scene.add(g);aimGhost=g;}
   const _mixA=new THREE.Color(),_mixB=new THREE.Color();
   function mixHex(a,b,t){_mixA.setHex(a);_mixB.setHex(b);return _mixA.lerp(_mixB,t).getHex();}
   function refreshTiles(){ // rendu À PLAT : chaque case = UNE couleur unie (bi-couleur, zéro effet de lumière)
@@ -892,11 +906,12 @@
      if(pv&&pv.status==='free'){const t=tiles[pv.x]&&tiles[pv.x][pv.y];if(t&&t.visible)t.material.color.setHex(0xf29a3c);}}
     if(state.showDelock&&state.adviceCell){const a=state.adviceCell,t=tiles[a.x]&&tiles[a.x][a.y]; // case conseillée par l'assistant : VERT
       if(t&&t.visible)t.material.color.setHex(0x35c46a);}
-    // Les 2 cases où CLIQUER, posées par aimHint/hitHint : plus besoin de les chercher au curseur case par case
-    if(state.showDelock&&state.aimCell){const a=state.aimCell,t=tiles[a.x]&&tiles[a.x][a.y]; // ① CYAN : clique ici → l'invocation atterrit sur la case ORANGE
+    // Les 2 cases où CLIQUER (posées par aimHint/hitHint) : TOUJOURS visibles, sans avoir à ouvrir l'assistant
+    if(state.aimCell){const a=state.aimCell,t=tiles[a.x]&&tiles[a.x][a.y]; // ① CYAN : clique ici → l'invocation atterrit sur la case ORANGE
       if(t&&t.visible)t.material.color.setHex(0x2fe0ff);}
-    if(state.showDelock&&state.hitCell){const h=state.hitCell,t=tiles[h.x]&&tiles[h.x][h.y]; // ② VIOLET : clique ici → le sort dévie SUR le Comte
+    if(state.hitCell){const h=state.hitCell,t=tiles[h.x]&&tiles[h.x][h.y]; // ② VIOLET : clique ici → le sort dévie SUR le Comte
       if(t&&t.visible)t.material.color.setHex(0xc44dff);}
+    updateAimGhost(state.aimCell); // mini Cawotte translucide posée sur la case CYAN : « pose ta cawotte ici »
     if(state.phase==='playing'&&!state.enemyTurn&&state.player&&state.player.placed&&tiles[state.player.x]&&tiles[state.player.x][state.player.y])
       tiles[state.player.x][state.player.y].material.color.setHex(0x2f9ee0); // case de l'allié actif
     if(state.enemyTurn&&state.curEnt&&state.curEnt.t==='enemy'&&state.curEnt.e.alive){const ce=state.curEnt.e;
@@ -997,7 +1012,8 @@
      const showSetup=(state.phase==='setup'||!comte())&&!dj; // les outils de map restent tant que le COMTE n'est pas là (le combat, lui, démarre dès le 1er perso posé)
      el('setup').style.display=showSetup?'flex':'none';
      if(!showSetup&&state.edit){state.edit=false;updateSetupBtns();} // le Comte arrive, les outils disparaissent → on sort de l'édition pour ne pas creuser en cliquant
-     el('tuto').style.display=dj?'none':'';
+     el('tuto').style.display=(dj||sable)?'none':''; // Tuto + Pense-bête : ni en Donjon, ni en Bac à sable (bac = terrain d'essai libre)
+     if(el('tips'))el('tips').style.display=sable?'none':'';
      el('setupTitle').textContent=sable?'🧪 Bac à sable':'🏖️ Construis ta map';
      el('mapHint').style.display=''; // étirement de la zone : Songe ET Bac à sable
      el('mobAdd').style.display=sable?'':'none'; // ajout de monstre : Bac à sable seulement
@@ -1071,14 +1087,13 @@
       return'🧭 <b>Pas de case de symétrie d\'ici.</b> Rapproche-toi : glisse <b>Perso '+(mv.a.id+1)+'</b> sur la <b>case verte '+mv.x+','+mv.y+'</b> → sa case de délock deviendra <b>'+mv.mx+','+mv.my+'</b>.';}
     return'🔒 Aucun délock possible dans cette configuration : rapproche tes persos du Comte, ou libère de la place autour de lui.';}
   function updateHints(){const m=el('delockMsg');if(!m)return; // l'assistant ne parle que quand on le lui demande (bouton « ❓ Délock ? »)
-    const sig=()=>[state.adviceCell,state.aimCell,state.hitCell].map(c=>c?key(c.x,c.y):'-').join('|'); // les 3 cases peintes par l'assistant (verte, cyan, violette)
-    if(!state.showDelock||state.phase!=='playing'){m.classList.remove('show');
-      const av=sig();state.adviceCell=null;state.aimCell=null;state.hitCell=null;
-      if(av!==sig())refreshTiles(); // assistant refermé → on efface ses cases du terrain
-      return;}
+    const sig=()=>[state.adviceCell,state.aimCell,state.hitCell].map(c=>c?key(c.x,c.y):'-').join('|'); // les 3 cases (verte, cyan, violette)
     const was=sig();
-    m.innerHTML=delockAdvice();m.classList.add('show');
-    if(was!==sig())refreshTiles();} // une case conseillée a changé → on repeint (refreshTiles est appelé AVANT refreshHUD par les appelants)
+    // Le conseil est TOUJOURS calculé, même assistant fermé : c'est lui qui pose les cases où CLIQUER (cyan/violette + la mini Cawotte)
+    const txt=state.phase==='playing'?delockAdvice():(state.adviceCell=state.aimCell=state.hitCell=null,'');
+    if(state.showDelock&&state.phase==='playing'){m.innerHTML=txt;m.classList.add('show');}
+    else m.classList.remove('show'); // seul le TEXTE dépend du bouton « ❓ Délock ? » — les cases, elles, restent visibles
+    if(was!==sig())refreshTiles();} // une case a changé → on repeint (refreshTiles est appelé AVANT refreshHUD par les appelants)
   let toastT;function toast(t){const e=el('toast');e.innerHTML=t;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),2600);}
 
   /* ===== MOVEMENT ===== */
