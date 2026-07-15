@@ -227,6 +227,11 @@
   .pivcol{display:flex;flex-direction:column;gap:5px} /* badge du tour + état du boss, empilés : #invTag se lit juste sous #pivotInfo */
   .pivcol .invtag{margin-top:0;font-size:14px;padding:6px 12px;border-radius:8px;cursor:pointer;letter-spacing:.5px;transition:.15s} /* AGRANDI (était 10px en ligne) */
   .pivcol .invtag:hover{filter:brightness(1.25)}
+  /* ⚠️ Classes à l'ENVERS (héritage) : .off = VULNÉRABLE (le délock est fait) · .on = INVULNÉRABLE. C'est donc .off qui doit pulser. */
+  .pivcol .invtag.off{animation:vulnPulse 1.15s ease-in-out infinite}
+  @keyframes vulnPulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(99,230,179,.5), 0 0 8px rgba(99,230,179,.25);background:rgba(99,230,179,.14)}
+    50%{box-shadow:0 0 0 8px rgba(99,230,179,0), 0 0 18px rgba(99,230,179,.7);background:rgba(99,230,179,.34)}}
   #turnBox{display:flex;align-items:center;gap:6px;pointer-events:auto}
   #turnBox .tlbl{margin-right:1px}
   #turnNum{font-family:var(--display);font-size:19px;font-weight:800;color:var(--ice);min-width:20px;text-align:center;line-height:1}
@@ -1548,7 +1553,9 @@
   renderer.domElement.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY};dragging=false;downBtn=e.button;
     edgeDrag=null;dragEnt=null;
     if(e.button===0){const u=pickTile(e.clientX,e.clientY);
-      if(u){const ent=entityAt(u.x,u.y);
+      // ⚠️ Une invocation en main (ou le Multicomte armé) : le clic VISE une case — il ne doit RIEN glisser.
+      // Sans ça, cliquer SUR une entité pour l'invoquer à côté (la confusion dévie) déplaçait l'entité au moindre frémissement de souris.
+      if(u&&!state.toPlace&&!state.multi){const ent=entityAt(u.x,u.y);
         if(ent&&(ent.t==='ally'||ent.t==='enemy'))dragEnt={ent,fromX:u.x,fromY:u.y}; // presser une entité = pouvoir la GLISSER (prioritaire sur l'étirement du bord)
         else{const eg=edgeAt(u.x,u.y);if(eg)edgeDrag={w:eg.w,h:eg.h,moved:false};}}}
     el('hoverHp').classList.remove('show');el('cellCount').classList.remove('show');});
@@ -1616,7 +1623,8 @@
         if(u&&!self)toast('Case invalide — retour à la case de départ.');}
       renderer.domElement.style.cursor='';refreshTiles();refreshHUD();down=null;edgeDrag=null;return;}
     if(down&&edgeDrag&&edgeDrag.moved)toast('🗺️ Carte : '+state.mapW+' × '+state.mapH+' cases.');
-    else if(down&&!dragging&&downBtn===0){const u=pickTile(e.clientX,e.clientY);if(u)onTileClick(u);}
+    // en VISÉE (invocation en main / Multicomte armé), un petit glissement ne doit pas avaler le clic : rien n'est en train d'être déplacé de toute façon
+    else if(down&&downBtn===0&&(!dragging||state.toPlace||state.multi)){const u=pickTile(e.clientX,e.clientY);if(u)onTileClick(u);}
     down=null;edgeDrag=null;dragEnt=null;dragLive=null;});
   renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();radius=Math.max(8,Math.min(60,radius+Math.sign(e.deltaY)*2));updateCam();},{passive:false});
 
