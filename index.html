@@ -578,7 +578,6 @@
                  {kind:'granduk',name:'Granduk',hp:6000,dmg:70,ring:0xf5b06b,search:'granduk',dx:2,dy:-5},
                  {kind:'nocturlabe',name:'Nocturlabe',hp:6000,dmg:70,ring:0x6be3c0,search:'nocturlabe',dx:0,dy:-6}];
   // Cases BLEUES de placement des personnages (Donjon uniquement) : bloc 3×3 à l'avant de la salle
-  const DJ_START=[[0,-2],[-1,-1],[0,-1],[1,-1],[-2,0],[-1,0],[1,0],[2,0],[-1,1],[0,1],[1,1],[0,2]]; // cases bleues = losange autour du bloc central (réf.)
   function spawnDjDefaults(){DJ_MOBS.forEach(sp=>{let x=HALF+sp.dx,y=HALF+sp.dy;
     if(blocked(x,y)||(x===state._countX&&y===state._countY)){const c=freeNear(HALF+sp.dx,HALF+sp.dy,state.enemies);x=c.x;y=c.y;}
     const e={id:sp.kind+Date.now()+Math.floor(Math.random()*1e4),name:sp.name,kind:sp.kind,hp:sp.hp,hpMax:sp.hp,speed:2,dmg:sp.dmg,ring:sp.ring,search:sp.search,alive:true,x,y,img:null};
@@ -604,8 +603,8 @@
       for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=(DJ_MAP[y]||'')[x]||'.';
         if(c==='.')state.voids.add(key(x,y)); // vide / trou
         else if(c==='X')state.obstacles.add(key(x,y));} // bloc posé sur du sol
-      state.startCells=new Set(DJ_START.map(([dx,dy])=>key(HALF+dx,HALF+dy)).filter(k=>!state.obstacles.has(k)&&!state.voids.has(k))); // cases bleues = placement des persos (Donjon)
-    }else{state.obstacles=new Set();state.voids=computeSongeVoids();state.startCells=null;} // Songe : zone jouable réglable mapW×mapH, placement libre
+    }else{state.obstacles=new Set();state.voids=computeSongeVoids();} // Songe : zone jouable réglable mapW×mapH
+    // (plus de « cases bleues » de départ : dans les deux cartes, les persos se posent sur n'importe quelle case libre)
     state._baseVoids=new Set(state.voids);
     state._countPlaced=false;if(state._ghost)state._ghost.visible=false; // plus de Comte pré-posé : il apparaît en TRANSFORMANT un Poutch (clic droit)
     renderMap();
@@ -834,7 +833,6 @@
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){const t=tiles[x][y],m=t.material;let c=t.userData.base;
       if(blocked(x,y))c=0x0b1a28; // obstacle / trou
       else{
-        if(state.startCells&&state.phase==='setup'&&state.startCells.has(key(x,y)))c=0x2f6fd0; // cases BLEUES de départ (Donjon) : placement des persos uniquement
         if(state.mode==='move'&&state.hoverPath&&state.hoverPath.has(key(x,y)))c=0x35c46a; // cases empruntées jusqu'à la destination (prévisu de déplacement) = VERT
         if((state.mode==='swap'||state.mode==='spell')&&state.targets.has(key(x,y))){ // zone du sort : bleu TRÈS translucide
           const zb=(x+y)%2===0?0x16273c:0x2b3f5a; // damier ACCENTUÉ sous la teinte → le quadrillage reste lisible case par case
@@ -1222,17 +1220,14 @@
     if(sel.t==='ally'){sel.a.x=x;sel.a.y=y;sel.a.placed=true;syncAlly(sel.a);if(sel.a.obj){sel.a.obj.position.copy(sel.a.obj.userData.tp);sel.a.obj.visible=true;}}
     else if(sel.t==='count'){state._countX=x;state._countY=y;state._countPlaced=true;if(!state._ghost){state._ghost=spriteEntity(COMTE_IMG,0x8fe4ff,0x8fe4ff,SC_COMTE);scene.add(state._ghost);}state._ghost.position.copy(worldPos(x,y));}
     else if(sel.t==='enemy'){sel.e.x=x;sel.e.y=y;syncEnemy(sel.e);}}
-  const allyCellOk=(x,y)=>!(state.startCells&&state.phase==='setup')||state.startCells.has(key(x,y)); // en Donjon : les persos ne se placent QUE sur les cases bleues
   // 1 clic : sélectionne une entité, puis clique une case libre pour la (re)placer — setup ET jeu (mode Replacer)
   function pickMove(x,y){
     if(state.setupSel){const occ=entityAt(x,y);
       if(occ){state.setupSel=occ;toast(selName(occ)+' — clique une case libre.');refreshTiles();return;}
       if(blocked(x,y)){toast('Case bloquée par un obstacle.');return;}
-      if(state.setupSel.t==='ally'&&!allyCellOk(x,y)){toast('🔵 En Donjon, les personnages se placent uniquement sur les cases bleues.');return;}
       moveEntity(state.setupSel,x,y);state.setupSel=null;refreshTiles();refreshHUD();toast('Placé.');return;}
     const ent=entityAt(x,y);
     if(ent){state.setupSel=ent;toast(selName(ent)+' sélectionné — clique une case pour le (re)placer.');refreshTiles();return;}
-    if(!allyCellOk(x,y)){toast('🔵 En Donjon, clique une case BLEUE pour poser ton personnage.');refreshTiles();return;}
     if(blocked(x,y)){toast('Clique une case LIBRE pour ajouter un personnage.');return;}
     putPlayerAt(x,y);} // perso en attente, sinon nouveau joueur (le clic droit ne sert plus qu'au Comte et aux ennemis)
   function setActive(i){if(i<0||i>=state.allies.length)return;state.active=i;
@@ -1356,8 +1351,7 @@
     if(down&&dragEnt&&dragging&&downBtn===0){const d=dragEnt;dragEnt=null; // DÉPÔT du drag & drop
       const u=pickTile(e.clientX,e.clientY),ent=d.ent;
       const self=u&&u.x===d.fromX&&u.y===d.fromY;
-      const okAlly=!u||ent.t!=='ally'||allyCellOk(u.x,u.y); // en Donjon (préparation) : persos sur cases bleues uniquement
-      if(u&&!self&&tiles[u.x][u.y].visible&&!blocked(u.x,u.y)&&!entityAt(u.x,u.y)&&okAlly){
+      if(u&&!self&&tiles[u.x][u.y].visible&&!blocked(u.x,u.y)&&!entityAt(u.x,u.y)){
         moveEntity(ent,u.x,u.y);toast((ent.t==='ally'?('🔵 Perso '+(ent.a.id+1)):(ent.e.name||'Monstre'))+' déplacé en '+u.x+','+u.y+'.');
         if(ent.t==='ally')showConfPop(ent.a);} // joueur déposé → widget de confusion
       else{if(ent.t==='ally')syncAlly(ent.a);else syncEnemy(ent.e); // case invalide → retour à la case d'origine
@@ -1377,12 +1371,12 @@
   function saveMapState(){
     state.allies.forEach(a=>{if(a.obj)scene.remove(a.obj);}); // les entités de la carte quittée sortent de la scène (gardées en mémoire, telles quelles)
     state.enemies.forEach(e=>{if(e.obj)scene.remove(e.obj);});
-    MAPS[state.map]={obstacles:state.obstacles,voids:state.voids,baseVoids:state._baseVoids,startCells:state.startCells,
+    MAPS[state.map]={obstacles:state.obstacles,voids:state.voids,baseVoids:state._baseVoids,
       mapW:state.mapW,mapH:state.mapH,allies:state.allies,enemies:state.enemies,active:state.active,phase:state.phase,
       tour:state.tour,comteTurn:state.comteTurn,showDelock:state.showDelock,meleeHits:state.meleeHits||0,
       initiative:state.initiative||[],launchSnap:state.launchSnap||null};}
   function loadMapState(m){const s=MAPS[m];if(!s)return false;
-    state.obstacles=s.obstacles;state.voids=s.voids;state._baseVoids=s.baseVoids;state.startCells=s.startCells;
+    state.obstacles=s.obstacles;state.voids=s.voids;state._baseVoids=s.baseVoids;
     state.mapW=s.mapW;state.mapH=s.mapH;state.allies=s.allies;state.enemies=s.enemies;state.active=s.active;
     state.phase=s.phase;state.tour=s.tour;state.comteTurn=s.comteTurn;state.showDelock=s.showDelock;state.meleeHits=s.meleeHits;
     state.initiative=s.initiative;state.launchSnap=s.launchSnap;
