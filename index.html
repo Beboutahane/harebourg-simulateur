@@ -375,7 +375,6 @@
 <div id="placeMenu"><button id="pmEnemy">🔴 Poser un ennemi (Poutch)</button><button id="pmComte" style="color:#8fe4ff"><img class="pmico" src="https://api.dofusdb.fr/img/items/16362.png" alt="" onerror="this.replaceWith('🔷')">Poser le Comte</button></div>
 <div id="confPop"><div class="cptitle">❤ Tranche de vita → 🔄 confusion</div><div class="cpbtns"></div></div>
 <div id="allyMenu">
-  <button id="amCtl">🎯 Contrôler ce perso</button>
   <button id="amConf">🔄 Tranche de vita…</button>
   <button id="amOff" style="color:#ff8a95">✕ Retirer du terrain</button>
 </div>
@@ -1535,8 +1534,7 @@
   el('confPop').querySelectorAll('button').forEach(b=>b.onclick=ev=>{ev.stopPropagation();
     if(confPopAlly){const t=+b.dataset.t;confPopAlly.vitaTier=t;toast('❤ Perso '+(confPopAlly.id+1)+' : vitalité '+VITA[t].l+' → 🔄 confusion '+cmap[VITA[t].rot]+'.');}
     hideConfPop(true);refreshTiles();refreshHUD();});
-  // menu du PERSO (clic droit sur un allié)
-  el('amCtl').onclick=ev=>{ev.stopPropagation();if(ctxAlly){setActive(state.allies.indexOf(ctxAlly));toast('🔵 Perso '+(ctxAlly.id+1)+' contrôlé.');}ctxAlly=null;el('allyMenu').classList.remove('show');};
+  // menu du PERSO (clic droit sur un allié) — pour le contrôler : clic GAUCHE dessus
   el('amConf').onclick=ev=>{ev.stopPropagation();if(ctxAlly)showConfPop(ctxAlly);ctxAlly=null;el('allyMenu').classList.remove('show');};
   el('amOff').onclick=ev=>{ev.stopPropagation();
     if(ctxAlly){ctxAlly.placed=false;if(ctxAlly.obj)ctxAlly.obj.visible=false;toast('Perso '+(ctxAlly.id+1)+' retiré — clique une case pour le reposer.');refreshTiles();refreshHUD();}
