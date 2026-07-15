@@ -259,8 +259,7 @@
   #hoverHp .hhtx{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;line-height:1.16} /* centré dans le reste de la bulle */
   #hoverHp .hhg{display:none;font-family:var(--display);font-size:13px;font-weight:700;color:#ffd24a;letter-spacing:.2px;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.8)} /* nom de guilde, en or */
   #hoverHp.joueur .hhg{display:block}
-  #hoverHp .hhn{font-family:var(--display);font-size:22px;color:#fff;font-weight:800;letter-spacing:.3px;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85)} /* le pseudo, en GROS, sous la guilde */
-  #hoverHp.joueur .hhn{color:#ffd24a} /* or Dofus */
+  #hoverHp .hhn{font-family:var(--display);font-size:22px;color:#fff;font-weight:800;letter-spacing:.3px;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.85)} /* le pseudo : BLANC, en GROS, sous la guilde (qui, elle, est en or : les deux ne se confondent pas) */
   #cellCount{position:absolute;z-index:8;display:none;transform:translate(-50%,-100%);pointer-events:none;background:rgba(10,26,44,.95);border:1px solid var(--ice);border-radius:8px;padding:3px 9px;text-align:center;box-shadow:0 6px 16px rgba(0,8,20,.55)}
   #cellCount.show{display:block}
   #cellCount b{font-family:var(--display);font-size:13.5px;color:#fff;white-space:nowrap}
@@ -674,7 +673,7 @@
   /* ---- BASE DES PERSOS : un nom = un jeu de 4 vues (fichiers <pre>bd/bg/hg/hd.png) ----
      Perso 1 = Mika, Perso 2 = Beboucafe, puis on recommence. Si les images d'un perso
      manquent, il garde simplement l'apparence par défaut (Dopeul) : rien ne casse. */
-  const SKINS=[{name:'Mika sans mérite',pre:'mika-'},{name:'Beboucafe Le Goat',pre:'bebou-'}]; // Perso 1 = Mika, Perso 2 = Beboucafe, puis on alterne (le `pre` = les fichiers PNG, il ne bouge pas quand le pseudo change)
+  const SKINS=[{name:'Mika-sans-mérite',pre:'mika-'},{name:'Beboucafe Le Goat',pre:'bebou-'}]; // Perso 1 = Mika, Perso 2 = Beboucafe, puis on alterne (le `pre` = les fichiers PNG, il ne bouge pas quand le pseudo change)
   const skinOf=a=>SKINS[(a.id||0)%SKINS.length];
   /* ---- SKIN DU PERSO : 4 vues (déjà détourées, 300×500) — il REGARDE toujours le Comte ----
      Les fichiers sont nommés d'après la direction ÉCRAN vers laquelle il regarde, en repères isométriques :
