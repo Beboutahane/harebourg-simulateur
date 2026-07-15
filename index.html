@@ -193,11 +193,11 @@
   #allyMenu button{color:var(--frost)}#allyMenu button:hover{background:rgba(75,184,240,.16)}
   #placeMenu #pmEnemy{color:#ff8a95}#placeMenu #pmEnemy:hover{background:rgba(255,107,125,.14)}
   #placeMenu .pmico{width:19px;height:19px;object-fit:contain;vertical-align:-5px;margin-right:6px} /* Coiffe du Comte (DofusDB) */
-  #confPop{position:absolute;z-index:13;display:none;transform:translate(-50%,-115%);background:var(--panel);border:1px solid var(--border-strong);border-radius:12px;padding:10px 11px;box-shadow:0 12px 28px rgba(0,8,20,.65);pointer-events:auto;text-align:center;backdrop-filter:blur(10px)}
+  #confPop{position:absolute;z-index:13;display:none;transform:translate(-50%,14%);background:var(--panel); /* +14% = SOUS le perso (l'ancre est au sol) */border:1px solid var(--border-strong);border-radius:12px;padding:10px 11px;box-shadow:0 12px 28px rgba(0,8,20,.65);pointer-events:auto;text-align:center;backdrop-filter:blur(10px)}
   #confPop.show{display:block;animation:cpop .18s cubic-bezier(.34,1.56,.64,1)}
   #confPop.hide{animation:cdepop .14s ease-in forwards}
-  @keyframes cpop{from{opacity:0;transform:translate(-50%,-115%) scale(.55)}to{opacity:1;transform:translate(-50%,-115%) scale(1)}}
-  @keyframes cdepop{to{opacity:0;transform:translate(-50%,-115%) scale(.55)}}
+  @keyframes cpop{from{opacity:0;transform:translate(-50%,14%) scale(.55)}to{opacity:1;transform:translate(-50%,14%) scale(1)}}
+  @keyframes cdepop{to{opacity:0;transform:translate(-50%,14%) scale(.55)}}
   .cptitle{font-family:var(--display);font-size:11px;font-weight:700;color:var(--ice);letter-spacing:.4px;margin-bottom:7px;white-space:nowrap}
   .cptitle .chp{color:#ff4d5e;text-shadow:0 0 6px rgba(255,77,94,.55)} /* le cœur du titre : ROUGE */
   .cpbtns{display:flex;gap:5px;align-items:center;justify-content:center}
@@ -802,12 +802,15 @@
   function delockTarget(){ // l'adversaire à rendre vulnérable : le Comte s'il est là, sinon le DERNIER mob ennemi en vie
     const C=comte();if(C&&C.alive)return C;
     const mobs=state.enemies.filter(e=>e.alive&&!e.friendly);return mobs.length?mobs[mobs.length-1]:null;}
+  let dragLive=null; // {a,x,y} : l'allié qu'on GLISSE et la case survolée — les cases de délock suivent le curseur AVANT même le dépôt
+  function livePos(a){return (dragLive&&dragLive.a===a)?{x:dragLive.x,y:dragLive.y}:{x:a.x,y:a.y};} // sa position « en direct » : celle du drag en cours, sinon sa case réelle
   function delockCells(){ // TOUTES les possibilités : pour CHAQUE allié placé, la case miroir M = 2·Allié − Cible (là où la cible pivoterait s'il frappe)
     const res=[],C=delockTarget();
     if(!C||!C.alive||state.phase!=='playing'||state.enemyTurn||!comtePivots()||C.vulnerable)return res; // seulement les tours où c'est le COMTE qui pivote
     const seen=new Set();
     state.allies.forEach(a=>{if(!a.placed||a.hp<=0)return;
-      const mx=2*a.x-C.x,my=2*a.y-C.y,kk=key(mx,my);
+      const P=livePos(a); // s'il est en train d'être glissé : sa case SOUS LE CURSEUR
+      const mx=2*P.x-C.x,my=2*P.y-C.y,kk=key(mx,my);
       if(seen.has(kk)||!inGrid(mx,my)||blocked(mx,my))return; // hors map / bloquée = pas réalisable
       const occ=occupant(mx,my);
       if(occ&&occ.t==='enemy'&&!occ.e.friendly)return; // un ENNEMI occupe la case miroir → inutilisable : SEULS TES ALLIÉS peuvent délock
@@ -819,7 +822,8 @@
     const C=comte();
     if(!C||!C.alive||C.vulnerable||state.phase!=='playing'||state.enemyTurn||!comtePivots())return null;
     const p=state.player;if(!p||!p.placed)return null;
-    const mx=2*p.x-C.x,my=2*p.y-C.y;
+    const P=livePos(p); // en plein drag : la case orange suit le curseur, sans attendre le dépôt
+    const mx=2*P.x-C.x,my=2*P.y-C.y;
     if(!inGrid(mx,my)||blocked(mx,my))return{x:mx,y:my,status:'invalid'};
     const o=occupant(mx,my);
     if(o&&o.t==='enemy'&&!o.e.friendly)return{x:mx,y:my,status:'invalid'}; // un ENNEMI y est : inutilisable (seuls tes alliés délock)
@@ -966,15 +970,20 @@
   }
   // ===== ASSISTANT DÉLOCK : dit quoi faire, ce tour, pour rendre le Comte vulnérable =====
   function undeflect(mx,my){ // case à VISER pour qu'une invocation atterrisse en (mx,my) malgré la confusion (rotation inverse de deflect)
-    const p=state.player;let dx=mx-p.x,dy=my-p.y;
+    const P=livePos(state.player);let dx=mx-P.x,dy=my-P.y; // livePos : pendant un drag, les conseils suivent la case survolée
     const n=(4-(((state.confusion/90)%4+4)%4))%4;
     for(let i=0;i<n;i++){const nx=-dy,ny=dx;dx=nx;dy=ny;}
-    return{x:p.x+dx,y:p.y+dy};}
+    return{x:P.x+dx,y:P.y+dy};}
   function aimHint(mx,my){ // « clique ICI pour que ça tombe LÀ »
     if(!state.confusion)return'';
     const v=undeflect(mx,my);
     if(!inGrid(v.x,v.y)||blocked(v.x,v.y))return' ⤳ <b>Confusion '+cmap[state.confusion]+'</b> : la case à viser tombe hors jeu — déplace le perso avant d\'invoquer.';
     return' ⤳ <b>Confusion '+cmap[state.confusion]+'</b> : vise la case <b>'+v.x+','+v.y+'</b> pour que l\'invocation atterrisse en '+mx+','+my+'.';}
+  function hitHint(t){ // où CLIQUER pour que le sort touche vraiment la cible (la confusion dévie aussi les sorts)
+    if(!state.confusion)return' Clique-le <b>directement</b> (aucune confusion).';
+    const v=undeflect(t.x,t.y);
+    if(!inGrid(v.x,v.y)||blocked(v.x,v.y))return' ⚠️ <b>Confusion '+cmap[state.confusion]+'</b> : d\'ici, aucune case à viser ne le touche — déplace ton perso.';
+    return' avec la <b>confusion '+cmap[state.confusion]+'</b>, clique la case <b>'+v.x+','+v.y+'</b> (le sort déviera sur lui).';}
   function moveForDelock(){ // aucune symétrie réalisable : où amener un perso pour qu'il en existe une ? (la plus proche de lui)
     const C=delockTarget();if(!C||!C.alive)return null;
     let best=null;
@@ -995,6 +1004,13 @@
     const nom=C.kind==='count'?'le Comte':(C.name||'la cible');
     if(C.vulnerable)return'🎯 <b>DÉLOCK FAIT</b> — '+nom+' est <b>VULNÉRABLE</b> : frappe-le maintenant !';
     if(!comtePivots())return'🔒 <b>Tour '+state.tour+' : c\'est TOI qui pivotes</b> — aucun délock possible ce tour. Passe au <b>tour '+(state.tour+1)+'</b> (bouton <b>+</b> en haut).';
+    // Priorité au perso que tu CONTRÔLES : sa case miroir est la case ORANGE affichée sur le terrain
+    const pv=pivotCell(),moi='Perso '+(state.player.id+1);
+    if(pv&&pv.status==='occupied')
+      return'✅ <b>Tout est prêt</b> — '+(pv.who||'ton entité')+' est déjà sur la <b>case orange '+pv.x+','+pv.y+'</b>. Frappe '+nom+' avec <b>'+moi+'</b> :'+hitHint(C)+' → il pivote dessus, échange et devient <b>VULNÉRABLE</b>.';
+    if(pv&&pv.status==='free')
+      return'🟠 <b>Case orange '+pv.x+','+pv.y+'</b> — ① pose une entité dessus (invoque 🥕/💀/🕷️, ou glisse un perso).'+aimHint(pv.x,pv.y)
+        +'<br>② Puis frappe '+nom+' avec <b>'+moi+'</b> :'+hitHint(C)+' → il pivote sur '+pv.x+','+pv.y+', échange avec ton entité et devient <b>VULNÉRABLE</b>.';
     const cells=delockCells(),ready=cells.find(c=>c.ready);
     if(ready)return'✅ <b>Tout est prêt :</b> frappe '+nom+' avec <b>'+ready.via+'</b> → il pivote en <b>'+ready.x+','+ready.y+'</b>, échange avec '+(ready.who||'ton entité')+' et devient <b>VULNÉRABLE</b>.';
     if(cells.length){const c=cells[0]; // (pas d'adviceCell ici : la case est déjà peinte en ROUGE par delockCells)
@@ -1227,6 +1243,7 @@
     if(blocked(x,y)){toast('Clique une case LIBRE pour ajouter un personnage.');return;}
     putPlayerAt(x,y);} // perso en attente, sinon nouveau joueur (le clic droit ne sert plus qu'au Comte et aux ennemis)
   function setActive(i){if(i<0||i>=state.allies.length)return;state.active=i;
+    if(state.phase==='playing'){state.curEnt={t:'ally',a:state.player};state.enemyTurn=false;} // sélectionner un perso = c'est SON tour de jeu (timeline allumée sur lui, cases de délock calculées pour lui)
     state.classSpells=state.player.classSpells||[];state.spell=null;
     rebuildSpellBar(state.classSpells);
     if(state.phase==='playing')restMove();refreshTiles();refreshHUD();}
@@ -1329,8 +1346,9 @@
       if(dragging){
         if(dragEnt&&downBtn===0){const u=pickTile(e.clientX,e.clientY); // drag & drop : l'entité suit le curseur de case en case
           if(u&&tiles[u.x]&&tiles[u.x][u.y].visible){hoverCell={x:u.x,y:u.y};const w=worldPos(u.x,u.y);
-            if(dragEnt.ent.t==='ally')dragEnt.ent.a.obj.userData.tp=w;else dragEnt.ent.e.tp=w;
-            renderer.domElement.style.cursor='grabbing';refreshTiles();}}
+            if(dragEnt.ent.t==='ally'){dragEnt.ent.a.obj.userData.tp=w;dragLive={a:dragEnt.ent.a,x:u.x,y:u.y};} // case orange + cases de délock recalculées À CHAQUE case survolée
+            else dragEnt.ent.e.tp=w;
+            renderer.domElement.style.cursor='grabbing';refreshTiles();updateHints();}}
         else if(edgeDrag&&downBtn===0){const u=pickTile(e.clientX,e.clientY); // étirement du bord : la bordure suit le curseur
           if(u){let w=state.mapW,h=state.mapH;
             if(edgeDrag.w)w=2*Math.abs(u.x-HALF)+1;
@@ -1344,7 +1362,7 @@
       renderer.domElement.style.cursor=eg?(eg.w&&eg.h?'nwse-resize':eg.w?'ew-resize':'ns-resize'):(hoverCell&&entityAt(hoverCell.x,hoverCell.y)?'grab':'');
       refreshTiles();updateHoverHp();updateCellCount();}});
   window.addEventListener('pointerup',e=>{
-    if(down&&dragEnt&&dragging&&downBtn===0){const d=dragEnt;dragEnt=null; // DÉPÔT du drag & drop
+    if(down&&dragEnt&&dragging&&downBtn===0){const d=dragEnt;dragEnt=null;dragLive=null; // DÉPÔT du drag & drop : la position « en direct » redevient la position réelle
       const u=pickTile(e.clientX,e.clientY),ent=d.ent;
       const self=u&&u.x===d.fromX&&u.y===d.fromY;
       if(u&&!self&&tiles[u.x][u.y].visible&&!blocked(u.x,u.y)&&!entityAt(u.x,u.y)){
@@ -1355,7 +1373,7 @@
       renderer.domElement.style.cursor='';refreshTiles();refreshHUD();down=null;edgeDrag=null;return;}
     if(down&&edgeDrag&&edgeDrag.moved)toast('🗺️ Carte : '+state.mapW+' × '+state.mapH+' cases.');
     else if(down&&!dragging&&downBtn===0){const u=pickTile(e.clientX,e.clientY);if(u)onTileClick(u);}
-    down=null;edgeDrag=null;dragEnt=null;});
+    down=null;edgeDrag=null;dragEnt=null;dragLive=null;});
   renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();radius=Math.max(8,Math.min(60,radius+Math.sign(e.deltaY)*2));updateCam();},{passive:false});
 
   const TIPS_DJ=['✅ Tuer les mobs avant le Comte.','✅ Focus le Cycloïde en premier.','✅ Finir rapidement le Granduk une fois entamé.','✅ Au début de son tour, le Comte pose une grande glyphe en croix 3 de PO : si tu commences dessus, tu meurs.','✅ Ne pas compter sur les obstacles : Jacquemart frappe sans ligne de vue. (Portée : 1 à 4 cases)','✅ Plus le Comte est bas en vie, plus il devient menaçant.'];
@@ -1523,7 +1541,7 @@
   el('confPop').querySelector('.cpbtns').innerHTML=VITA.map((v,i)=>'<button data-t="'+i+'" style="--vc:'+v.c+'">'+v.l+'</button>').join(''); // les 5 tranches viennent de VITA (source unique) : juste le %, coloré selon la tranche
   function showConfPop(a){confPopAlly=a;confPopAt=performance.now();const c=el('confPop');
     const t=tierOf(a);c.querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.t===t)); // tranche en cours = bouton allumé
-    const p=projectCell(a.x,a.y,2.3);c.style.left=p.sx+'px';c.style.top=p.sy+'px';
+    const p=projectCell(a.x,a.y,0.06);c.style.left=p.sx+'px';c.style.top=p.sy+'px'; // 0.06 = au niveau du SOL : le widget s'ouvre SOUS le perso (CSS translate +Y), plus au-dessus
     c.classList.remove('hide');c.classList.add('show');}
   function hideConfPop(force){const c=el('confPop');if(!c.classList.contains('show'))return;
     if(!force&&performance.now()-confPopAt<250)return; // ignore le clic natif qui suit immédiatement le dépôt
