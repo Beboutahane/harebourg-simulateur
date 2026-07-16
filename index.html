@@ -382,6 +382,10 @@
     <span class="rico"><img src="bebou-bd.png" alt=""></span>
     <span class="rtx"><b>Beboucafe</b><i class="rs">à poser</i></span>
   </div>
+  <div class="ritem" data-k="a2" title="Glisse-le sur une case libre — jusqu'à 8 alliés au total">
+    <span class="rico"><img src="scarlette-bd.png" alt=""></span>
+    <span class="rtx"><b>Scarlette-Johanson</b><i class="rs">à poser</i></span>
+  </div>
   <div class="rsec">🔴 Ennemis <b id="rosterFoes">0 / 8</b></div>
   <div class="ritem boss" data-k="comte" title="Un seul Comte à la fois">
     <span class="rico"><img src="https://api.dofusdb.fr/img/monsters/993.png" alt=""></span>
@@ -748,7 +752,8 @@
      manquent, il garde simplement l'apparence par défaut (Dopeul) : rien ne casse. */
   // `title` = son ornement, affiché en petit sous le pseudo dans la vignette. Le `pre` (fichiers PNG) ne bouge JAMAIS quand le pseudo change.
   const SKINS=[{name:'Mikassa-Ackerman',title:'Je ne mérite pas mon ornement',pre:'mika-'},
-               {name:'Beboucafe',title:'Le Goat',pre:'bebou-'}]; // Perso 1 = Mikassa, Perso 2 = Beboucafe, puis on alterne
+               {name:'Beboucafe',title:'Le Goat',pre:'bebou-'},
+               {name:'Scarlette-Johanson',title:'générateur a drama',pre:'scarlette-'}]; // Perso 1 = Mikassa, 2 = Beboucafe, 3 = Scarlette, puis on alterne
   const skinOf=a=>SKINS[a.skin!=null?a.skin:(a.id||0)%SKINS.length]; // a.skin = le skin GLISSÉ depuis le bac ; sinon on alterne par id
   /* ---- SKIN DU PERSO : 4 vues (déjà détourées, 300×500) — il REGARDE toujours le Comte ----
      Les fichiers sont nommés d'après la direction ÉCRAN vers laquelle il regarde, en repères isométriques :
@@ -1762,8 +1767,8 @@
   function renderRoster(){const box=el('roster');if(!box)return;
     const set=(k,plein,txt)=>{const it=box.querySelector('[data-k="'+k+'"]');if(!it)return;
       it.classList.toggle('full',plein);it.querySelector('.rs').textContent=txt;};
-    const na=aliveAllies().length,pleinA=na>=ALLY_MAX;
-    set('a0',pleinA,pleinA?'équipe pleine':'à poser');set('a1',pleinA,pleinA?'équipe pleine':'à poser');
+    const na=aliveAllies().length,pleinA=na>=ALLY_MAX,txtA=pleinA?'équipe pleine':'à poser';
+    set('a0',pleinA,txtA);set('a1',pleinA,txtA);set('a2',pleinA,txtA);
     set('comte',!!comte(),comte()?'sur le terrain':'à poser');
     const n=poutchCount();set('poutch',n>=POUTCH_MAX,n+' / '+POUTCH_MAX);
     if(el('rosterAllies'))el('rosterAllies').textContent=na+' / '+ALLY_MAX;
