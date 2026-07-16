@@ -788,6 +788,21 @@
     }catch(e){} // image cross-origin non lisible (CORS) → null, l'appelant garde le cadre
     return null;}
   const measureCx=img=>{const f=measureFit(img);return f?f.cx:0.5;};
+  function measureSkinCx(img){ // l'AXE (squelette) du PERSONNAGE : centre de masse des colonnes verticalement DOMINANTES (le tronc).
+    // Le familier, l'ombre au sol et les mèches de coiffe pèsent trop peu colonne par colonne pour compter — c'est ce qui les écarte.
+    // (Le flood-fill depuis la tête ne marche pas : le familier TOUCHE le perso en pixels pleinement opaques.)
+    try{const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
+      const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(img,0,0);
+      const p=g.getImageData(0,0,img.width,img.height).data;
+      const W=img.width,H=img.height,mass=new Array(W).fill(0);
+      for(let x=0;x<W;x++)for(let y=0;y<H;y++)if(p[(y*W+x)*4+3]>205)mass[x]++;
+      const mmax=Math.max.apply(null,mass);
+      if(!mmax)return 0.5;
+      let sx=0,sm=0;
+      for(let x=0;x<W;x++)if(mass[x]>=mmax*0.45){sx+=(x+0.5)*mass[x];sm+=mass[x];}
+      return sm?sx/sm/W:0.5;
+    }catch(e){} // CORS → centre du cadre
+    return 0.5;}
   // Taille RÉELLE d'un monstre : les PNG DofusDB ont des marges transparentes variables → à échelle égale, deux monstres
   // paraissent différents. On normalise : la hauteur VISIBLE du sprite = sc exactement, et ses pieds mesurés touchent le sol.
   function fitSprite(spr,img,sc){const f=measureFit(img);if(!f)return;
@@ -853,7 +868,7 @@
   // ligne lève un ReferenceError (zone morte temporelle) qui tuerait tout le script au démarrage.
   SKINS.forEach(s=>['bd','bg','hg','hd'].forEach(d=>texLoader.load(s.pre+d+'.png',t=>{
     if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
-    skinTex[s.pre+d]=t;skinFoot[s.pre+d]=measureFoot(t.image);skinCx[s.pre+d]=measureCx(t.image); // pieds mesurés sur CETTE vue (hauteur ET milieu) → posé pile au centre de sa case
+    skinTex[s.pre+d]=t;skinFoot[s.pre+d]=measureFoot(t.image);skinCx[s.pre+d]=measureSkinCx(t.image); // pieds du PERSONNAGE mesurés sur CETTE vue (le familier ne compte pas) → squelette pile au centre de sa case
     state.allies.forEach(a=>{if(a.obj)a.obj.userData.facing=null;});},undefined,()=>{}))); // facing=null → la vue est (re)posée au prochain refreshTiles/animate
   texLoader.load('cone.png',t=>{ // le cône du marqueur : créé plus haut sans texture (texLoader n'existait pas encore)
     if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
