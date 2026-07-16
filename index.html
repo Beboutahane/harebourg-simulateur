@@ -65,7 +65,7 @@
   .ritem.boss .rtx b{color:var(--ice)}
   .ritem.mob .rtx b{color:#ff9a95}
   /* Bac à SABLE : liste scrollable des 19 classes (lignes fines) */
-  #rosterClasses{display:none;flex-direction:column;gap:3px;max-height:calc(100vh - 150px);overflow-y:auto;overflow-x:hidden;margin-top:2px;padding-right:3px}
+  #rosterClasses{display:none;flex-direction:column;gap:3px;max-height:38vh;overflow-y:auto;overflow-x:hidden;margin-top:2px;padding-right:3px} /* liste COURTE : la molette fait défiler les 19 classes */
   #rosterClasses::-webkit-scrollbar{width:7px}
   #rosterClasses::-webkit-scrollbar-track{background:transparent}
   #rosterClasses::-webkit-scrollbar-thumb{background:rgba(120,160,220,.32);border-radius:4px}
@@ -1965,6 +1965,7 @@
     setActive(i);selectClass(9); // Crâ (la seule classe) : tête + sorts + corps entier chargés
     refreshTiles();refreshHUD();toast('🔵 '+skinOf(a).name+' ajouté en '+x+','+y+'.');maybeAutoStart();} // (la vitalité se règle au clic DROIT : plus de pop-up automatique)
   function putPlayerAt(x,y){ // clic gauche sur une case libre : pose le perso qui attend, sinon en AJOUTE un nouveau (préparation comme combat)
+    if(state.map==='sable'){toast('🧪 Bac à sable : GLISSE une classe depuis le widget pour poser un perso.');return;} // pas d'ajout au clic ici — le widget des classes est la seule porte d'entrée
     const un=state.allies.find(a=>!a.placed);
     if(!un){addPlayerAt(x,y);return;}
     un.x=x;un.y=y;un.placed=true;syncAlly(un);un.obj.position.copy(un.obj.userData.tp);un.obj.visible=true;
