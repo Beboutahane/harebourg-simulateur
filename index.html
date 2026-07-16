@@ -768,21 +768,31 @@
   /* ⚠️ Un personnage n'est PAS centré dans son image : DofusDB (et les planches de skin) le calent souvent de biais.
      Sans ça, le sprite est centré sur son CADRE, pas sur le perso → il flotte à côté de son anneau.
      On mesure donc le milieu horizontal de sa SEMELLE (ce qui touche le sol) et on s'en sert comme point d'ancrage (Sprite.center). */
-  function measureCx(img){
+  function measureFit(img){ // {cx, foot, h} : milieu de la semelle (X), position des pieds (fraction depuis le haut), hauteur UTILE (fraction opaque)
     try{const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
       const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(img,0,0);
       const p=g.getImageData(0,0,img.width,img.height).data,A=(x,y)=>p[(y*img.width+x)*4+3];
-      let footY=-1;
+      let footY=-1,topY=-1;
       for(let y=img.height-1;y>=0&&footY<0;y--){let n=0;
         for(let x=0;x<img.width;x++)if(A(x,y)>205&&++n>2){footY=y;break;}}
-      if(footY<0)return 0.5;
+      if(footY<0)return null;
+      for(let y=0;y<img.height&&topY<0;y++){let n=0;
+        for(let x=0;x<img.width;x++)if(A(x,y)>205&&++n>2){topY=y;break;}}
       const band=Math.max(2,Math.round(img.height*0.06)); // la « semelle » : la bande juste au-dessus des pieds
       let minX=img.width,maxX=-1;
       for(let y=Math.max(0,footY-band);y<=footY;y++)
         for(let x=0;x<img.width;x++)if(A(x,y)>205){if(x<minX)minX=x;if(x>maxX)maxX=x;}
-      return maxX>=minX?((minX+maxX)/2+0.5)/img.width:0.5;
-    }catch(e){} // image cross-origin non lisible (CORS) → on garde le centre du cadre
-    return 0.5;}
+      return{cx:maxX>=minX?((minX+maxX)/2+0.5)/img.width:0.5,
+        foot:(footY+0.5)/img.height,
+        h:Math.max(0.2,(footY-Math.max(0,topY)+1)/img.height)};
+    }catch(e){} // image cross-origin non lisible (CORS) → null, l'appelant garde le cadre
+    return null;}
+  const measureCx=img=>{const f=measureFit(img);return f?f.cx:0.5;};
+  // Taille RÉELLE d'un monstre : les PNG DofusDB ont des marges transparentes variables → à échelle égale, deux monstres
+  // paraissent différents. On normalise : la hauteur VISIBLE du sprite = sc exactement, et ses pieds mesurés touchent le sol.
+  function fitSprite(spr,img,sc){const f=measureFit(img);if(!f)return;
+    const k=sc/f.h;spr.scale.set(k,k,1);
+    spr.center.set(f.cx,1-f.foot);spr.position.y=0.05;}
   const skinCx={}; // milieu horizontal MESURÉ, vue par vue
   const skinY=k=>SKIN_H*((skinFoot[k]||0.9)-0.5); // hauteur du sprite qui pose EXACTEMENT ses pieds sur la case
   const skinTex={}; // clé = pré + direction (ex. 'skin-bd') — rempli APRÈS la création de texLoader (cf. plus bas)
@@ -848,7 +858,7 @@
     if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
     const c=activeMark.userData.cone;c.material.map=t;c.material.needsUpdate=true;},undefined,()=>{}); // absent → le sprite reste à opacity 0, rien ne casse
   // échelles calées sur le vrai jeu (proportion monstres / décor) ; FOOT_PAD = marge basse transparente des images DofusDB à enfoncer pour poser les pieds au sol
-  const SC_MOB=1.4, SC_COMTE=1.85, FOOT_PAD=0.12;
+  const SC_MOB=1.4, SC_COMTE=2.6, FOOT_PAD=0.12; // le BOSS domine nettement les monstres (tailles VISIBLES, normalisées par fitSprite)
   function spriteEntity(imgUrl,ringColor,fallbackColor,sc,friendly){
     sc=sc||1.5; const g=new THREE.Group();
     const sh=new THREE.Mesh(new THREE.CircleGeometry(sc*0.24,24),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.34,depthWrite:false}));
@@ -856,10 +866,10 @@
     const mat=new THREE.SpriteMaterial({color:fallbackColor||0xffffff,transparent:true,fog:false});
     const base=sc*(0.5-FOOT_PAD); // pieds posés au sol : enfoncement PROPORTIONNEL à la taille (les grands sprites ne flottent plus)
     const spr=new THREE.Sprite(mat);spr.center.set(0.5,0.5);spr.scale.set(sc,sc,1);spr.position.y=base;g.add(spr);
-    // ⚠️ Les monstres DofusDB ne sont PAS centrés dans leur PNG (le Chafer penche nettement à droite) : on ré-ancre sur sa semelle dès que l'image arrive.
+    // ⚠️ Les monstres DofusDB ne sont NI centrés NI cadrés pareil dans leur PNG : dès que l'image arrive, on normalise (taille visible = sc, pieds au sol).
     if(imgUrl)texLoader.load(imgUrl,t=>{if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
-      mat.map=t;mat.color.setHex(0xffffff);mat.needsUpdate=true;spr.center.set(measureCx(t.image),0.5);},undefined,()=>{});
-    g.add(ring(friendly?RING_ALLY:RING_ENEMY));g.userData.spr=spr;g.userData.mat=mat;g.userData.baseY=base;return g; // ennemi = rouge, invocation amie = bleu
+      mat.map=t;mat.color.setHex(0xffffff);mat.needsUpdate=true;fitSprite(spr,t.image,sc);g.userData.baseY=spr.position.y;},undefined,()=>{});
+    g.add(ring(friendly?RING_ALLY:RING_ENEMY));g.userData.spr=spr;g.userData.mat=mat;g.userData.baseY=base;g.userData.sc=sc;return g; // ennemi = rouge, invocation amie = bleu
   }
   function syncAlly(a){if(a.obj)a.obj.userData.tp=worldPos(a.x,a.y);}
   state.allies.forEach(a=>{a.obj=buildAllyObj(a.id);syncAlly(a);a.obj.position.copy(a.obj.userData.tp);}); // crée le perso 1
@@ -887,7 +897,7 @@
     transformToComte(e,true);}
   function fetchMobImg(e){fetch(API+'/monsters?slug.fr[$search]='+encodeURIComponent(e.search)+'&$limit=1&lang=fr').then(r=>r.json())
     .then(d=>{const m=d.data&&d.data[0];if(m&&m.img){e.name=m.name.fr||e.name;texLoader.load(m.img,t=>{e.obj.userData.mat.map=t;e.obj.userData.mat.color.setHex(0xffffff);e.obj.userData.mat.needsUpdate=true;
-      if(e.obj.userData.spr)e.obj.userData.spr.center.set(measureCx(t.image),0.5); // recentré sur sa semelle, comme dans spriteEntity
+      if(e.obj.userData.spr){fitSprite(e.obj.userData.spr,t.image,e.obj.userData.sc||SC_MOB);e.obj.userData.baseY=e.obj.userData.spr.position.y;} // normalisé, comme dans spriteEntity
       refreshHUD();});}}).catch(()=>{});}
   function syncPlayer(){syncAlly(state.player);}
   function syncEnemy(e){e.tp=worldPos(e.x,e.y);}
@@ -897,7 +907,7 @@
     x.lineWidth=6;x.strokeStyle='#8fe4ff';x.stroke();
     x.font='62px "Segoe UI Emoji",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('🛡️',64,70);
     const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,fog:false,depthWrite:false}));
-    s.scale.set(0.55,0.55,1);s.position.y=2.05;return s;}
+    s.scale.set(0.55,0.55,1);s.position.y=SC_COMTE+0.35;return s;} // au-dessus de la tête du boss agrandi
 
   /* ===== DATA LAYER (DofusDB) ===== */
   const qIn=(field,ids)=>ids.map(i=>field+'[$in][]='+i).join('&');
@@ -1064,8 +1074,8 @@
      Une branche hors map / sur un obstacle / déjà occupée ne sort PAS son illusion — d'où les 3 ou 4 Comtes vus en jeu. ---- */
   const MULTI_DIRS=[{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}]; // haut, bas, gauche, droite (l'ordre du schéma)
   const MULTI_MAX=3; // 3 illusions au plus : avec le vrai, ça fait les 4 Comtes
-  let comteTex=null,multiGhost=null,multiGhostKey='';
-  texLoader.load(COMTE_IMG,t=>{comteTex=t;multiGhostKey='';refreshTiles();},undefined,()=>{}); // l'image du Comte, pour les fantômes de prévisu
+  let comteTex=null,comteFit=null,multiGhost=null,multiGhostKey='';
+  texLoader.load(COMTE_IMG,t=>{comteTex=t;comteFit=measureFit(t.image);multiGhostKey='';refreshTiles();},undefined,()=>{}); // l'image du Comte, pour les fantômes de prévisu (mesurée : mêmes taille/ancrage que le vrai)
   function freeForComte(x,y,C){ // case utilisable par le Multicomte ? (celle du Comte compte comme libre : il la quitte)
     if(!inGrid(x,y)||blocked(x,y)||!tiles[x]||!tiles[x][y]||!tiles[x][y].visible)return false;
     const o=occupant(x,y);
@@ -1092,11 +1102,13 @@
     // C'est l'ANNEAU au sol qui le rend repérable — comme le fantôme de pivot (updateSwapGhost) le fait déjà.
     const put=(c,vrai)=>{const p=worldPos(c.x,c.y);
       const s=new THREE.Sprite(new THREE.SpriteMaterial({map:comteTex,transparent:true,opacity:vrai?.95:.72,depthTest:false,fog:false}));
-      s.scale.set(SC_COMTE,SC_COMTE,1);s.position.set(p.x,SC_COMTE*(0.5-FOOT_PAD),p.z);s.renderOrder=4;g.add(s);
+      if(comteFit){const kk=SC_COMTE/comteFit.h;s.scale.set(kk,kk,1);s.center.set(comteFit.cx,1-comteFit.foot);s.position.set(p.x,0.05,p.z);} // même normalisation que le vrai Comte (fitSprite)
+      else{s.scale.set(SC_COMTE,SC_COMTE,1);s.position.set(p.x,SC_COMTE*(0.5-FOOT_PAD),p.z);}
+      s.renderOrder=4;g.add(s);
       const rg=ring(vrai?0x8fe4ff:0xc9a6ff);rg.material.transparent=true;rg.material.opacity=vrai?.95:.75;rg.material.depthTest=false;
       rg.renderOrder=4;rg.position.set(p.x,0.04,p.z);g.add(rg); // cyan = le vrai · violet = une illusion
       const tag=tagSprite(vrai?'le VRAI Comte':'illusion',vrai?'143,228,255':'201,166,255');
-      tag.position.set(p.x,1.95,p.z);tag.renderOrder=5;g.add(tag);}; // 1.95 : sous la bulle « N cases », qui se superpose sinon
+      tag.position.set(p.x,SC_COMTE+0.15,p.z);tag.renderOrder=5;g.add(tag);}; // au-dessus de la tête du boss agrandi
     put(plan.center,true);plan.clones.forEach(c=>put(c,false));
     g.userData.ghost=true;scene.add(g);multiGhost=g;}
   function clearIllusions(){ // un nouveau Multicomte remplace les illusions du précédent
@@ -1222,7 +1234,7 @@
       const add=(srcObj,cx,cy,ringCol,bad)=>{if(!srcObj||!srcObj.userData||!srcObj.userData.spr)return;
         const s0=srcObj.userData.spr,m=s0.material.clone();
         m.transparent=true;m.opacity=.5;m.depthWrite=false;if(bad)m.color.setHex(0xff6060); // rouge = rotation impossible (wipe !)
-        const spr=new THREE.Sprite(m);spr.scale.copy(s0.scale);const w=worldPos(cx,cy);
+        const spr=new THREE.Sprite(m);spr.scale.copy(s0.scale);spr.center.copy(s0.center);const w=worldPos(cx,cy); // center copié : l'ancrage pieds (fitSprite) ne se clone pas tout seul
         spr.position.set(w.x,s0.position.y,w.z);g.add(spr);
         const rg=ring(bad?0xff3030:ringCol);rg.material.transparent=true;rg.material.opacity=.55;rg.position.set(w.x,0.03,w.z);g.add(rg);};
       // le pivoteur, fantôme 50 % sur sa case d'arrivée
