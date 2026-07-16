@@ -64,6 +64,15 @@
   .rtx i{font-size:9.5px;color:var(--muted);font-style:normal;white-space:nowrap}
   .ritem.boss .rtx b{color:var(--ice)}
   .ritem.mob .rtx b{color:#ff9a95}
+  /* Bac à SABLE : liste scrollable des 19 classes (lignes fines) */
+  #rosterClasses{display:none;flex-direction:column;gap:3px;max-height:calc(100vh - 150px);overflow-y:auto;overflow-x:hidden;margin-top:2px;padding-right:3px}
+  #rosterClasses::-webkit-scrollbar{width:7px}
+  #rosterClasses::-webkit-scrollbar-track{background:transparent}
+  #rosterClasses::-webkit-scrollbar-thumb{background:rgba(120,160,220,.32);border-radius:4px}
+  #rosterClasses::-webkit-scrollbar-thumb:hover{background:rgba(120,160,220,.5)}
+  .ritem.cls{padding:3px 6px;gap:7px;border-radius:8px} /* ligne fine */
+  .ritem.cls .rico{width:30px;height:30px;border-radius:50%} /* la bulle ronde de la classe */
+  .ritem.cls .rtx b{font-size:12px}
   #tips{top:12px;right:12px;width:262px;max-height:calc(100vh - 150px);overflow-y:auto;padding:13px 14px;display:flex;flex-direction:column;gap:8px}
   #tips h3{font-family:var(--display);font-size:13px;letter-spacing:.4px;color:var(--ice);display:flex;align-items:center;gap:6px;margin-bottom:2px}
   .tiplist{list-style:none;display:flex;flex-direction:column;gap:7px;margin:0;padding:0}
@@ -372,7 +381,8 @@
 
 <!-- Bac à entités : chaque vignette se GLISSE sur une case. Les compteurs sont tenus par renderRoster(). -->
 <div class="hud card" id="roster">
-  <h3>🎭 Glisse-les sur la map</h3>
+  <h3 id="rosterTitle">🎭 Glisse-les sur la map</h3>
+  <div id="rosterNormal">
   <div class="rsec">🔵 Alliés <b id="rosterAllies">0 / 8</b></div>
   <div class="ritem" data-k="a0" title="Glisse-le sur une case libre — jusqu'à 8 alliés au total">
     <span class="rico"><img src="mika-bd.png" alt=""></span>
@@ -395,6 +405,9 @@
     <span class="rico"><img src="https://api.dofusdb.fr/img/monsters/278.png" alt=""></span>
     <span class="rtx"><b>Acnoh le poutch</b><i class="rs">0 / 7</i></span>
   </div>
+  </div>
+  <div class="rsec" id="rosterClassesHead" style="display:none">🛡️ Classes <b id="rosterClassesCount">0 / 8</b></div>
+  <div id="rosterClasses"></div>
 </div>
 
 <div class="hud card" id="tips"></div>
@@ -780,7 +793,22 @@
   const SKINS=[{name:'Mikassa-Ackerman',title:'Je ne mérite pas mon ornement',pre:'mika-'},
                {name:'Beboucafe',title:'Le Goat',pre:'bebou-'},
                {name:'Scarlette-Johanson',title:'générateur a drama',pre:'scarlette-'}]; // Perso 1 = Mikassa, 2 = Beboucafe, 3 = Scarlette, puis on alterne
-  const skinOf=a=>SKINS[a.skin!=null?a.skin:(a.id||0)%SKINS.length]; // a.skin = le skin GLISSÉ depuis le bac ; sinon on alterne par id
+  const PERSO_COUNT=SKINS.length; // les persos custom occupent le DÉBUT de SKINS ; les 19 classes suivent (bac à sable)
+  // Les 19 classes de Dofus : bac à SABLE. `slug` = préfixe des futurs fichiers <slug>-{bd,bg,hg,hd}.png (comme mika-/bebou-).
+  // `col` = couleur de la pastille placeholder tant que les visuels ne sont pas fournis. L'ordre = l'ordre officiel du jeu.
+  const CLASSES=[
+    {name:'Féca',slug:'feca',col:'#7b5cff'},{name:'Osamodas',slug:'osamodas',col:'#3fa34d'},
+    {name:'Enutrof',slug:'enutrof',col:'#e0a021'},{name:'Sram',slug:'sram',col:'#6c4bb0'},
+    {name:'Xélor',slug:'xelor',col:'#3f7fd0'},{name:'Écaflip',slug:'ecaflip',col:'#d23b3b'},
+    {name:'Eniripsa',slug:'eniripsa',col:'#e86fa0'},{name:'Iop',slug:'iop',col:'#e0562b'},
+    {name:'Crâ',slug:'cra',col:'#6bb04a'},{name:'Sadida',slug:'sadida',col:'#4a8a3f'},
+    {name:'Sacrieur',slug:'sacrieur',col:'#b02a2a'},{name:'Pandawa',slug:'pandawa',col:'#4aa0c0'},
+    {name:'Roublard',slug:'roublard',col:'#9a9a45'},{name:'Zobal',slug:'zobal',col:'#d07a2b'},
+    {name:'Steamer',slug:'steamer',col:'#3f8ab0'},{name:'Éliotrope',slug:'eliotrope',col:'#2fb0c0'},
+    {name:'Huppermage',slug:'huppermage',col:'#9a5cff'},{name:'Ouginak',slug:'ouginak',col:'#a0632b'},
+    {name:'Forgelance',slug:'forgelance',col:'#5c8ab0'}];
+  CLASSES.forEach(c=>SKINS.push({name:c.name,title:'',pre:c.slug+'-'})); // chaque classe devient un skin (index PERSO_COUNT + i)
+  const skinOf=a=>SKINS[a.skin!=null?a.skin:(a.id||0)%PERSO_COUNT]; // a.skin = le skin GLISSÉ depuis le bac ; sinon on alterne sur les PERSOS (pas les classes)
   /* ---- SKIN DU PERSO : 4 vues (déjà détourées, 300×500) — il REGARDE toujours le Comte ----
      Les fichiers sont nommés d'après la direction ÉCRAN vers laquelle il regarde, en repères isométriques :
        bd = bas-droite (+x)  ·  bg = bas-gauche (+y)  ·  hg = haut-gauche (−x)  ·  hd = haut-droite (−y)
@@ -900,10 +928,15 @@
   const texLoader=new THREE.TextureLoader();texLoader.crossOrigin='anonymous';
   // ⚠️ Chargement des 4 vues du perso ICI et pas plus haut : texLoader est un `const`, l'utiliser avant cette
   // ligne lève un ReferenceError (zone morte temporelle) qui tuerait tout le script au démarrage.
-  SKINS.forEach(s=>['bd','bg','hg','hd'].forEach(d=>texLoader.load(s.pre+d+'.png',t=>{
-    if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
-    skinTex[s.pre+d]=t;skinFoot[s.pre+d]=measureFoot(t.image);skinCx[s.pre+d]=measureSkinCx(t.image); // pieds du PERSONNAGE mesurés sur CETTE vue (le familier ne compte pas) → squelette pile au centre de sa case
-    state.allies.forEach(a=>{if(a.obj)a.obj.userData.facing=null;});},undefined,()=>{}))); // facing=null → la vue est (re)posée au prochain refreshTiles/animate
+  const skinLoaded={}; // ⚠️ chargement PARESSEUX : les 19 classes n'ont pas encore de fichiers → tout charger au démarrage = 76 × 404. On ne charge un skin qu'à sa 1re pose.
+  function loadSkinViews(idx){
+    if(skinLoaded[idx]||idx==null||!SKINS[idx])return;skinLoaded[idx]=true;
+    const s=SKINS[idx];['bd','bg','hg','hd'].forEach(d=>texLoader.load(s.pre+d+'.png',t=>{
+      if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
+      skinTex[s.pre+d]=t;skinFoot[s.pre+d]=measureFoot(t.image);skinCx[s.pre+d]=measureSkinCx(t.image); // pieds du PERSONNAGE mesurés sur CETTE vue (le familier ne compte pas) → squelette pile au centre de sa case
+      state.allies.forEach(a=>{if(a.obj)a.obj.userData.facing=null;});},undefined,()=>{})); // facing=null → la vue est (re)posée au prochain refreshTiles/animate
+  }
+  for(let i=0;i<PERSO_COUNT;i++)loadSkinViews(i); // au démarrage : SEULEMENT les persos custom (leurs fichiers existent). Les classes se chargent à la pose.
   // (cone.png n'est plus chargé : le marqueur du perso actif est désormais dessiné en interne — halo + étiquette « C'EST TON TOUR »)
   // échelles calées sur le vrai jeu (proportion monstres / décor) ; FOOT_PAD = marge basse transparente des images DofusDB à enfoncer pour poser les pieds au sol
   const SC_MOB=1.4, SC_COMTE=1.85, FOOT_PAD=0.12; // tailles VISIBLES (normalisées par fitSprite : les marges des PNG ne comptent plus)
@@ -1101,12 +1134,12 @@
       cyl.position.set(p.x,1.82,p.z);g.add(cyl);}
     g.userData.ghost=true;scene.add(g);aimGhost=g;}
   function updateHitGhost(h){
-    const k=h?(h.x+','+h.y):'';
+    const k=h?(h.x+','+h.y+'|'+(h.label||'')):'';
     if(k===hitGhostKey)return;hitGhostKey=k;
     if(hitGhost){scene.remove(hitGhost);hitGhost=null;}
     if(!h)return;
     const p=worldPos(h.x,h.y),g=new THREE.Group();
-    const tag=tagSprite('2. Tape le Comte ici','196,77,255');tag.position.set(p.x,0.85,p.z);g.add(tag);
+    const tag=tagSprite(h.label||'2. Tape le Comte ici','196,77,255');tag.position.set(p.x,0.85,p.z);g.add(tag); // étiquette selon la cible (Comte / monstre)
     g.userData.ghost=true;scene.add(g);hitGhost=g;}
   function updateMoveGhost(m){ // ③ case VERTE : la case où il faut ALLER (aucun délock possible d'où le perso est)
     const k=m?(m.x+','+m.y+'@'+(m.who||'')):'';
@@ -1194,9 +1227,10 @@
             :mixHex(zb,0x3d8bff,0.38);} // à portée ET visible : bleu translucide
       }
       m.color.setHex(c);m.opacity=.96;}
-    if(state.showDelock)delockCells().forEach(dc=>{const t=tiles[dc.x]&&tiles[dc.x][dc.y]; // ROUGE vif = entité déjà en place (délock prêt), rouge sombre = pose une entité ici
+    const delockView=state.showDelock&&!nearestMob(); // tant qu'il reste des mobs, l'assistant guide à les TAPER (vert/violet) : on masque les cases de délock du Comte
+    if(delockView)delockCells().forEach(dc=>{const t=tiles[dc.x]&&tiles[dc.x][dc.y]; // ROUGE vif = entité déjà en place (délock prêt), rouge sombre = pose une entité ici
       if(t&&t.visible)t.material.color.setHex(dc.ready?0xe03535:0x7a2222);});
-    if(state.showDelock){const pv=pivotCell(); // case PIVOT de la position actuelle : ORANGE = invoque/place une entité ici puis frappe le Comte
+    if(delockView){const pv=pivotCell(); // case PIVOT de la position actuelle : ORANGE = invoque/place une entité ici puis frappe le Comte
      if(pv&&pv.status==='free'){const t=tiles[pv.x]&&tiles[pv.x][pv.y];if(t&&t.visible)t.material.color.setHex(0xf29a3c);}}
     if(state.showDelock&&state.adviceCell){const a=state.adviceCell,t=tiles[a.x]&&tiles[a.x][a.y]; // case conseillée par l'assistant : VERT
       if(t&&t.visible)t.material.color.setHex(0x35c46a);}
@@ -1353,7 +1387,8 @@
     if(!state.confusion)return' clique-le <b>directement</b>.';
     const v=undeflect(t.x,t.y);
     if(!inGrid(v.x,v.y)||blocked(v.x,v.y))return' mais d\'ici, aucun angle ne le touche : <b>déplace ton perso</b>.';
-    state.hitCell={x:v.x,y:v.y}; // ② case VIOLETTE : le clic à faire pour que le sort dévie sur lui
+    const cible=t.kind==='count'?'le Comte':(t.name||'le monstre'); // l'étiquette de la case violette s'adapte à la cible
+    state.hitCell={x:v.x,y:v.y,label:'Tape '+cible+' ici'}; // ② case VIOLETTE : le clic à faire pour que le sort dévie sur lui
     return' clique la <b>case VIOLETTE</b>.';}
   function moveForDelock(){ // aucune symétrie réalisable : où amener un perso pour qu'il en existe une ?
     const C=delockTarget();if(!C||!C.alive)return null;
@@ -1375,8 +1410,43 @@
     const d=manh(livePos(p),C); // livePos : en plein drag, le conseil suit déjà le curseur
     if(d<=CLOSE_OK)return'';
     return'<br>💡 <b>Rapproche-toi</b> : tu es à <b>'+d+' cases</b> — plus tu es près, plus c\'est simple de le taper (selon ta classe, des sorts ne portent qu\'à 1-3 cases).';}
+  /* ===== Assistant pour les MONSTRES (mobs ennemis, hors Comte) : pas de délock, on va les TAPER.
+     Prioritaire sur le délock du Comte tant qu'il reste des mobs (cf. pense-bête « tuer les mobs avant le Comte »). ===== */
+  const spellsAvail=()=>(state.classSpells&&state.classSpells.length)?state.classSpells:FIXED_SPELLS;
+  function nearestMob(){ // le mob ennemi le plus proche du perso actif (le Comte et les illusions ont leur propre flux)
+    const p=state.player;if(!p||!p.placed||state.phase!=='playing'||state.enemyTurn)return null;
+    let best=null;
+    state.enemies.forEach(e=>{if(!e.alive||e.friendly||e.kind==='count'||e.kind==='illusion')return;
+      const d=manh(livePos(p),e);if(best===null||d<best.d)best={e,d};});
+    return best?best.e:null;}
+  function canHitFrom(fx,fy,tx,ty){ // un sort dispo peut-il toucher (tx,ty) depuis (fx,fy) ? portée + ligne/diagonale + ligne de vue
+    const dx=tx-fx,dy=ty-fy,d=Math.abs(dx)+Math.abs(dy);
+    return spellsAvail().some(s=>d>=Math.max(1,s.minRange)&&d<=s.range
+      &&(!s.line||dx===0||dy===0)&&(!(s.diag&&!s.line)||Math.abs(dx)===Math.abs(dy))
+      &&hasLoS(fx,fy,tx,ty));}
+  function moveForAttack(M){ // la case la plus proche du perso d'où il touche M (le rapprochement à faire)
+    const p=state.player;if(!p||!p.placed)return null;
+    let best=null;
+    for(let x=0;x<N;x++)for(let y=0;y<N;y++){
+      if(!tiles[x]||!tiles[x][y]||!tiles[x][y].visible||blocked(x,y))continue;
+      const oc=occupant(x,y);if(oc&&!(oc.t==='ally'&&oc.a===p))continue; // libre ou sa propre case
+      if(!canHitFrom(x,y,M.x,M.y))continue;
+      const d=manh(p,{x,y});if(!d)continue;
+      if(best===null||d<best.d)best={x,y,d};}
+    return best;}
+  function attackAdvice(M){ // comment aller taper le mob M : (se rapprocher si besoin) puis OÙ cliquer (confusion gérée)
+    const p=state.player,nom=(M.name||'le monstre');
+    if(!p||!p.placed)return'🔵 <b>Pose un perso</b> : l\'assistant te dira comment taper '+nom+'.';
+    const P=livePos(p),click=state.confusion?undeflect(M.x,M.y):{x:M.x,y:M.y}; // la case à CLIQUER (déviée par la confusion) doit être atteignable
+    if(inGrid(click.x,click.y)&&!blocked(click.x,click.y)&&canHitFrom(P.x,P.y,click.x,click.y))
+      return'🎯 <b>Tape '+nom+'</b> :'+hitHint(M); // à portée + vue : hitHint pose la case VIOLETTE (ou « clique-le » sans confusion)
+    const mv=moveForAttack(M);
+    if(mv){state.adviceCell={x:mv.x,y:mv.y,who:skinOf(p).name};
+      return'🧭 <b>Rapproche-toi de '+nom+'.</b> Va sur la <b>case VERTE</b> (glisse ton perso) : de là tu pourras le taper'+(state.confusion?' — une fois arrivé, l\'assistant te montrera la case à cliquer':'')+'.';}
+    return'🔒 <b>'+nom+' est hors d\'atteinte.</b> Rapproche-toi encore, ou dégage l\'obstacle qui bloque la vue.';}
   function delockAdvice(){ // le texte de l'assistant, en langage SIMPLE : que cliquer, dans quel ordre (+ state.adviceCell = la case verte)
     state.adviceCell=null;state.aimCell=null;state.hitCell=null; // recalculées à chaque conseil par aimHint/hitHint
+    const mob=nearestMob();if(mob)return attackAdvice(mob); // des mobs en vie → on les tape D'ABORD (le délock du Comte attend)
     const C=delockTarget();
     if(!C||!C.alive)return'Pose le <b>Comte</b> 🔷 (clic droit sur une case) pour lancer l\'assistant.';
     const nom=C.kind==='count'?'le Comte':(C.name||'la cible');
@@ -1795,13 +1865,36 @@
   const ALLY_MAX=8; // 8v8 : jusqu'à 8 alliés contre le boss + 7 poutchs
   function renderRoster(){const box=el('roster');if(!box)return;
     const set=(k,plein,txt)=>{const it=box.querySelector('[data-k="'+k+'"]');if(!it)return;
-      it.classList.toggle('full',plein);it.querySelector('.rs').textContent=txt;};
+      it.classList.toggle('full',plein);const rs=it.querySelector('.rs');if(rs&&txt!=null)rs.textContent=txt;};
     const na=aliveAllies().length,pleinA=na>=ALLY_MAX,txtA=pleinA?'équipe pleine':'à poser';
     set('a0',pleinA,txtA);set('a1',pleinA,txtA);set('a2',pleinA,txtA);
     set('comte',!!comte(),comte()?'sur le terrain':'à poser');
     const n=poutchCount();set('poutch',n>=POUTCH_MAX,n+' / '+POUTCH_MAX);
     if(el('rosterAllies'))el('rosterAllies').textContent=na+' / '+ALLY_MAX;
-    if(el('rosterFoes'))el('rosterFoes').textContent=((comte()?1:0)+n)+' / '+(POUTCH_MAX+1);}
+    if(el('rosterFoes'))el('rosterFoes').textContent=((comte()?1:0)+n)+' / '+(POUTCH_MAX+1);
+    box.querySelectorAll('.ritem.cls').forEach(it=>it.classList.toggle('full',pleinA)); // bac à sable : les 19 classes s'éteignent quand l'équipe est pleine
+    if(el('rosterClassesCount'))el('rosterClassesCount').textContent=na+' / '+ALLY_MAX;}
+  function placeholderIcon(cls){ // pastille ronde colorée + initiale : sert de vignette ET d'image de glissé tant que les vrais visuels ne sont pas fournis
+    const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
+    x.beginPath();x.arc(32,32,30,0,6.28);x.fillStyle=cls.col;x.fill();
+    x.lineWidth=3;x.strokeStyle='rgba(255,255,255,.55)';x.stroke();
+    x.fillStyle='#fff';x.font='700 30px "Segoe UI",sans-serif';x.textAlign='center';x.textBaseline='middle';
+    x.fillText(cls.name[0],32,34);return c.toDataURL();}
+  function buildClassRoster(){const host=el('rosterClasses');if(!host||host.childElementCount)return; // généré une seule fois
+    // 📌 Visuels à venir : dès que les fichiers <slug>-bd.png existeront, remplacer `img.src=placeholderIcon(cls)` par `img.src=cls.slug+'-bd.png'`
+    //    (la vignette montrera alors le vrai perso ; le rendu 3D, lui, se charge déjà tout seul via loadSkinViews).
+    CLASSES.forEach((cls,i)=>{const it=document.createElement('div');
+      it.className='ritem cls';it.dataset.k='cls'+i;it.title='Glisse '+cls.name+' sur une case libre';
+      const img=new Image();img.alt='';img.src=placeholderIcon(cls); // pastille placeholder tant que les visuels ne sont pas fournis (aucun 404)
+      const rico=document.createElement('span');rico.className='rico';rico.appendChild(img);
+      const rtx=document.createElement('span');rtx.className='rtx';const b=document.createElement('b');b.textContent=cls.name;rtx.appendChild(b);
+      it.appendChild(rico);it.appendChild(rtx);host.appendChild(it);});}
+  function applyRosterMode(){ // bac à sable = SEULEMENT les 19 classes (alliés) ; ailleurs = persos + Comte + poutchs
+    const sable=state.map==='sable';buildClassRoster();
+    if(el('rosterNormal'))el('rosterNormal').style.display=sable?'none':'';
+    if(el('rosterClasses'))el('rosterClasses').style.display=sable?'flex':'none';
+    if(el('rosterClassesHead'))el('rosterClassesHead').style.display=sable?'flex':'none';
+    if(el('rosterTitle'))el('rosterTitle').textContent=sable?'🎭 Glisse une classe sur la map':'🎭 Glisse-les sur la map';}
   function canDrop(k,x,y){ // cette vignette peut-elle atterrir ici ? (sert à la case verte/rouge du survol ET au lâcher)
     if(!k||!inGrid(x,y)||!tiles[x]||!tiles[x][y]||!tiles[x][y].visible||blocked(x,y)||entityAt(x,y))return false;
     if(k==='comte')return !comte();
@@ -1817,7 +1910,8 @@
       if(poutchCount()>=POUTCH_MAX){toast('Déjà '+POUTCH_MAX+' × '+POUTCH_NAME+' sur le terrain.');return;}
       spawnMobFrom({name:POUTCH_NAME,kind:'mob',friendly:false,hpMax:500,ring:0xff5b5b,x,y,img:API+'/img/monsters/278.png'});
       refreshTiles();refreshHUD();toast('🔴 '+POUTCH_NAME+' posé en '+x+','+y+'.');return;}
-    const sk=+k.slice(1); // a0 = Mikassa, a1 = Beboucafe : le skin GLISSÉ, posable autant de fois qu'il reste de place
+    const sk=k[0]==='a'?+k.slice(1):(PERSO_COUNT+ +k.slice(3)); // aN = perso custom · clsN = classe (index après les persos dans SKINS)
+    if(k.slice(0,3)==='cls')loadSkinViews(sk); // charge les 4 vues de CETTE classe à sa 1re pose (paresseux)
     if(aliveAllies().length>=ALLY_MAX){toast('Équipe pleine : déjà '+ALLY_MAX+' alliés (8v8).');return;}
     let a=state.allies.find(v=>!v.placed||v.hp<=0); // un slot libre (jamais posé, ou mort) réutilisé, sinon un NOUVEAU perso
     if(!a){if(state.allies.length>=ALLY_MAX){toast('Équipe pleine : déjà '+ALLY_MAX+' alliés (8v8).');return;}
@@ -1828,6 +1922,7 @@
     setActive(state.allies.indexOf(a));if(a.className==='—')selectClass(9); // Crâ : ses sorts
     refreshTiles();refreshHUD();toast('🔵 '+skinOf(a).name+' posé en '+x+','+y+'.');maybeAutoStart();}
   (()=>{const box=el('roster');if(!box)return;
+    buildClassRoster(); // les 19 lignes de classes doivent EXISTER avant qu'on câble le glissé ci-dessous
     // Glissé du bac aux POINTER EVENTS (pas de drag HTML5 : impossible d'y masquer le curseur).
     // Prise = le curseur disparaît, on ne voit QUE le personnage ; lâcher valide = AIMANTATION sur sa case.
     let ghostEl=null,dropKey='',moved=false,gx=0,gy=0;
@@ -1941,6 +2036,7 @@
     saveMapState();state.map=m;state.edit=false;state.mode='idle';state.setupSel=null;state.spell=null;state.toPlace=null;state.editHistory=[]; // l'annulation ne traverse pas d'une carte à l'autre
     state.targets=new Set();state.curEnt=null;state.enemyTurn=false;state.glyph.clear();_glyphAt=null;drawGlyph();
     if(loadMapState(m))renderMap();else freshMapState(); // carte déjà visitée → retrouvée INTACTE ; sinon → carte neuve
+    applyRosterMode(); // bac à sable → widget des 19 classes ; sinon → persos + Comte + poutchs
     updateSetupBtns();updateMapSizeLabels();setActive(state.active);refreshTiles();refreshHUD();renderTips();
     el('modeDj').classList.toggle('on',m==='dj');el('modeSonge').classList.toggle('on',m==='songe');el('modeSable').classList.toggle('on',m==='sable');
     toast({dj:'🏰 Donjon : la vraie salle du Comte — pose tes persos et le boss à la main.',
@@ -2184,7 +2280,7 @@
     s+=ridge(H*0.78,150,'#101f36',0.9)+ridge(H*0.88,120,'#0b1626',0.95);
     bg.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">'+s+'</svg>';})();
   /* ===== INIT ===== */
-  applyAmbiance();refreshTiles();refreshHUD();rebuildSpellBar(state.classSpells||[]);renderTips();animate();loadEl.style.display='none';
+  applyAmbiance();applyRosterMode();refreshTiles();refreshHUD();rebuildSpellBar(state.classSpells||[]);renderTips();animate();loadEl.style.display='none';
   loadBreeds();
   // (plus de chrono de tour : jeu libre)
 })();
