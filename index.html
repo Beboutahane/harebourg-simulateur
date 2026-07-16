@@ -1442,20 +1442,20 @@
     const cible=t.kind==='count'?'le Comte':(t.name||'le monstre'); // l'étiquette de la case violette s'adapte à la cible
     state.hitCell={x:v.x,y:v.y,label:'Tape '+cible+' ici'}; // ② case VIOLETTE : le clic à faire pour que le sort dévie sur lui
     return' clique la <b>case VIOLETTE</b>.';}
-  function moveForDelock(){ // aucune symétrie réalisable : où amener un perso pour qu'il en existe une ?
+  function moveForDelock(){ // aucune symétrie réalisable : où amener LE PERSO SÉLECTIONNÉ (c'est SON tour de jeu — la case verte est toujours pour lui) ?
     const C=delockTarget();if(!C||!C.alive)return null;
-    let best=null;
-    aliveAllies().forEach(a=>{
-      for(let x=0;x<N;x++)for(let y=0;y<N;y++){
-        if(!tiles[x]||!tiles[x][y]||!tiles[x][y].visible||blocked(x,y))continue;
-        const oc=occupant(x,y);if(oc&&!(oc.t==='ally'&&oc.a===a))continue; // case libre (ou déjà la sienne)
-        const mx=2*x-C.x,my=2*y-C.y; // sa future case de délock
-        if(!inGrid(mx,my)||blocked(mx,my)||!tiles[mx][my].visible)continue;
-        const om=occupant(mx,my);if(om&&om.t==='enemy'&&!om.e.friendly)continue; // un ennemi y est : inutilisable
-        if(!canHitFrom(x,y,C.x,C.y))continue; // ⚠️ il faut aussi pouvoir FRAPPER le Comte depuis cette case (sinon la cawotte ne sert à rien) : portée + ligne de vue
-        const d=manh(a,{x,y});if(!d)continue;
-        const dC=manh({x,y},C); // le MOINS de déplacement possible : la case la plus proche du perso — la proximité de la cible ne fait que départager
-        if(!best||d<best.d||(d===best.d&&dC<best.dC))best={a,x,y,mx,my,d,dC};}});
+    const a=state.player;if(!a||!a.placed||a.hp<=0)return null;
+    const P=livePos(a);let best=null; // livePos : en plein drag, la proposition suit la case survolée
+    for(let x=0;x<N;x++)for(let y=0;y<N;y++){
+      if(!tiles[x]||!tiles[x][y]||!tiles[x][y].visible||blocked(x,y))continue;
+      const oc=occupant(x,y);if(oc&&!(oc.t==='ally'&&oc.a===a))continue; // case libre (ou déjà la sienne)
+      const mx=2*x-C.x,my=2*y-C.y; // sa future case de délock
+      if(!inGrid(mx,my)||blocked(mx,my)||!tiles[mx][my].visible)continue;
+      const om=occupant(mx,my);if(om&&om.t==='enemy'&&!om.e.friendly)continue; // un ennemi y est : inutilisable
+      if(!canHitFrom(x,y,C.x,C.y))continue; // ⚠️ il faut aussi pouvoir FRAPPER le Comte depuis cette case (sinon la cawotte ne sert à rien) : portée + ligne de vue
+      const d=manh(P,{x,y});if(!d)continue;
+      const dC=manh({x,y},C); // le MOINS de déplacement possible : la case la plus proche du perso — la proximité de la cible ne fait que départager
+      if(!best||d<best.d||(d===best.d&&dC<best.dC))best={a,x,y,mx,my,d,dC};}
     return best;}
   function hitRotationDest(px,py,C){ // la rotation que DÉCLENCHE un coup sur le Comte depuis (px,py) : qui bouge, et vers où (cf. hitComte)
     return comtePivots()?{x:2*px-C.x,y:2*py-C.y,mover:'count'}:{x:2*C.x-px,y:2*C.y-py,mover:'you'};}
