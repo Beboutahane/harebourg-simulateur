@@ -335,7 +335,7 @@
     <span id="editBrush" style="display:inline-flex;gap:5px;align-items:center">
       <button class="sbtn" data-brush="block" title="Poser un bloc — re-clique l'outil pour revenir au placement, ou re-clique un bloc pour le retirer">🧱 Bloc</button>
       <button class="sbtn" data-brush="hole" title="Creuser un trou — re-clique l'outil pour revenir au placement, ou re-clique un trou pour le reboucher (ne pose jamais de case dans le vide)">🕳️ Trou</button>
-      <button class="sbtn" id="brushFloor" data-brush="floor" title="Ajouter une case jouable, même dans le vide — pour redessiner la salle comme tu veux">➕ Case</button>
+      <button class="sbtn" id="brushFloor" data-brush="floor" title="Rendre une case jouable : rebouche un trou ou retire un bloc (dans les limites de la carte — tire un bord pour l'agrandir)">➕ Case</button>
       <button class="sbtn" id="clearObs" title="Vider tous les obstacles">Tout vider</button>
     </span>
   </div>
@@ -1599,15 +1599,16 @@
     state.obstacles=new Set(s.obstacles);state.voids=new Set(s.voids);
     applyEditVisual();updateMapSizeLabels();refreshTiles();refreshHUD();
     toast('↶ Annulé.'+(state.editHistory.length?' ('+state.editHistory.length+' pas restants)':''));}
+  const inDecor=(x,y)=>!!(state._baseVoids&&state._baseVoids.has(key(x,y))); // hors carte (hors salle / hors zone mapW×mapH) : RIEN ne s'y pose — on agrandit la carte au bord pour construire plus loin
   // Applique le pinceau sur UNE case dans un SENS imposé (add/remove) — c'est ce qui permet de peindre en glissant sans « clignoter ». Renvoie true si la case a changé.
   function applyBrushCell(x,y,mode){
-    if(entityAt(x,y))return false;
+    if(entityAt(x,y)||inDecor(x,y))return false;
     const k=key(x,y);
     if(state.brush==='block'){
       if(mode==='remove'){if(!state.obstacles.has(k))return false;state.obstacles.delete(k);}
       else{if(state.obstacles.has(k))return false;state.obstacles.add(k);state.voids.delete(k);}}
     else if(state.brush==='hole'){
-      if(mode==='remove'){if(!state.voids.has(k)||(state._baseVoids&&state._baseVoids.has(k)))return false;state.voids.delete(k);} // ne rebouche jamais le VIDE hors salle
+      if(mode==='remove'){if(!state.voids.has(k))return false;state.voids.delete(k);} // (le décor est déjà écarté en tête)
       else{if(state.voids.has(k))return false;state.voids.add(k);state.obstacles.delete(k);}}
     else if(state.brush==='floor'){
       if(mode!=='add'||(!state.voids.has(k)&&!state.obstacles.has(k)))return false; // ➕ Case n'enlève rien et ne repose pas sur une case déjà là
@@ -1623,8 +1624,8 @@
   function beginPaint(x,y){paintStroke={mode:brushDir(x,y),snap:snapshotEdit(),changed:false};paintAt(x,y);}
   function paintAt(x,y){if(!paintStroke)return;if(applyBrushCell(x,y,paintStroke.mode)){paintStroke.changed=true;applyEditVisual();}}
   function editAt(x,y){if(entityAt(x,y)){toast('Case occupée par une entité — déplace-la d\'abord.');return;} // clic unique sur un bord (l'intérieur passe par le pinceau)
+    if(inDecor(x,y)){toast('🚫 Ici c\'est le décor (hors carte) — tire le bord de la carte pour l\'agrandir jusqu\'ici.');return;}
     const k=key(x,y);
-    if(state.brush==='hole'&&state.voids.has(k)&&state._baseVoids&&state._baseVoids.has(k)){toast('Ici c\'est le VIDE (hors salle) — utilise ➕ Case pour y poser une case.');return;}
     if(state.brush==='floor'&&!state.voids.has(k)&&!state.obstacles.has(k)){toast('Il y a déjà une case ici.');return;}
     const snap=snapshotEdit();
     if(state.brush==='block'){if(state.obstacles.has(k))state.obstacles.delete(k);else{state.obstacles.add(k);state.voids.delete(k);}}
