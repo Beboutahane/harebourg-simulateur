@@ -1418,11 +1418,12 @@
     updateHints();
   }
   // ===== ASSISTANT DÉLOCK : dit quoi faire, ce tour, pour rendre le Comte vulnérable =====
-  function undeflect(mx,my){ // case à VISER pour qu'une invocation atterrisse en (mx,my) malgré la confusion (rotation inverse de deflect)
-    const P=livePos(state.player);let dx=mx-P.x,dy=my-P.y; // livePos : pendant un drag, les conseils suivent la case survolée
+  function undeflectFrom(px,py,mx,my){ // case à VISER depuis (px,py) pour qu'un tir atterrisse en (mx,my) malgré la confusion (rotation inverse de deflect)
+    let dx=mx-px,dy=my-py;
     const n=(4-(((state.confusion/90)%4+4)%4))%4;
     for(let i=0;i<n;i++){const nx=-dy,ny=dx;dx=nx;dy=ny;}
-    return{x:P.x+dx,y:P.y+dy};}
+    return{x:px+dx,y:py+dy};}
+  function undeflect(mx,my){const P=livePos(state.player);return undeflectFrom(P.x,P.y,mx,my);} // livePos : pendant un drag, les conseils suivent la case survolée
   /* ---- L'assistant parle SIMPLE : il donne le clic à faire, sans jamais expliquer la confusion ni la symétrie.
      C'est undeflect() qui fait le calcul ; l'utilisateur n'a qu'à cliquer la case de couleur annoncée. ---- */
   // (aucune coordonnée dans les conseils : la case est peinte sur le terrain avec son étiquette, le chiffre n'apporte rien)
@@ -1455,6 +1456,22 @@
         const d=manh(a,{x,y});if(!d)continue;
         const dC=manh({x,y},C); // le MOINS de déplacement possible : la case la plus proche du perso — la proximité de la cible ne fait que départager
         if(!best||d<best.d||(d===best.d&&dC<best.dC))best={a,x,y,mx,my,d,dC};}});
+    return best;}
+  function hitRotationDest(px,py,C){ // la rotation que DÉCLENCHE un coup sur le Comte depuis (px,py) : qui bouge, et vers où (cf. hitComte)
+    return comtePivots()?{x:2*px-C.x,y:2*py-C.y,mover:'count'}:{x:2*C.x-px,y:2*C.y-py,mover:'you'};}
+  const cellOk=(x,y)=>inGrid(x,y)&&!blocked(x,y)&&tiles[x]&&tiles[x][y]&&tiles[x][y].visible; // une case qui EXISTE sur la map (une entité peut y atterrir)
+  function moveForSafeHit(C){ // Comte touchable mais frapper d'ici = wipe → la case la plus proche de MOI d'où la frappe est possible ET sans danger
+    const p=state.player;if(!p||!p.placed)return null;
+    const P=livePos(p);let best=null;
+    for(let x=0;x<N;x++)for(let y=0;y<N;y++){
+      if(!cellOk(x,y))continue;
+      const oc=occupant(x,y);if(oc&&!(oc.t==='ally'&&oc.a===p))continue; // case libre (ou la sienne)
+      if(!canHitFrom(x,y,C.x,C.y))continue; // il faut pouvoir le FRAPPER de là (portée + ligne de vue)
+      const rd=hitRotationDest(x,y,C);if(!cellOk(rd.x,rd.y))continue; // ⚠️ le coup déclenche une rotation : elle doit atterrir SUR la map
+      if(state.confusion){const v=undeflectFrom(x,y,C.x,C.y);if(!cellOk(v.x,v.y))continue;} // et la case à CLIQUER (déviation) doit exister aussi
+      const d=manh(P,{x,y});if(!d)continue;
+      const dC=manh({x,y},C); // au plus près de moi ; la proximité du Comte ne fait que départager
+      if(!best||d<best.d||(d===best.d&&dC<best.dC))best={x,y,d,dC};}
     return best;}
   const CLOSE_OK=3; // à 3 cases ou moins, à peu près tous les sorts portent : inutile de réclamer un rapprochement
   function closerHint(C){ // « rapproche-toi » — TOUJOURS rappelé tant que l'allié est loin : selon la classe, beaucoup de sorts ne portent qu'à quelques cases
@@ -1504,7 +1521,15 @@
       ?'🧪 <b>Bac à sable</b> : pose des <b>monstres</b> (clic droit → Acnoh, ou la recherche en haut) pour t\'entraîner à les taper.'
       :'Pose le <b>Comte</b> 🔷 (clic droit sur une case) pour lancer l\'assistant.';
     const nom=C.kind==='count'?'le Comte':(C.name||'la cible');
-    if(C.vulnerable)return'🎯 <b>C\'est bon, '+nom+' est TOUCHABLE !</b> Frappe-le vite :'+hitHint(C)+closerHint(C); // il a bougé → hitHint recalcule la case à cliquer depuis sa NOUVELLE position
+    if(C.vulnerable){ // ⚠️ chaque coup déclenche une rotation de 180° : si elle atterrit hors map / dans un mur = WIPE (cf. hitComte) — à vérifier AVANT de dire « frappe »
+      if(C.kind==='count'&&state.player&&state.player.placed){const P=livePos(state.player),rd=hitRotationDest(P.x,P.y,C);
+        if(!inGrid(rd.x,rd.y)||blocked(rd.x,rd.y)){
+          const ou=(inGrid(rd.x,rd.y)&&state.obstacles.has(key(rd.x,rd.y)))?'dans un MUR':'HORS MAP';
+          const qui=rd.mover==='count'?'le Comte partirait':'TU partirais',mv=moveForSafeHit(C);
+          if(mv){state.adviceCell={x:mv.x,y:mv.y,who:skinOf(state.player).name};
+            return'⛔ <b>NE LE FRAPPE PAS d\'ici !</b> Le coup déclenche une rotation : '+qui+' <b>'+ou+'</b> → <b>wipe</b>. <b>Va sur la case VERTE</b> (glisse ton perso) : de là, frapper est sans danger.';}
+          return'⛔ <b>NE LE FRAPPE PAS !</b> Le coup déclenche une rotation : '+qui+' <b>'+ou+'</b> → <b>wipe</b>. Rapproche-toi du <b>centre de la map</b> avant de taper.';}}
+      return'🎯 <b>C\'est bon, '+nom+' est TOUCHABLE !</b> Frappe-le vite :'+hitHint(C)+closerHint(C);} // il a bougé → hitHint recalcule la case à cliquer depuis sa NOUVELLE position
     if(!comtePivots())return'🔒 <b>Rien à faire ce tour-ci.</b> Passe au <b>tour '+(state.tour+1)+'</b> (bouton <b>+</b> en haut) : c\'est là que ça marchera.'+closerHint(C); // tour « perdu » = le bon moment pour se rapprocher
     // ⚠️ Le délock EXIGE de FRAPPER le Comte (le coup déclenche la rotation). Si d'ici on ne peut QU'invoquer une cawotte SANS toucher le Comte,
     //    le placement est mauvais → on envoie directement sur la case VERTE (rapprochement), au lieu de conseiller une invocation inutile.
