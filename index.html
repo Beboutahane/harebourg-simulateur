@@ -641,13 +641,20 @@
   const entCell=sel=>sel.t==='ally'?{x:sel.a.x,y:sel.a.y}:sel.t==='enemy'?{x:sel.e.x,y:sel.e.y}:{x:state._countX,y:state._countY};
   function setEntCell(sel,x,y){if(sel.t==='ally'){sel.a.x=x;sel.a.y=y;syncAlly(sel.a);if(sel.a.obj)sel.a.obj.position.copy(sel.a.obj.userData.tp);}
     else if(sel.t==='enemy'){sel.e.x=x;sel.e.y=y;syncEnemy(sel.e);}}
-  function pushEntity(sel,dx,dy,n){ // pousse jusqu'à n cases dans (dx,dy), s'arrête au 1er obstacle / bord / entité
-    let c=entCell(sel),moved=0;
+  function slideDest(fx,fy,dx,dy,n){ // case d'arrivée d'une glissade (poussée/attirance) : s'arrête au 1er obstacle / bord / entité — CALCUL PUR (sert aussi à la prévisu)
+    let c={x:fx,y:fy},moved=0;
     for(let i=0;i<n;i++){const nx=c.x+dx,ny=c.y+dy;
       if(!inGrid(nx,ny)||blocked(nx,ny)||!tiles[nx]||!tiles[nx][ny].visible||occupant(nx,ny))break;
       c={x:nx,y:ny};moved++;}
-    if(moved)setEntCell(sel,c.x,c.y);
-    return moved;}
+    return{x:c.x,y:c.y,moved};}
+  function pushEntity(sel,dx,dy,n){ // pousse jusqu'à n cases dans (dx,dy)
+    const c=entCell(sel),d=slideDest(c.x,c.y,dx,dy,n);
+    if(d.moved)setEntCell(sel,d.x,d.y);
+    return d.moved;}
+  const pushAxis=(fromX,fromY,toX,toY)=>{ // direction de poussée orthogonale (axe dominant), de (from) vers (to)
+    let dx=Math.sign(toX-fromX),dy=Math.sign(toY-fromY);
+    if(dx&&dy){if(Math.abs(toX-fromX)>=Math.abs(toY-fromY))dy=0;else dx=0;}
+    return{dx,dy};};
   function triggerTraps(sel,px,py){ // sel vient d'arriver sur sa case : un piège répulsif y est-il posé ?
     const c=entCell(sel),ti=state.traps.findIndex(t=>t.x===c.x&&t.y===c.y);
     if(ti<0)return;const t=state.traps[ti];
@@ -1047,7 +1054,12 @@
     const lvById={};(ld.data||[]).forEach(l=>lvById[l.id]=l);
     const out=spells.map(s=>{const lv=lvById[s.spellLevels[s.spellLevels.length-1]]||{};
       const boost=lv.rangeCanBeBoosted?6:0; // +6 de portée sur les sorts à portée MODIFIABLE (joueur considéré en 12/6/6 → +6 PO)
-      return{id:s.id,name:s.name.fr,img:s.img,apCost:lv.apCost||3,range:(lv.range||0)+boost,rangeBoost:boost,minRange:lv.minRange||0,line:!!lv.castInLine,diag:!!lv.castInDiagonal,order:s.order||0};});
+      // VRAIS EFFETS du sort (DofusDB) : id d'effet + valeurs + zone. Seuls les effets MÉCANIQUES utiles au simulateur sont gardés :
+      // 4=téléportation · 5=poussée · 6=attirance · 8=échange de positions · 91-95=vols · 96-100=dégâts · 108=soin
+      const fx=(lv.effects||[]).filter(e=>[4,5,6,8,91,92,93,94,95,96,97,98,99,100,108].indexOf(e.effectId)>=0)
+        .map(e=>({fid:e.effectId,min:e.diceNum||0,max:e.diceSide||0,
+          zone:(e.zoneDescr&&e.zoneDescr.shape&&e.zoneDescr.shape!==80)?(e.zoneDescr.param1||0):0})); // shape 80='P' (mono-case) ; sinon rayon param1 (croix/cercle ≈ manhattan)
+      return{id:s.id,name:s.name.fr,img:s.img,apCost:lv.apCost||3,range:(lv.range||0)+boost,rangeBoost:boost,minRange:lv.minRange||0,line:!!lv.castInLine,diag:!!lv.castInDiagonal,order:s.order||0,fx};});
     pairs.forEach(p=>{const a=out.find(s=>s.id===p[0]),v=out.find(s=>s.id===p[1]); // par paire : la base visible, la variante cachée
       if(a&&v){a.variantId=v.id;v.variantId=a.id;v.hidden=true;}});
     out.sort((a,b)=>a.apCost-b.apCost);
@@ -1283,8 +1295,20 @@
       if(inGrid(sx,sy)&&tiles[sx][sy]&&tiles[sx][sy].visible)tiles[sx][sy].material.color.setHex(0xd8b544);} // entité sélectionnée (or)
     if(hoverCell&&!blocked(hoverCell.x,hoverCell.y))tiles[hoverCell.x][hoverCell.y].material.color.setHex(0x5fb8e8); // survol
     if(state.mode==='spell'&&state.spell&&hoverCell&&state.targets.has(key(hoverCell.x,hoverCell.y))){
-      tiles[hoverCell.x][hoverCell.y].material.color.setHex(0xd8b544); // case visée (intention) en or
       const d=deflect(hoverCell.x,hoverCell.y);
+      // PRÉVISU RÉELLE d'un sort de classe : la ZONE touchée + où chaque entité serait POUSSÉE/ATTIRÉE (avant même de cliquer)
+      if(state.spell.fx&&state.spell.fx.length&&inGrid(d.x,d.y)){
+        const zr=Math.max.apply(null,state.spell.fx.map(e=>e.zone||0));
+        if(zr>0)zoneCells(d.x,d.y,zr).forEach(c=>{const t=tiles[c.x]&&tiles[c.x][c.y];
+          if(t&&t.visible)t.material.color.setHex(0x8a6d2f);}); // la zone d'effet, en or sombre
+        state.spell.fx.filter(e=>e.fid===5||e.fid===6).forEach(e=>zoneCells(d.x,d.y,e.zone).forEach(c=>{
+          const o=occupant(c.x,c.y);if(!o||(o.t==='ally'&&o.a===state.player))return;
+          const ax=pushAxis(state.player.x,state.player.y,c.x,c.y);
+          const dx=e.fid===5?ax.dx:-ax.dx,dy=e.fid===5?ax.dy:-ax.dy;if(!dx&&!dy)return;
+          const dest=slideDest(c.x,c.y,dx,dy,e.min||1);
+          if(dest.moved&&tiles[dest.x]&&tiles[dest.x][dest.y].visible)
+            tiles[dest.x][dest.y].material.color.setHex(0xf29a3c);}));} // ORANGE = il atterrira LÀ
+      tiles[hoverCell.x][hoverCell.y].material.color.setHex(0xd8b544); // case visée (intention) en or
       if(inGrid(d.x,d.y)&&tiles[d.x][d.y].visible){const dm=tiles[d.x][d.y].material;
         if(d.x===hoverCell.x&&d.y===hoverCell.y)dm.color.setHex(0x2fae6a); // pas de déviation → vert (case réelle)
         else dm.color.setHex(0xc0392b);}} // déviée → rouge (là où le sort part vraiment)
@@ -1612,6 +1636,54 @@
         if(o){moveEnt(o,px,py);toast('Ce tour, TU pivotes et échanges ta place avec '+entName(o)+'.');}
         else toast('Ce tour, TU pivotes de 180° autour du Comte.');}}
     refreshTiles();refreshHUD();}
+  /* ===== VRAIS EFFETS DES SORTS (DofusDB) : le sort fait dans le simulateur ce qu'il fait dans le jeu.
+     4=téléportation · 5=poussée · 6=attirance · 8=échange de positions · 91-95=vols · 96-100=dégâts · 108=soin
+     Ordre d'application : dégâts/soins D'ABORD (sur les occupants de la zone), PUIS les mouvements —
+     sinon une cible poussée sortirait de la zone avant de prendre les dégâts du même sort. ===== */
+  const DMG_MULT=8; // les valeurs DofusDB sont les dégâts DE BASE (sans stats) : ×8 ≈ un perso stuffé — sinon 14 dégâts sur 3000 PV, illisible
+  const fxAvg=e=>Math.round(((e.min+Math.max(e.min,e.max))/2)*DMG_MULT);
+  function zoneCells(cx,cy,r){ // cases touchées : croix/cercle ≈ manhattan ≤ r (suffisant pour un simulateur tactique)
+    const out=[];for(let x=Math.max(0,cx-r);x<=Math.min(N-1,cx+r);x++)for(let y=Math.max(0,cy-r);y<=Math.min(N-1,cy+r);y++)
+      if(Math.abs(x-cx)+Math.abs(y-cy)<=r&&tiles[x]&&tiles[x][y]&&tiles[x][y].visible)out.push({x,y});
+    return out;}
+  function applySpellEffects(sp,rx,ry){ // renvoie les messages de ce qui s'est réellement passé (résumés dans le toast)
+    const P=state.player,msgs=[];
+    const dmgFx=sp.fx.filter(e=>e.fid>=91&&e.fid<=100),healFx=sp.fx.filter(e=>e.fid===108),
+          moveFx=sp.fx.filter(e=>e.fid===5||e.fid===6),selfFx=sp.fx.filter(e=>e.fid===4||e.fid===8);
+    // ① dégâts + vols : cumulés PAR entité (une seule frappe par sort → un seul pivot du Comte)
+    const hits=new Map();
+    dmgFx.forEach(e=>zoneCells(rx,ry,e.zone).forEach(c=>{const o=occupant(c.x,c.y);
+      if(o&&o.t==='enemy'&&!o.e.friendly){hits.set(o.e,(hits.get(o.e)||0)+fxAvg(e));
+        if(e.fid<=95&&P.hp<P.hpMax)P.hp=Math.min(P.hpMax,P.hp+Math.round(fxAvg(e)/2));}})); // vol : le lanceur récupère la moitié
+    hits.forEach((v,e)=>{if(e.kind==='count')hitComte(e,v);else damageEnemy(e,v,sp.name);
+      msgs.push(v+' dégâts sur '+(e.kind==='count'?'le Comte':(e.name||'le monstre')));});
+    // ② soins → alliés dans la zone
+    healFx.forEach(e=>zoneCells(rx,ry,e.zone).forEach(c=>{const o=occupant(c.x,c.y);
+      if(o&&o.t==='ally'){const v=fxAvg(e);o.a.hp=Math.min(o.a.hpMax,o.a.hp+v);msgs.push(skinOf(o.a).name+' soigné de '+v);}}));
+    // ③ poussées / attirances : chaque entité de la zone glisse sur l'axe lanceur→cible ; un piège à l'arrivée se déclenche
+    moveFx.forEach(e=>zoneCells(rx,ry,e.zone).forEach(c=>{const o=occupant(c.x,c.y);
+      if(!o||(o.t==='ally'&&o.a===P))return;
+      const ax=pushAxis(P.x,P.y,c.x,c.y);
+      const dx=e.fid===5?ax.dx:-ax.dx,dy=e.fid===5?ax.dy:-ax.dy;
+      if(!dx&&!dy)return;
+      const from=o.t==='ally'?{x:o.a.x,y:o.a.y}:{x:o.e.x,y:o.e.y};
+      const sel=o.t==='ally'?{t:'ally',a:o.a}:{t:'enemy',e:o.e};
+      const n=pushEntity(sel,dx,dy,e.min||1);
+      if(n){msgs.push(entLabel(o)+(e.fid===5?' repoussé':' attiré')+' de '+n+' case'+(n>1?'s':''));triggerTraps(sel,from.x,from.y);}}));
+    // ④ le lanceur bouge en dernier : téléportation (4) sur la case visée, ou échange de positions (8) avec l'occupant
+    selfFx.forEach(e=>{
+      if(e.fid===4){const px=P.x,py=P.y;
+        if(!occupant(rx,ry)&&inGrid(rx,ry)&&!blocked(rx,ry)){P.x=rx;P.y=ry;syncPlayer();if(P.obj)P.obj.position.copy(P.obj.userData.tp);
+          msgs.push('téléporté en '+rx+','+ry);triggerTraps({t:'ally',a:P},px,py);}
+        else msgs.push('téléportation impossible (case occupée)');}
+      if(e.fid===8){const o=occupant(rx,ry);
+        if(o&&!(o.t==='ally'&&o.a===P)){const px=P.x,py=P.y;
+          if(o.t==='ally'){P.x=o.a.x;P.y=o.a.y;o.a.x=px;o.a.y=py;syncAlly(o.a);if(o.a.obj)o.a.obj.position.copy(o.a.obj.userData.tp);}
+          else{P.x=o.e.x;P.y=o.e.y;o.e.x=px;o.e.y=py;syncEnemy(o.e);}
+          syncPlayer();if(P.obj)P.obj.position.copy(P.obj.userData.tp);
+          msgs.push('échange de positions avec '+entLabel(o));}
+        else msgs.push('échange impossible (case vide)');}});
+    return msgs;}
   function castCell(x,y){if(!state.spell)return;const sp=state.spell; // aucun coût en PA
     if(!state.targets.has(key(x,y))){toast('Case hors de portée du sort.');return;}
     if(state.noLoS&&state.noLoS.has(key(x,y))){toast('🚫 Pas de ligne de vue : un obstacle bloque le tir (cases GRISES) — tes sorts ne passent pas derrière les murs.');return;}
@@ -1625,11 +1697,16 @@
     let so={x:state.player.x,y:state.player.y}; // Eliotrope : le tir part du portail le plus proche de la cible
     if(isElio(state.player)&&state.portals&&state.portals.length)[{x:state.player.x,y:state.player.y},...state.portals].forEach(o=>{if(Math.abs(o.x-rx)+Math.abs(o.y-ry)<Math.abs(so.x-rx)+Math.abs(so.y-ry))so={x:o.x,y:o.y};});
     burst(worldPos(rx,ry),0xc79bff);shoot(worldPos(so.x,so.y),worldPos(rx,ry));
-    const o=(inGrid(rx,ry)&&!blocked(rx,ry))?occupant(rx,ry):null;
-    if(o&&o.t==='enemy'){const dmg=120+sp.apCost*30;const who=o.e.kind==='count'?'le boss':o.e.name;
-      if(o.e.kind==='count')hitComte(o.e,dmg);else damageEnemy(o.e,dmg,sp.name);
-      if(dev)toast('⤳ Confusion '+cmap[state.confusion]+' : dévié mais touche '+who+' !');}
-    else toast(dev?('⤳ Confusion '+cmap[state.confusion]+' : le sort a dévié sur une case vide.'):('« '+sp.name+' » lancé (aucune cible).'));
+    if(sp.fx&&sp.fx.length){ // sort de CLASSE : ses VRAIS effets (dégâts réels, poussée, attirance, téléportation, échange, soin, zone)
+      const msgs=applySpellEffects(sp,rx,ry);
+      toast((dev?('⤳ Confusion '+cmap[state.confusion]+' — dévié en '+rx+','+ry+' ! '):'')
+        +'✨ « '+sp.name+' » : '+(msgs.length?msgs.join(' · '):'aucun effet ici.'));}
+    else{ // sorts fixes (Flèche d'Immo / Flamiche) : comportement historique
+      const o=(inGrid(rx,ry)&&!blocked(rx,ry))?occupant(rx,ry):null;
+      if(o&&o.t==='enemy'){const dmg=120+sp.apCost*30;const who=o.e.kind==='count'?'le boss':o.e.name;
+        if(o.e.kind==='count')hitComte(o.e,dmg);else damageEnemy(o.e,dmg,sp.name);
+        if(dev)toast('⤳ Confusion '+cmap[state.confusion]+' : dévié mais touche '+who+' !');}
+      else toast(dev?('⤳ Confusion '+cmap[state.confusion]+' : le sort a dévié sur une case vide.'):('« '+sp.name+' » lancé (aucune cible).'));}
     restMove();refreshTiles();refreshHUD();}
   function swapClick(e){if(manh(state.player,e)>SWAP_RANGE){toast('Trop loin (portée '+SWAP_RANGE+').');return;} // aucun coût en PA (comme toutes les actions)
     const px=state.player.x,py=state.player.y;state.player.x=e.x;state.player.y=e.y;e.x=px;e.y=py;syncPlayer();syncEnemy(e);
