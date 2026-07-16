@@ -468,7 +468,8 @@
     // showDelock = l'ASSISTANT (bouton 🧭) : cases orange/cyan/violette/verte/rouges + cawotte fantôme + bandeau.
     // Coupé, il ne reste que le jeu normal : portée des sorts, ligne de vue, et la déviation de la confusion à la visée.
     allies:[makeAlly(0),makeAlly(1),makeAlly(2)],active:0,classSpells:[],setupSel:null, // équipe de 3 persos par défaut
-    enemies:[],reach:new Map(),targets:new Set(),spell:null,toPlace:null,_countX:9,_countY:6,_countPlaced:false,_ghost:null};
+    enemies:[],reach:new Map(),targets:new Set(),spell:null,toPlace:null,_countX:9,_countY:6,_countPlaced:false,_ghost:null,
+    editHistory:[]}; // pile d'annulation de la CONSTRUCTION (blocs / trous / cases / redimension) — Ctrl+Z
   Object.defineProperty(state,'player',{get(){return state.allies[state.active];},configurable:true}); // state.player = allié actif
   const aliveAllies=()=>state.allies.filter(a=>a.placed&&a.hp>0);
   const placedAllies=()=>state.allies.filter(a=>a.placed);
@@ -1581,19 +1582,50 @@
     rebuildSpellBar(state.classSpells);
     if(state.phase==='playing')restMove();refreshTiles();refreshHUD();}
   function applyEditVisual(){for(let x=0;x<N;x++)for(let y=0;y<N;y++)tiles[x][y].visible=!(state.voids&&state.voids.has(key(x,y)));buildObstacles();refreshTiles();buildNeonFloor();}
-  function editAt(x,y){if(entityAt(x,y)){toast('Case occupée par une entité — déplace-la d\'abord.');return;}
+  // ===== CONSTRUCTION : pile d'annulation (Ctrl+Z) =====
+  const EDIT_HIST_MAX=60;
+  function snapshotEdit(){return{obstacles:new Set(state.obstacles),voids:new Set(state.voids),mapW:state.mapW,mapH:state.mapH};}
+  function pushEditHistory(snap){state.editHistory.push(snap||snapshotEdit());if(state.editHistory.length>EDIT_HIST_MAX)state.editHistory.shift();}
+  function undoEdit(){
+    if(!state.editHistory.length){toast('↶ Rien à annuler.');return;}
+    const s=state.editHistory.pop();
+    if(s.mapW!==state.mapW||s.mapH!==state.mapH){state.mapW=s.mapW;state.mapH=s.mapH;state._baseVoids=computeSongeVoids();buildEdgeArrows();}
+    state.obstacles=new Set(s.obstacles);state.voids=new Set(s.voids);
+    applyEditVisual();updateMapSizeLabels();refreshTiles();refreshHUD();
+    toast('↶ Annulé.'+(state.editHistory.length?' ('+state.editHistory.length+' pas restants)':''));}
+  // Applique le pinceau sur UNE case dans un SENS imposé (add/remove) — c'est ce qui permet de peindre en glissant sans « clignoter ». Renvoie true si la case a changé.
+  function applyBrushCell(x,y,mode){
+    if(entityAt(x,y))return false;
     const k=key(x,y);
-    if(state.brush==='block'){if(state.obstacles.has(k))state.obstacles.delete(k);else{state.obstacles.add(k);state.voids.delete(k);}}
+    if(state.brush==='block'){
+      if(mode==='remove'){if(!state.obstacles.has(k))return false;state.obstacles.delete(k);}
+      else{if(state.obstacles.has(k))return false;state.obstacles.add(k);state.voids.delete(k);}}
     else if(state.brush==='hole'){
-      if(state.voids.has(k)){ // re-clic sur un trou = le reboucher… mais JAMAIS créer une case dans le vide (hors salle)
-        if(state._baseVoids&&state._baseVoids.has(k)){toast('Ici c\'est le VIDE (hors salle) — utilise ➕ Case pour y poser une case.');return;}
-        state.voids.delete(k);}
-      else{state.voids.add(k);state.obstacles.delete(k);}}
-    else if(state.brush==='floor'){ // ➕ Case : pose une case jouable N'IMPORTE OÙ (vide compris) → salle 100 % customisable
-      if(!state.voids.has(k)&&!state.obstacles.has(k)){toast('Il y a déjà une case ici.');return;}
+      if(mode==='remove'){if(!state.voids.has(k)||(state._baseVoids&&state._baseVoids.has(k)))return false;state.voids.delete(k);} // ne rebouche jamais le VIDE hors salle
+      else{if(state.voids.has(k))return false;state.voids.add(k);state.obstacles.delete(k);}}
+    else if(state.brush==='floor'){
+      if(mode!=='add'||(!state.voids.has(k)&&!state.obstacles.has(k)))return false; // ➕ Case n'enlève rien et ne repose pas sur une case déjà là
       state.voids.delete(k);state.obstacles.delete(k);}
+    else return false;
+    return true;}
+  // Sens du trait décidé par la 1re case : sur un bloc/trou existant → on efface ; sinon → on pose. Tout le glissé garde ce sens.
+  function brushDir(x,y){const k=key(x,y);
+    if(state.brush==='block')return state.obstacles.has(k)?'remove':'add';
+    if(state.brush==='hole')return(state.voids.has(k)&&!(state._baseVoids&&state._baseVoids.has(k)))?'remove':'add';
+    return 'add';}
+  let paintStroke=null; // {mode, snap, changed} — trait de pinceau en cours (clic maintenu)
+  function beginPaint(x,y){paintStroke={mode:brushDir(x,y),snap:snapshotEdit(),changed:false};paintAt(x,y);}
+  function paintAt(x,y){if(!paintStroke)return;if(applyBrushCell(x,y,paintStroke.mode)){paintStroke.changed=true;applyEditVisual();}}
+  function editAt(x,y){if(entityAt(x,y)){toast('Case occupée par une entité — déplace-la d\'abord.');return;} // clic unique sur un bord (l'intérieur passe par le pinceau)
+    const k=key(x,y);
+    if(state.brush==='hole'&&state.voids.has(k)&&state._baseVoids&&state._baseVoids.has(k)){toast('Ici c\'est le VIDE (hors salle) — utilise ➕ Case pour y poser une case.');return;}
+    if(state.brush==='floor'&&!state.voids.has(k)&&!state.obstacles.has(k)){toast('Il y a déjà une case ici.');return;}
+    const snap=snapshotEdit();
+    if(state.brush==='block'){if(state.obstacles.has(k))state.obstacles.delete(k);else{state.obstacles.add(k);state.voids.delete(k);}}
+    else if(state.brush==='hole'){if(state.voids.has(k))state.voids.delete(k);else{state.voids.add(k);state.obstacles.delete(k);}}
+    else if(state.brush==='floor'){state.voids.delete(k);state.obstacles.delete(k);}
     else{state.obstacles.delete(k);state.voids.delete(k);}
-    applyEditVisual();}
+    pushEditHistory(snap);applyEditVisual();}
   function onTileClick(u){
     if(state.multi){castMulti(u.x,u.y);return;} // Multicomte armé : le clic pose la croix, rien d'autre
     if(state.edit){editAt(u.x,u.y);return;} // édition de la map : possible aussi une fois le combat lancé (les outils ne s'affichent que tant que le Comte n'est pas là)
@@ -1638,13 +1670,17 @@
     return(w||h)?{w,h}:null;}
   let dragEnt=null; // drag & drop d'entité : {ent,fromX,fromY}
   renderer.domElement.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY};dragging=false;downBtn=e.button;
-    edgeDrag=null;dragEnt=null;
+    edgeDrag=null;dragEnt=null;paintStroke=null;
     if(e.button===0){const u=pickTile(e.clientX,e.clientY);
       // ⚠️ Une invocation en main (ou le Multicomte armé) : le clic VISE une case — il ne doit RIEN glisser.
       // Sans ça, cliquer SUR une entité pour l'invoquer à côté (la confusion dévie) déplaçait l'entité au moindre frémissement de souris.
-      if(u&&!state.toPlace&&!state.multi){const ent=entityAt(u.x,u.y);
+      if(u&&state.edit&&!state.toPlace&&!state.multi){ // 🧱 CONSTRUCTION : au bord = on étire la carte ; ailleurs = on PEINT (clic maintenu + glissé)
+        const eg=edgeAt(u.x,u.y);
+        if(eg)edgeDrag={w:eg.w,h:eg.h,moved:false,snap:snapshotEdit()};
+        else beginPaint(u.x,u.y);}
+      else if(u&&!state.toPlace&&!state.multi){const ent=entityAt(u.x,u.y);
         if(ent&&(ent.t==='ally'||ent.t==='enemy'))dragEnt={ent,fromX:u.x,fromY:u.y}; // presser une entité = pouvoir la GLISSER (prioritaire sur l'étirement du bord)
-        else{const eg=edgeAt(u.x,u.y);if(eg)edgeDrag={w:eg.w,h:eg.h,moved:false};}}}
+        else{const eg=edgeAt(u.x,u.y);if(eg)edgeDrag={w:eg.w,h:eg.h,moved:false,snap:snapshotEdit()};}}}
     el('hoverHp').classList.remove('show');el('cellCount').classList.remove('show');});
   let ctxEnemy=null,placeCell=null,ctxAlly=null;
   renderer.domElement.addEventListener('contextmenu',e=>{e.preventDefault(); // vue verrouillée : le clic droit ne glisse plus rien → le menu s'ouvre même si la souris a bougé pendant le clic
@@ -1756,6 +1792,8 @@
             if(dragEnt.ent.t==='ally'){dragEnt.ent.a.obj.userData.tp=w;dragLive={a:dragEnt.ent.a,x:u.x,y:u.y};} // case orange + cases de délock recalculées À CHAQUE case survolée
             else dragEnt.ent.e.tp=w;
             renderer.domElement.style.cursor='grabbing';refreshTiles();updateHints();}}
+        else if(paintStroke&&downBtn===0){const u=pickTile(e.clientX,e.clientY); // pinceau maintenu : chaque case survolée reçoit le même geste (pose OU efface, jamais les deux)
+          if(u){hoverCell={x:u.x,y:u.y};paintAt(u.x,u.y);renderer.domElement.style.cursor='cell';}}
         else if(edgeDrag&&downBtn===0){const u=pickTile(e.clientX,e.clientY); // étirement du bord : la bordure suit le curseur
           if(u){let w=state.mapW,h=state.mapH;
             if(edgeDrag.w)w=2*Math.abs(u.x-HALF)+1;
@@ -1769,6 +1807,9 @@
       renderer.domElement.style.cursor=eg?(eg.w&&eg.h?'nwse-resize':eg.w?'ew-resize':'ns-resize'):(hoverCell&&entityAt(hoverCell.x,hoverCell.y)?'grab':'');
       refreshTiles();updateHoverHp();updateCellCount();}});
   window.addEventListener('pointerup',e=>{
+    if(down&&paintStroke&&downBtn===0){ // fin d'un trait de pinceau : une seule entrée d'annulation pour tout le trait
+      if(paintStroke.changed)pushEditHistory(paintStroke.snap);
+      paintStroke=null;down=null;edgeDrag=null;dragEnt=null;dragLive=null;refreshTiles();refreshHUD();return;}
     if(down&&dragEnt&&dragging&&downBtn===0){const d=dragEnt;dragEnt=null;dragLive=null; // DÉPÔT du drag & drop : la position « en direct » redevient la position réelle
       const u=pickTile(e.clientX,e.clientY),ent=d.ent;
       const self=u&&u.x===d.fromX&&u.y===d.fromY;
@@ -1777,10 +1818,10 @@
       else{if(ent.t==='ally')syncAlly(ent.a);else syncEnemy(ent.e); // case invalide → retour à la case d'origine
         if(u&&!self)toast('Case invalide — retour à la case de départ.');}
       renderer.domElement.style.cursor='';refreshTiles();refreshHUD();down=null;edgeDrag=null;return;}
-    if(down&&edgeDrag&&edgeDrag.moved)toast('🗺️ Carte : '+state.mapW+' × '+state.mapH+' cases.');
+    if(down&&edgeDrag&&edgeDrag.moved){pushEditHistory(edgeDrag.snap);toast('🗺️ Carte : '+state.mapW+' × '+state.mapH+' cases.');}
     // en VISÉE (invocation en main / Multicomte armé), un petit glissement ne doit pas avaler le clic : rien n'est en train d'être déplacé de toute façon
     else if(down&&downBtn===0&&(!dragging||state.toPlace||state.multi)){const u=pickTile(e.clientX,e.clientY);if(u)onTileClick(u);}
-    down=null;edgeDrag=null;dragEnt=null;dragLive=null;});
+    down=null;edgeDrag=null;dragEnt=null;dragLive=null;paintStroke=null;});
   renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();radius=Math.max(8,Math.min(60,radius+Math.sign(e.deltaY)*2));updateCam();},{passive:false});
 
   const TIPS_DJ=['✅ Tuer les mobs avant le Comte.','✅ Focus le Cycloïde en premier.','✅ Finir rapidement le Granduk une fois entamé.','✅ Au début de son tour, le Comte pose une grande glyphe en croix 3 de PO : si tu commences dessus, tu meurs.','✅ Ne pas compter sur les obstacles : Jacquemart frappe sans ligne de vue. (Portée : 1 à 4 cases)','✅ Plus le Comte est bas en vie, plus il devient menaçant.'];
@@ -1813,7 +1854,7 @@
     applyAmbiance();}
   function setMapMode(m){if(m===state.map)return; // déjà sur cette carte : on n'y touche pas
     cancelMulti(); // un Multicomte armé ne suit pas d'une carte à l'autre
-    saveMapState();state.map=m;state.edit=false;state.mode='idle';state.setupSel=null;state.spell=null;state.toPlace=null;
+    saveMapState();state.map=m;state.edit=false;state.mode='idle';state.setupSel=null;state.spell=null;state.toPlace=null;state.editHistory=[]; // l'annulation ne traverse pas d'une carte à l'autre
     state.targets=new Set();state.curEnt=null;state.enemyTurn=false;state.glyph.clear();_glyphAt=null;drawGlyph();
     if(loadMapState(m))renderMap();else freshMapState(); // carte déjà visitée → retrouvée INTACTE ; sinon → carte neuve
     updateSetupBtns();updateMapSizeLabels();setActive(state.active);refreshTiles();refreshHUD();renderTips();
@@ -1833,8 +1874,8 @@
   el('editBrush').querySelectorAll('[data-brush]').forEach(b=>b.onclick=()=>{
     if(state.edit&&state.brush===b.dataset.brush){state.edit=false;state.setupSel=null;updateSetupBtns();refreshTiles();toast('✋ Retour au placement : clique une case pour placer/déplacer tes persos et monstres.');return;} // re-clic sur l'outil actif = revenir au placement
     state.brush=b.dataset.brush;state.edit=true;state.setupSel=null;updateSetupBtns();refreshTiles();
-    toast('🧱 Édition : clique les cases pour '+({block:'poser des blocs',hole:'creuser des trous',floor:'ajouter des cases'}[b.dataset.brush]||'éditer')+' · re-clique l\'outil pour revenir au placement.');});
-  el('clearObs').onclick=()=>{state.obstacles=new Set();state.voids=new Set(state._baseVoids||[]);applyEditVisual();toast('Obstacles vidés.');};
+    toast('🧱 '+({block:'Blocs',hole:'Trous',floor:'Cases'}[b.dataset.brush]||'Édition')+' : maintiens le clic et glisse pour en '+(b.dataset.brush==='floor'?'ajouter':'poser')+' plusieurs d\'un coup · Ctrl+Z pour annuler · re-clique l\'outil pour revenir au placement.');});
+  el('clearObs').onclick=()=>{pushEditHistory();state.obstacles=new Set();state.voids=new Set(state._baseVoids||[]);applyEditVisual();toast('Obstacles vidés. (Ctrl+Z pour revenir)');};
   function updateMapSizeLabels(){if(el('mapWval'))el('mapWval').textContent=state.mapW;if(el('mapHval'))el('mapHval').textContent=state.mapH;}
   function setMapDims(w,h){ // taille ABSOLUE (bornée 9..N, impaire pour rester centrée) — silencieux (utilisé par l'étirement au bord)
     w=Math.max(9,Math.min(N,w));h=Math.max(9,Math.min(N,h));if(w%2===0)w++;if(h%2===0)h++;
@@ -1962,6 +2003,10 @@
       ctxAlly=null;el('allyMenu').classList.remove('show');checkDefeat();return;} // plus personne en vie → « TU ES MORT »
     ctxAlly=null;el('allyMenu').classList.remove('show');};
   addEventListener('keydown',ev=>{if(ev.key==='Escape'&&state.multi){cancelMulti();refreshTiles();toast('🌀 Multicomte annulé.');}}); // sinon on resterait armé après un clic sur une case impossible
+  addEventListener('keydown',ev=>{ // Ctrl+Z (ou ⌘Z) : annule la dernière action de construction
+    if((ev.ctrlKey||ev.metaKey)&&(ev.key==='z'||ev.key==='Z')&&!ev.shiftKey&&!ev.altKey){
+      const t=ev.target;if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable))return; // laisse le Ctrl+Z natif dans un champ de saisie
+      ev.preventDefault();undoEdit();}});
   document.addEventListener('click',ev=>{if(!el('ctxMenu').contains(ev.target))el('ctxMenu').classList.remove('show');
     if(!el('placeMenu').contains(ev.target))el('placeMenu').classList.remove('show');
     if(!el('allyMenu').contains(ev.target))el('allyMenu').classList.remove('show');});
