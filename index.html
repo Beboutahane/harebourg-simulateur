@@ -632,9 +632,35 @@
     r1.rotation.x=-Math.PI/2;r1.position.set(p.x,0.055,p.z);g.add(r1);
     const r2=new THREE.Mesh(new THREE.CircleGeometry(0.19,4),new THREE.MeshBasicMaterial({color:0xff7a4a,transparent:true,opacity:.5,side:THREE.DoubleSide}));
     r2.rotation.x=-Math.PI/2;r2.rotation.z=Math.PI/4;r2.position.set(p.x,0.05,p.z);g.add(r2);return g;}
-  function placeTrap(x,y,name){const obj=buildTrap(x,y);trapGroup.add(obj);state.traps.push({x,y,obj,name});}
+  function placeTrap(x,y,name){const obj=buildTrap(x,y);trapGroup.add(obj);
+    const repulsive=/r[ée]puls/i.test(name||''); // « Piège Répulsif » (Sram) : repousse ce qui marche dessus
+    state.traps.push({x,y,obj,name,repulsive,push:3});}
   function clearTraps(){if(state.traps)state.traps.forEach(t=>{if(t.obj)trapGroup.remove(t.obj);});state.traps=[];}
   const isTrap=sp=>!!sp&&/pi[eè]ge|trappe|\btrap\b|bombe/i.test(sp.name||'');
+  /* ===== PIÈGES qui se DÉCLENCHENT (Sram) : marcher dessus pousse l'entité (piège répulsif), comme dans Dofus ===== */
+  const entCell=sel=>sel.t==='ally'?{x:sel.a.x,y:sel.a.y}:sel.t==='enemy'?{x:sel.e.x,y:sel.e.y}:{x:state._countX,y:state._countY};
+  function setEntCell(sel,x,y){if(sel.t==='ally'){sel.a.x=x;sel.a.y=y;syncAlly(sel.a);if(sel.a.obj)sel.a.obj.position.copy(sel.a.obj.userData.tp);}
+    else if(sel.t==='enemy'){sel.e.x=x;sel.e.y=y;syncEnemy(sel.e);}}
+  function pushEntity(sel,dx,dy,n){ // pousse jusqu'à n cases dans (dx,dy), s'arrête au 1er obstacle / bord / entité
+    let c=entCell(sel),moved=0;
+    for(let i=0;i<n;i++){const nx=c.x+dx,ny=c.y+dy;
+      if(!inGrid(nx,ny)||blocked(nx,ny)||!tiles[nx]||!tiles[nx][ny].visible||occupant(nx,ny))break;
+      c={x:nx,y:ny};moved++;}
+    if(moved)setEntCell(sel,c.x,c.y);
+    return moved;}
+  function triggerTraps(sel,px,py){ // sel vient d'arriver sur sa case : un piège répulsif y est-il posé ?
+    const c=entCell(sel),ti=state.traps.findIndex(t=>t.x===c.x&&t.y===c.y);
+    if(ti<0)return;const t=state.traps[ti];
+    if(!t.repulsive)return; // (les autres pièges n'ont pas d'effet de poussée dans le simu)
+    let dx=Math.sign(px-c.x),dy=Math.sign(py-c.y); // pousse À L'OPPOSÉ de l'entrée (repoussé dans le sens d'où l'on vient)
+    if(dx&&dy){if(Math.abs(px-c.x)>=Math.abs(py-c.y))dy=0;else dx=0;} // sur l'axe dominant (poussée orthogonale, comme Dofus)
+    if(!dx&&!dy)dx=1; // posé pile dessus sans direction → défaut
+    const n=pushEntity(sel,dx,dy,t.push||3);
+    if(t.obj)trapGroup.remove(t.obj);state.traps.splice(ti,1); // le piège se déclenche UNE fois puis disparaît
+    const who=sel.t==='ally'?skinOf(sel.a).name:((sel.e&&sel.e.name)||'l\'entité');
+    burst(worldPos(c.x,c.y),0xffc24b);
+    toast('🪤 '+t.name+' déclenché : '+who+' repoussé de '+n+' case'+(n>1?'s':'')+' !');
+    refreshTiles();refreshHUD();}
   // (neige qui tombe supprimée à la demande — le décor de fond #bgdecor prend le relais)
   // ===== SALLE DU COMTE (Donjon) : relevé case par case de la vraie salle, fait à la main par l'utilisateur =====
   // Une ligne = un y (0 en haut), un caractère = un x.  '#' = sol · 'X' = sol + bloc · '.' = vide ou trou.
@@ -987,13 +1013,17 @@
   /* ===== DATA LAYER (DofusDB) ===== */
   const qIn=(field,ids)=>ids.map(i=>field+'[$in][]='+i).join('&');
   function status(t){const s=document.getElementById('status');if(!t){s.classList.remove('show');return;}s.textContent=t;s.classList.add('show');}
+  const clsNorm=s=>(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z]/g,''); // « Éliotrope » → « eliotrope »
   async function loadBreeds(){
     try{const r=await fetch(API+'/breeds?$limit=50');const d=await r.json();
-      const bs=(d.data||[]).sort((a,b)=>(a.sortIndex||0)-(b.sortIndex||0)).map(b=>({id:b.id,name:(b.shortName&&b.shortName.fr)||('Classe '+b.id),spellIds:b.breedSpellsId||[],head:(b.heads&&(b.heads.male||b.heads.female))||b.img}))
-        .filter(b=>b.id===9); // SEULE classe conservée : Crâ (demande utilisateur)
+      const bs=(d.data||[]).sort((a,b)=>(a.sortIndex||0)-(b.sortIndex||0)).map(b=>({id:b.id,name:(b.shortName&&b.shortName.fr)||('Classe '+b.id),spellIds:b.breedSpellsId||[],head:(b.heads&&(b.heads.male||b.heads.female))||b.img}));
+      // ⚠️ TOUTES les classes chargées (plus de filtre Crâ) : le bac à sable en a besoin. Chaque CLASSE du bac reçoit son breedId (par nom).
+      CLASSES.forEach(c=>{const b=bs.find(x=>clsNorm(x.name)===c.slug)||bs.find(x=>clsNorm(x.name).indexOf(c.slug)===0);if(b)c.breed=b.id;});
       state.breeds=bs;refreshHUD();return true; // refreshHUD → renderTeam : peuple les listes de classe des cartes d'alliés
     }catch(e){state.breeds=[];refreshHUD();return false;}
   }
+  const classOfAlly=a=>(a&&a.skin!=null&&a.skin>=PERSO_COUNT)?CLASSES[a.skin-PERSO_COUNT]:null; // l'allié porte-t-il un skin de CLASSE (bac à sable) ? sinon perso custom (Crâ)
+  const isElio=a=>clsNorm(a&&a.className)==='eliotrope'; // Eliotrope (portails), insensible à l'accent
   // Barre de sorts UNIQUE (demande) : Flèche d'Immobilisation (+6 PO boostable) et Flamiche — AUCUN coût en PA (données DofusDB vérifiées)
   const FIXED_SPELLS=[
     {id:32436,name:"Flèche d'Immobilisation",img:API+'/img/spells/sort_11885.png',apCost:0,range:7+6,rangeBoost:6,minRange:1,line:false,diag:false},
@@ -1053,7 +1083,7 @@
     return true;}
   function spellZone(){const z=new Set();state.noLoS=new Set();if(!state.spell)return z;const sp=state.spell;
     const origins=[{x:state.player.x,y:state.player.y}]; // Eliotrope : les attaques passent aussi par les portails
-    if(state.player.className==='Eliotrope'&&state.portals&&state.portals.length)state.portals.forEach(p=>origins.push({x:p.x,y:p.y}));
+    if(isElio(state.player)&&state.portals&&state.portals.length)state.portals.forEach(p=>origins.push({x:p.x,y:p.y}));
     origins.forEach(o=>{for(let x=0;x<N;x++)for(let y=0;y<N;y++){const dx=x-o.x,dy=y-o.y,d=Math.abs(dx)+Math.abs(dy);
       if(d<Math.max(1,sp.minRange)||d>sp.range)continue;
       if(sp.line&&!(dx===0||dy===0))continue;
@@ -1590,7 +1620,7 @@
       toast('🚫 Pas de ligne de vue : un obstacle bloque le tir (cases GRISES) — tes sorts ne passent pas derrière les murs.'+(dev?' (la confusion l\'a dévié en '+rx+','+ry+')':''));return;}
     state.mode='idle';state.targets=new Set();
     let so={x:state.player.x,y:state.player.y}; // Eliotrope : le tir part du portail le plus proche de la cible
-    if(state.player.className==='Eliotrope'&&state.portals&&state.portals.length)[{x:state.player.x,y:state.player.y},...state.portals].forEach(o=>{if(Math.abs(o.x-rx)+Math.abs(o.y-ry)<Math.abs(so.x-rx)+Math.abs(so.y-ry))so={x:o.x,y:o.y};});
+    if(isElio(state.player)&&state.portals&&state.portals.length)[{x:state.player.x,y:state.player.y},...state.portals].forEach(o=>{if(Math.abs(o.x-rx)+Math.abs(o.y-ry)<Math.abs(so.x-rx)+Math.abs(so.y-ry))so={x:o.x,y:o.y};});
     burst(worldPos(rx,ry),0xc79bff);shoot(worldPos(so.x,so.y),worldPos(rx,ry));
     const o=(inGrid(rx,ry)&&!blocked(rx,ry))?occupant(rx,ry):null;
     if(o&&o.t==='enemy'){const dmg=120+sp.apCost*30;const who=o.e.kind==='count'?'le boss':o.e.name;
@@ -1710,9 +1740,11 @@
     return null;}
   function selName(s){return s.t==='ally'?('🔵 Perso '+(s.a.id+1)):s.t==='count'?'🔷 Le Comte':('👹 '+(s.e.name||'Monstre'));}
   function moveEntity(sel,x,y){
+    const prev=sel.t==='ally'?{x:sel.a.x,y:sel.a.y}:sel.t==='enemy'?{x:sel.e.x,y:sel.e.y}:null; // case de DÉPART (sens de la poussée d'un piège)
     if(sel.t==='ally'){sel.a.x=x;sel.a.y=y;sel.a.placed=true;syncAlly(sel.a);if(sel.a.obj){sel.a.obj.position.copy(sel.a.obj.userData.tp);sel.a.obj.visible=true;}}
     else if(sel.t==='count'){state._countX=x;state._countY=y;state._countPlaced=true;if(!state._ghost){state._ghost=spriteEntity(COMTE_IMG,0x8fe4ff,0x8fe4ff,SC_COMTE);scene.add(state._ghost);}state._ghost.position.copy(worldPos(x,y));}
-    else if(sel.t==='enemy'){sel.e.x=x;sel.e.y=y;syncEnemy(sel.e);}}
+    else if(sel.t==='enemy'){sel.e.x=x;sel.e.y=y;syncEnemy(sel.e);}
+    if(prev)triggerTraps(sel,prev.x,prev.y);} // marché sur un piège répulsif → poussée
   // 1 clic : sélectionne une entité, puis clique une case libre pour la (re)placer — setup ET jeu (mode Replacer)
   function pickMove(x,y){
     if(state.setupSel){const occ=entityAt(x,y);
@@ -1919,10 +1951,11 @@
     let a=state.allies.find(v=>!v.placed||v.hp<=0); // un slot libre (jamais posé, ou mort) réutilisé, sinon un NOUVEAU perso
     if(!a){if(state.allies.length>=ALLY_MAX){toast('Équipe pleine : déjà '+ALLY_MAX+' alliés (8v8).');return;}
       a=makeAlly(state.allies.length);a.obj=buildAllyObj(a.id);state.allies.push(a);}
-    a.skin=sk;
+    a.skin=sk;a.className='—'; // on (re)charge la classe/les sorts ci-dessous, selon le skin GLISSÉ
     a.x=x;a.y=y;a.placed=true;a.hp=a.hpMax;syncAlly(a);a.obj.position.copy(a.obj.userData.tp);a.obj.visible=true; // il arrive frais (un mort réutilisé revit)
     if(state.phase==='playing'){a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;}
-    setActive(state.allies.indexOf(a));if(a.className==='—')selectClass(9); // Crâ : ses sorts
+    setActive(state.allies.indexOf(a));
+    const cls=classOfAlly(a);selectClass(cls&&cls.breed?cls.breed:9); // classe du bac à sable → ses VRAIS sorts (DofusDB) ; perso custom → Crâ (barre fixe)
     refreshTiles();refreshHUD();toast('🔵 '+skinOf(a).name+' posé en '+x+','+y+'.');maybeAutoStart();}
   (()=>{const box=el('roster');if(!box)return;
     buildClassRoster(); // les 19 lignes de classes doivent EXISTER avant qu'on câble le glissé ci-dessous
@@ -2087,7 +2120,7 @@
     if(!html&&state.phase!=='playing') // pas encore de perso placé → 5 cases vides (la barre finale compte 5 sorts/actions)
       html=Array.from({length:5},()=>'<div class="slot ph" title="Les sorts apparaîtront quand tu placeras un perso"></div>').join('');
     if(state.phase==='playing'){ // actions spéciales, seulement en combat
-      if(state.player&&state.player.className==='Eliotrope')
+      if(state.player&&isElio(state.player))
         html+=`<div class="slot act portal" data-act="portal" title="🌀 Portail (Eliotrope) — pose un portail : tes attaques passent à travers"><span class="ic">🌀</span><span class="lab">P</span></div>`;
       html+=`<div class="slot act sum" data-act="cawotte" title="Invoquer une Cawotte"><span class="ic">🥕</span><span class="lab">+</span></div>`
           +`<div class="slot act sum" data-act="chafer" title="Invoquer un Chafer"><span class="ic">💀</span><span class="lab">+</span></div>`
@@ -2108,7 +2141,7 @@
   function doAction(act){
     if(state.phase!=='playing'){toast('Lance le combat pour utiliser ça.');return;}
     if(act==='portal'){
-      if(state.player.className!=='Eliotrope'){toast('Seul l\'Eliotrope pose des portails.');return;}
+      if(!isElio(state.player)){toast('Seul l\'Eliotrope pose des portails.');return;}
       if(state.mode==='portal'){state.mode='idle';restMove();refreshTiles();refreshHUD();toast('Pose de portail annulée.');return;}
       state.spell=null;state.mode='portal';state.targets=new Set();refreshTiles();refreshHUD();
       toast('🌀 Clique une case libre pour poser un portail (max 6). Re-clique 🌀 pour annuler.');return;}
@@ -2121,13 +2154,21 @@
     refreshTiles();refreshHUD();toast('🔆 Invocation « '+s.name+' » : clique une case libre pour la poser.');}
   async function selectClass(id){
     if(!id){state.player.className='—';state.player.classSpells=[];state.classSpells=[];state.player.head=null;state.player.body=null;applyAllyLook(state.player);rebuildSpellBar([]);refreshHUD();return;}
-    const b=(state.breeds||[]).find(x=>x.id==id);state.player.className=skinOf(state.player).name; // nom AFFICHÉ = celui de son skin (les sorts, eux, sont fixes — cf. FIXED_SPELLS)
-    state.player.head=b?b.head:null;state.player.body=null;applyAllyLook(state.player); // tête en attendant…
-    {const a=state.player,cn=b?b.name:''; // …puis corps entier de la VRAIE classe (Crâ) : sert de repli tant qu'aucune planche n'est déposée
-     if(cn)fetchClassBody(cn).then(img=>{if(img&&a.className===skinOf(a).name){a.body=img;applyAllyLook(a);}});}
-    el('spellSlots').innerHTML='<span class="loadmsg" style="padding:0 6px">…</span>';status('Chargement des sorts '+state.player.className+' (Perso '+(state.active+1)+')…');
-    let spells=FIXED_SPELLS.slice();status(''); // barre UNIQUE : Flèche d'Immo + Flamiche (+ invocations en combat) — plus de sorts de classe
-    state.player.classSpells=spells;state.classSpells=spells;
+    const a0=state.player,cls=classOfAlly(a0); // cls = une des 19 classes du bac à sable ? sinon perso custom (Crâ)
+    const b=(state.breeds||[]).find(x=>x.id==id);
+    a0.className=cls?cls.name:skinOf(a0).name; // classe du bac → NOM DE LA CLASSE (pour que l'Eliotrope pose ses portails, etc.) ; sinon le nom du skin
+    a0.head=b?b.head:null;a0.body=null;applyAllyLook(a0);
+    {const cn=b?b.name:'';if(cn)fetchClassBody(cn).then(img=>{if(img&&state.player===a0){a0.body=img;applyAllyLook(a0);}});}
+    // Bac à sable + skin de CLASSE : on charge les VRAIS sorts de la classe (DofusDB). Sinon : la barre fixe (Flèche d'Immo + Flamiche).
+    if(state.map==='sable'&&cls&&cls.breed){
+      el('spellSlots').innerHTML='<span class="loadmsg" style="padding:0 6px">… sorts '+cls.name+'</span>';status('Chargement des sorts '+cls.name+'…');
+      let spells=[];try{spells=await loadClassSpells(cls.breed);}catch(e){}status('');
+      if(state.player!==a0)return; // l'utilisateur a déjà changé d'allié pendant le chargement
+      if(spells&&spells.length){a0.classSpells=spells;state.classSpells=spells;rebuildSpellBar(spells);refreshHUD();return;}
+      toast('⚠️ Sorts de '+cls.name+' indisponibles — barre par défaut.'); // repli si l'API ne répond pas
+    }
+    const spells=FIXED_SPELLS.slice();
+    a0.classSpells=spells;state.classSpells=spells;
     rebuildSpellBar(spells);refreshHUD();};
   function renderTeam(){const box=el('teamRoster');if(!box)return;
     const setup=state.phase==='setup'; // en préparation : classe MODIFIABLE (liste) ; en combat : nom figé
