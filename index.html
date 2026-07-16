@@ -955,11 +955,17 @@
   // ⚠️ Chargement des 4 vues du perso ICI et pas plus haut : texLoader est un `const`, l'utiliser avant cette
   // ligne lève un ReferenceError (zone morte temporelle) qui tuerait tout le script au démarrage.
   const skinLoaded={}; // ⚠️ chargement PARESSEUX : les 19 classes n'ont pas encore de fichiers → tout charger au démarrage = 76 × 404. On ne charge un skin qu'à sa 1re pose.
+  /* ⚠️ Scarlette : la mesure générique se fait piéger DEUX fois — de face, son AILE passe au-dessus du familier,
+     dont la patte avant entre alors dans la bande de semelle (bd/bg) ; de dos, les pattes NOIRES du costume panda
+     pendent jusqu'au niveau des pieds (hg/hd). Centres des VRAIES sandales mesurés au pixel sur les 4 planches
+     (bd : sandales x 163-251 → 0.692 · hg : pieds x 106-171 → 0.463 ; miroirs sommant à 1). */
+  const skinCxFix={'scarlette-bd':0.692,'scarlette-bg':0.308,'scarlette-hg':0.463,'scarlette-hd':0.537};
   function loadSkinViews(idx){
     if(skinLoaded[idx]||idx==null||!SKINS[idx])return;skinLoaded[idx]=true;
     const s=SKINS[idx];['bd','bg','hg','hd'].forEach(d=>texLoader.load(s.pre+d+'.png',t=>{
       if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
-      skinTex[s.pre+d]=t;skinFoot[s.pre+d]=measureFoot(t.image);skinCx[s.pre+d]=measureCharCx(t.image); // pieds du PERSONNAGE mesurés sur CETTE vue (familier/compagnon écartés) → squelette pile au centre de sa case
+      skinTex[s.pre+d]=t;skinFoot[s.pre+d]=measureFoot(t.image);
+      skinCx[s.pre+d]=skinCxFix[s.pre+d]!=null?skinCxFix[s.pre+d]:measureCharCx(t.image); // pieds du PERSONNAGE mesurés sur CETTE vue (familier/compagnon écartés) → squelette pile au centre de sa case
       skinAspect[s.pre+d]=t.image.width/t.image.height; // cadre réel de CETTE planche (évite l'étirement)
       state.allies.forEach(a=>{if(a.obj)a.obj.userData.facing=null;});},undefined,()=>{})); // facing=null → la vue est (re)posée au prochain refreshTiles/animate
   }
