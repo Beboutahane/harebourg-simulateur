@@ -798,7 +798,8 @@
   const skinTex={}; // clé = pré + direction (ex. 'skin-bd') — rempli APRÈS la création de texLoader (cf. plus bas)
   function facingOf(a){ // vers quelle diagonale doit-il se tourner pour faire face au Comte ?
     const C=comte();if(!C)return 'bd'; // pas de Comte sur le terrain : il regarde la caméra
-    const P=livePos(a),dx=C.x-P.x,dy=C.y-P.y; // livePos : pendant un drag, il pivote en direct
+    const CP=(dragEnt&&dragEnt.ent.t==='enemy'&&dragEnt.ent.e===C&&hoverCell)?hoverCell:C; // Comte MAINTENU à la souris : les alliés suivent la case sous le curseur, en direct
+    const P=livePos(a),dx=CP.x-P.x,dy=CP.y-P.y; // livePos : pendant un drag, il pivote en direct
     if(!dx&&!dy)return 'bd';
     // On raisonne en coordonnées ÉCRAN, pas en axes de la grille : en iso, +x part en bas-droite et +y en bas-gauche.
     const eX=dx-dy, eY=dx+dy; // eX>0 : le Comte est à DROITE · eY>0 : il est EN BAS
