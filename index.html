@@ -19,6 +19,7 @@
     background:radial-gradient(1100px 600px at 12% -8%, rgba(75,184,240,.18), transparent 60%),
       radial-gradient(900px 500px at 100% 0%, rgba(143,228,255,.12), transparent 55%),
       linear-gradient(160deg,var(--bg),var(--bg2) 60%, #081120);}
+  #bgdecor{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden} /* décor derrière l'île (le canvas est transparent) */
   #app{position:fixed;inset:0;z-index:1}
   canvas{display:block;touch-action:none}
   .hud{position:absolute;pointer-events:none;z-index:5}
@@ -45,6 +46,11 @@
   .ritem.drag{opacity:.45;transform:none}
   .ritem.full{opacity:.4;cursor:not-allowed} /* plus de place sur le terrain : la vignette s'éteint */
   .ritem.full:hover{transform:none;background:rgba(8,18,32,.55);border-color:var(--border)}
+  .rsec{font-family:var(--display);font-size:10.5px;letter-spacing:.5px;color:#9db8dc;margin:4px 0 0;display:flex;align-items:center;justify-content:space-between}
+  .rsec b{font-weight:600;color:#cfe2f8}
+  /* le personnage qu'on tient : suit le curseur pendant tout le glissé, ancré près de ses pieds */
+  #dragGhost{position:fixed;width:96px;height:96px;object-fit:contain;pointer-events:none;z-index:99;
+    transform:translate(-50%,-88%);filter:drop-shadow(0 5px 12px rgba(0,0,0,.6))}
   .rico{width:32px;height:32px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;border-radius:7px;background:rgba(0,0,0,.32);overflow:hidden}
   .rico img{max-width:100%;max-height:100%;object-fit:contain;pointer-events:none}
   .rtx{min-width:0;display:flex;flex-direction:column;line-height:1.22}
@@ -304,6 +310,7 @@
 </style>
 </head>
 <body>
+<div id="bgdecor" aria-hidden="true"></div>
 <div id="app"></div>
 <div id="loading">❄️ Chargement de l'arène 3D et des données Dofus…</div>
 
@@ -360,19 +367,21 @@
 <!-- Bac à entités : chaque vignette se GLISSE sur une case. Les compteurs sont tenus par renderRoster(). -->
 <div class="hud card" id="roster">
   <h3>🎭 Glisse-les sur la map</h3>
-  <div class="ritem" draggable="true" data-k="a0" title="Glisse-le sur une case libre">
+  <div class="rsec">🔵 Alliés <b id="rosterAllies">0 / 8</b></div>
+  <div class="ritem" draggable="true" data-k="a0" title="Glisse-le sur une case libre — jusqu'à 8 alliés au total">
     <span class="rico"><img src="mika-bd.png" alt=""></span>
     <span class="rtx"><b>Mikassa-Ackerman</b><i class="rs">à poser</i></span>
   </div>
-  <div class="ritem" draggable="true" data-k="a1" title="Glisse-le sur une case libre">
+  <div class="ritem" draggable="true" data-k="a1" title="Glisse-le sur une case libre — jusqu'à 8 alliés au total">
     <span class="rico"><img src="bebou-bd.png" alt=""></span>
     <span class="rtx"><b>Beboucafe</b><i class="rs">à poser</i></span>
   </div>
+  <div class="rsec">🔴 Ennemis <b id="rosterFoes">0 / 8</b></div>
   <div class="ritem boss" draggable="true" data-k="comte" title="Un seul Comte à la fois">
     <span class="rico"><img src="https://api.dofusdb.fr/img/monsters/993.png" alt=""></span>
     <span class="rtx"><b>Comte Harebourg</b><i class="rs">à poser</i></span>
   </div>
-  <div class="ritem mob" draggable="true" data-k="poutch" title="Jusqu'à 7 sur le terrain">
+  <div class="ritem mob" draggable="true" data-k="poutch" title="Jusqu'à 7 sur le terrain (8v8 avec le boss)">
     <span class="rico"><img src="https://api.dofusdb.fr/img/monsters/278.png" alt=""></span>
     <span class="rtx"><b>Acnoh le poutch</b><i class="rs">0 / 7</i></span>
   </div>
@@ -603,10 +612,7 @@
   function placeTrap(x,y,name){const obj=buildTrap(x,y);trapGroup.add(obj);state.traps.push({x,y,obj,name});}
   function clearTraps(){if(state.traps)state.traps.forEach(t=>{if(t.obj)trapGroup.remove(t.obj);});state.traps=[];}
   const isTrap=sp=>!!sp&&/pi[eè]ge|trappe|\btrap\b|bombe/i.test(sp.name||'');
-  const snowGeo=new THREE.BufferGeometry(),SNOW=240,snowPos=new Float32Array(SNOW*3);
-  for(let i=0;i<SNOW;i++){snowPos[i*3]=(Math.random()-.5)*30;snowPos[i*3+1]=Math.random()*18;snowPos[i*3+2]=(Math.random()-.5)*30;}
-  snowGeo.setAttribute('position',new THREE.BufferAttribute(snowPos,3));
-  const snow=new THREE.Points(snowGeo,new THREE.PointsMaterial({color:0xcfeaff,size:0.08,transparent:true,opacity:.7}));scene.add(snow);
+  // (neige qui tombe supprimée à la demande — le décor de fond #bgdecor prend le relais)
   // ===== SALLE DU COMTE (Donjon) : relevé case par case de la vraie salle, fait à la main par l'utilisateur =====
   // Une ligne = un y (0 en haut), un caractère = un x.  '#' = sol · 'X' = sol + bloc · '.' = vide ou trou.
   // C'est LA map de référence du Donjon : la modifier ici change la salle par défaut (284 cases, 20 blocs).
@@ -642,7 +648,7 @@
   function renderMap(){ // DESSINE la carte telle qu'elle est dans state (obstacles/voids) — ne régénère et n'efface RIEN
     const a=AMBI.harebourg;scene.fog.color.setHex(a.fog); // thème sombre nuit unique
     for(let x=0;x<N;x++)for(let y=0;y<N;y++)tiles[x][y].visible=!state.voids.has(key(x,y));
-    pl.color.setHex(a.light);amb.color.setHex(a.amb);snow.visible=a.snow;
+    pl.color.setHex(a.light);amb.color.setHex(a.amb);
     document.body.style.background=
       'radial-gradient(1100px 600px at 12% -8%, rgba(120,180,255,.16), transparent 60%),linear-gradient(160deg,'+a.bg+',#050a14)';
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){tiles[x][y].userData.base=(x+y)%2===0?a.tileA:a.tileB;}
@@ -737,7 +743,7 @@
   // `title` = son ornement, affiché en petit sous le pseudo dans la vignette. Le `pre` (fichiers PNG) ne bouge JAMAIS quand le pseudo change.
   const SKINS=[{name:'Mikassa-Ackerman',title:'Je ne mérite pas mon ornement',pre:'mika-'},
                {name:'Beboucafe',title:'Le Goat',pre:'bebou-'}]; // Perso 1 = Mikassa, Perso 2 = Beboucafe, puis on alterne
-  const skinOf=a=>SKINS[(a.id||0)%SKINS.length];
+  const skinOf=a=>SKINS[a.skin!=null?a.skin:(a.id||0)%SKINS.length]; // a.skin = le skin GLISSÉ depuis le bac ; sinon on alterne par id
   /* ---- SKIN DU PERSO : 4 vues (déjà détourées, 300×500) — il REGARDE toujours le Comte ----
      Les fichiers sont nommés d'après la direction ÉCRAN vers laquelle il regarde, en repères isométriques :
        bd = bas-droite (+x)  ·  bg = bas-gauche (+y)  ·  hg = haut-gauche (−x)  ·  hd = haut-droite (−y)
@@ -1717,22 +1723,21 @@
     refreshTiles();refreshHUD();toast('🔴 '+POUTCH_NAME+' posé en '+x+','+y+' (clic droit dessus pour le retirer).');}
   /* ===== BAC À ENTITÉS (haut-gauche) : on glisse une vignette sur une case ===== */
   const poutchCount=()=>state.enemies.filter(e=>e.alive&&e.name===POUTCH_NAME).length;
-  function allySlot(i){ // l'allié n° i, créé à la volée si l'équipe est plus courte (freshMapState n'en garde qu'un)
-    while(state.allies.length<=i){const j=state.allies.length,na=makeAlly(j);
-      na.obj=buildAllyObj(j);syncAlly(na);na.obj.position.copy(na.obj.userData.tp);na.obj.visible=false;state.allies.push(na);}
-    return state.allies[i];}
+  const ALLY_MAX=8; // 8v8 : jusqu'à 8 alliés contre le boss + 7 poutchs
   function renderRoster(){const box=el('roster');if(!box)return;
     const set=(k,plein,txt)=>{const it=box.querySelector('[data-k="'+k+'"]');if(!it)return;
       it.classList.toggle('full',plein);it.draggable=!plein;it.querySelector('.rs').textContent=txt;};
-    [0,1].forEach(i=>{const a=state.allies[i],pose=!!(a&&a.placed&&a.hp>0);
-      set('a'+i,pose,pose?'sur le terrain':'à poser');});
+    const na=aliveAllies().length,pleinA=na>=ALLY_MAX;
+    set('a0',pleinA,pleinA?'équipe pleine':'à poser');set('a1',pleinA,pleinA?'équipe pleine':'à poser');
     set('comte',!!comte(),comte()?'sur le terrain':'à poser');
-    const n=poutchCount();set('poutch',n>=POUTCH_MAX,n+' / '+POUTCH_MAX);}
+    const n=poutchCount();set('poutch',n>=POUTCH_MAX,n+' / '+POUTCH_MAX);
+    if(el('rosterAllies'))el('rosterAllies').textContent=na+' / '+ALLY_MAX;
+    if(el('rosterFoes'))el('rosterFoes').textContent=((comte()?1:0)+n)+' / '+(POUTCH_MAX+1);}
   function canDrop(k,x,y){ // cette vignette peut-elle atterrir ici ? (sert à la case verte/rouge du survol ET au lâcher)
     if(!k||!inGrid(x,y)||!tiles[x]||!tiles[x][y]||!tiles[x][y].visible||blocked(x,y)||entityAt(x,y))return false;
     if(k==='comte')return !comte();
     if(k==='poutch')return poutchCount()<POUTCH_MAX;
-    const a=state.allies[+k.slice(1)];return !(a&&a.placed&&a.hp>0);}
+    return aliveAllies().length<ALLY_MAX;}
   function dropEntity(k,x,y){ // lâcher d'une vignette sur une case
     if(!inGrid(x,y)||!tiles[x]||!tiles[x][y].visible||blocked(x,y)){toast('Case bloquée ou hors carte.');return;}
     if(entityAt(x,y)){toast('Il y a déjà quelqu\'un sur cette case.');return;}
@@ -1743,29 +1748,36 @@
       if(poutchCount()>=POUTCH_MAX){toast('Déjà '+POUTCH_MAX+' × '+POUTCH_NAME+' sur le terrain.');return;}
       spawnMobFrom({name:POUTCH_NAME,kind:'mob',friendly:false,hpMax:500,ring:0xff5b5b,x,y,img:API+'/img/monsters/278.png'});
       refreshTiles();refreshHUD();toast('🔴 '+POUTCH_NAME+' posé en '+x+','+y+'.');return;}
-    const i=+k.slice(1),a=allySlot(i); // a0 / a1 : SON perso, un seul exemplaire de chaque
-    if(a.placed&&a.hp>0){toast(skinOf(a).name+' est déjà sur le terrain.');return;}
-    a.x=x;a.y=y;a.placed=true;syncAlly(a);a.obj.position.copy(a.obj.userData.tp);a.obj.visible=true;
-    if(state.phase==='playing'){a.hp=a.hpMax;a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;} // posé en plein combat : il arrive frais
-    setActive(i);if(a.className==='—')selectClass(9); // Crâ : ses sorts
+    const sk=+k.slice(1); // a0 = Mikassa, a1 = Beboucafe : le skin GLISSÉ, posable autant de fois qu'il reste de place
+    if(aliveAllies().length>=ALLY_MAX){toast('Équipe pleine : déjà '+ALLY_MAX+' alliés (8v8).');return;}
+    let a=state.allies.find(v=>!v.placed||v.hp<=0); // un slot libre (jamais posé, ou mort) réutilisé, sinon un NOUVEAU perso
+    if(!a){if(state.allies.length>=ALLY_MAX){toast('Équipe pleine : déjà '+ALLY_MAX+' alliés (8v8).');return;}
+      a=makeAlly(state.allies.length);a.obj=buildAllyObj(a.id);state.allies.push(a);}
+    a.skin=sk;
+    a.x=x;a.y=y;a.placed=true;a.hp=a.hpMax;syncAlly(a);a.obj.position.copy(a.obj.userData.tp);a.obj.visible=true; // il arrive frais (un mort réutilisé revit)
+    if(state.phase==='playing'){a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;}
+    setActive(state.allies.indexOf(a));if(a.className==='—')selectClass(9); // Crâ : ses sorts
     refreshTiles();refreshHUD();toast('🔵 '+skinOf(a).name+' posé en '+x+','+y+'.');maybeAutoStart();}
   (()=>{const box=el('roster');if(!box)return;
     let dropKey=''; // dernière case survolée pendant le glissé (évite de repeindre à chaque pixel)
+    // Le PERSONNAGE suit le curseur pendant TOUT le glissé (pleine opacité, jusqu'à la pose) :
+    // on annule l'image de drag du navigateur (canvas 1×1 transparent) et on déplace nous-mêmes une <img> fixed sur chaque dragover.
+    let ghostEl=null;
+    const blank=document.createElement('canvas');blank.width=blank.height=1;
+    blank.style.cssText='position:fixed;left:-10px;top:-10px;opacity:0;pointer-events:none'; // ⚠️ setDragImage exige un élément DANS le document et rendu
+    document.body.appendChild(blank);
+    const killGhost=()=>{if(ghostEl){ghostEl.remove();ghostEl=null;}};
+    document.addEventListener('dragover',e=>{if(ghostEl){ghostEl.style.left=e.clientX+'px';ghostEl.style.top=e.clientY+'px';}});
     box.querySelectorAll('.ritem').forEach(it=>{
       it.addEventListener('dragstart',e=>{
         if(it.classList.contains('full')){e.preventDefault();return;} // plus de place : rien à glisser
         e.dataTransfer.setData('text/plain',it.dataset.k);e.dataTransfer.effectAllowed='copy';
         dragKind=it.dataset.k;it.classList.add('drag');
-        // On glisse SEULEMENT le personnage, pas le rectangle de la vignette : image dédiée, plus grande, prise au curseur.
-        // ⚠️ setDragImage exige un élément DANS le document et rendu → on le pose hors écran, et on l'enlève une fois le snapshot pris.
+        try{e.dataTransfer.setDragImage(blank,0,0);}catch(_){}
         const src=it.querySelector('.rico img');
-        if(src&&src.complete&&src.naturalWidth){
-          const g=new Image();g.src=src.src;
-          g.style.cssText='position:fixed;left:-9999px;top:0;width:72px;height:72px;object-fit:contain;pointer-events:none';
-          document.body.appendChild(g);
-          try{e.dataTransfer.setDragImage(g,36,64);}catch(_){} // ancré près de ses PIEDS : ce qu'on pose, c'est sa case
-          setTimeout(()=>g.remove(),0);}});
-      it.addEventListener('dragend',()=>{it.classList.remove('drag');
+        if(src){killGhost();ghostEl=document.createElement('img');ghostEl.src=src.src;ghostEl.id='dragGhost';
+          ghostEl.style.left=e.clientX+'px';ghostEl.style.top=e.clientY+'px';document.body.appendChild(ghostEl);}});
+      it.addEventListener('dragend',()=>{it.classList.remove('drag');killGhost();
         dragKind=null;dropCell=null;dropKey='';refreshTiles();});});
     // le canvas accepte le lâcher : sans preventDefault sur dragover, « drop » ne se déclenche jamais
     renderer.domElement.addEventListener('dragover',e=>{e.preventDefault();
@@ -2076,12 +2088,28 @@
       if(e.obj.userData.spr)e.obj.userData.spr.position.y=(e.obj.userData.baseY||0.72)+Math.sin(t*1.5+e.x)*0.02; // léger idle, pieds ancrés au sol
       if(e.obj.userData.mat){if(e.obj.userData.flash>0){e.obj.userData.flash-=dt;const f=Math.max(0,e.obj.userData.flash/0.4);e.obj.userData.mat.color.setRGB(1,1-f*0.8,1-f*0.8);}else if(e.obj.userData.mat.map)e.obj.userData.mat.color.setHex(0xffffff);}});
     // glyphe du boss : opacité FIXE (plus de clignotement) — réglée dans drawGlyph
-    if(snow.visible){const a=snow.geometry.attributes.position.array;for(let i=0;i<SNOW;i++){a[i*3+1]-=dt*1.2;if(a[i*3+1]<0)a[i*3+1]=18;}snow.geometry.attributes.position.needsUpdate=true;}
     for(let i=floats.length-1;i>=0;i--){const f=floats[i];f.life-=dt*0.8;f.s.position.y+=dt*0.7;f.s.material.opacity=Math.max(0,f.life);if(f.life<=0){scene.remove(f.s);floats.splice(i,1);}}
     for(let i=bursts.length-1;i>=0;i--){const b=bursts[i];b.life-=dt*2.2;const sc=0.4+(1-b.life)*1.2;b.s.scale.set(sc,sc,1);b.s.material.opacity=Math.max(0,b.life);if(b.life<=0){scene.remove(b.s);bursts.splice(i,1);}}
     for(let i=shots.length-1;i>=0;i--){const sh=shots[i];sh.t+=dt*2.6;sh.m.position.lerpVectors(sh.from,sh.to,Math.min(1,sh.t));if(sh.t>=1){scene.remove(sh.m);shots.splice(i,1);}}
     renderer.render(scene,activeCam);}
 
+  /* ===== Décor de fond (derrière l'île volante) : ciel étoilé, lune, aurore et montagnes de Frigost ===== */
+  (function(){const bg=el('bgdecor');if(!bg)return;
+    const W=1600,H=900;let s='';
+    s+='<defs><linearGradient id="aur" x1="0" y1="0" x2="0" y2="1">'
+      +'<stop offset="0" stop-color="#4be0c0" stop-opacity="0"/><stop offset=".5" stop-color="#4be0c0" stop-opacity=".13"/>'
+      +'<stop offset="1" stop-color="#7fd0ff" stop-opacity="0"/></linearGradient></defs>';
+    s+='<path d="M-50 210 C 300 120, 620 260, 950 170 S 1500 90, 1700 190 L1700 330 C 1350 250, 1000 380, 650 300 S 150 330, -50 340 Z" fill="url(#aur)"/>'; // voile d'aurore boréale
+    for(let i=0;i<90;i++){const x=Math.random()*W,y=Math.random()*H*0.72,r=Math.random()*1.4+0.4;
+      s+='<circle cx="'+x.toFixed(0)+'" cy="'+y.toFixed(0)+'" r="'+r.toFixed(1)+'" fill="#cfe6ff" opacity="'+(0.25+Math.random()*0.55).toFixed(2)+'"/>';}
+    s+='<circle cx="1310" cy="150" r="98" fill="#8fb8e8" opacity=".08"/><circle cx="1310" cy="150" r="66" fill="#a8c8ee" opacity=".12"/>' // lune + halo + cratères
+      +'<circle cx="1310" cy="150" r="44" fill="#dce9fb"/><circle cx="1290" cy="138" r="9" fill="#b9cfe8" opacity=".5"/>'
+      +'<circle cx="1326" cy="166" r="6" fill="#b9cfe8" opacity=".45"/><circle cx="1322" cy="140" r="4" fill="#c4d6ec" opacity=".4"/>';
+    const ridge=(base,amp,col,op)=>{let d='M0 '+H; // crête de montagnes : pics irréguliers générés
+      for(let x=0;x<=W;x+=80)d+=' L'+x+' '+(base-(Math.sin(x*0.011)*0.5+0.5)*amp-Math.random()*amp*0.35).toFixed(0);
+      return '<path d="'+d+' L'+W+' '+H+' Z" fill="'+col+'" opacity="'+op+'"/>';};
+    s+=ridge(H*0.78,150,'#101f36',0.9)+ridge(H*0.88,120,'#0b1626',0.95);
+    bg.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">'+s+'</svg>';})();
   /* ===== INIT ===== */
   applyAmbiance();refreshTiles();refreshHUD();rebuildSpellBar(state.classSpells||[]);renderTips();animate();loadEl.style.display='none';
   loadBreeds();
