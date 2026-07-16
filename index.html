@@ -1318,8 +1318,8 @@
         if(!inGrid(mx,my)||blocked(mx,my)||!tiles[mx][my].visible)continue;
         const om=occupant(mx,my);if(om&&om.t==='enemy'&&!om.e.friendly)continue; // un ennemi y est : inutilisable
         const d=manh(a,{x,y});if(!d)continue;
-        const dC=manh({x,y},C); // on RAPPROCHE d'abord : au plus près de la cible (selon la classe, des sorts ne portent qu'à quelques cases) — la distance à parcourir ne fait que départager
-        if(!best||dC<best.dC||(dC===best.dC&&d<best.d))best={a,x,y,mx,my,d,dC};}});
+        const dC=manh({x,y},C); // le MOINS de déplacement possible : la case la plus proche du perso — la proximité de la cible ne fait que départager
+        if(!best||d<best.d||(d===best.d&&dC<best.dC))best={a,x,y,mx,my,d,dC};}});
     return best;}
   const CLOSE_OK=3; // à 3 cases ou moins, à peu près tous les sorts portent : inutile de réclamer un rapprochement
   function closerHint(C){ // « rapproche-toi » — TOUJOURS rappelé tant que l'allié est loin : selon la classe, beaucoup de sorts ne portent qu'à quelques cases
@@ -1350,7 +1350,7 @@
         +'<br>② <b>Frappe '+nom+'</b> avec <b>'+c.via+'</b> → il échangera de place et deviendra <b>TOUCHABLE</b>.'+closerHint(C);}
     const mv=moveForDelock();
     if(mv){state.adviceCell={x:mv.x,y:mv.y,who:skinOf(mv.a).name}; // `who` : repris tel quel par l'étiquette « Va ici avec … »
-      return'🧭 <b>D\'ici, c\'est impossible.</b> Va sur la <b>case VERTE</b> avec <b>'+skinOf(mv.a).name+'</b> (glisse-le) : c\'est la case la plus proche '+(C.kind==='count'?'du Comte':'de la cible')+' d\'où ça marche.';}
+      return'🧭 <b>D\'ici, c\'est impossible.</b> Va sur la <b>case VERTE</b> avec <b>'+skinOf(mv.a).name+'</b> (glisse-le) : c\'est la case la plus proche <b>de toi</b> d\'où le délock marche.';}
     return'🔒 <b>Impossible pour l\'instant.</b> Rapproche tes persos '+(C.kind==='count'?'du Comte':'de la cible')+', ou fais de la place autour de lui.';}
   /* Le bouton 🧭 coupe TOUT l'assistant d'un coup : sans lui, `delockAdvice()` n'est plus appelé, donc
      aimCell/hitCell/adviceCell restent nuls → les cases cyan/violette/verte et leurs étiquettes s'éteignent d'elles-mêmes. */
