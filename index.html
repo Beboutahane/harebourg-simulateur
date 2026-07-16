@@ -858,7 +858,7 @@
     if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
     const c=activeMark.userData.cone;c.material.map=t;c.material.needsUpdate=true;},undefined,()=>{}); // absent → le sprite reste à opacity 0, rien ne casse
   // échelles calées sur le vrai jeu (proportion monstres / décor) ; FOOT_PAD = marge basse transparente des images DofusDB à enfoncer pour poser les pieds au sol
-  const SC_MOB=1.4, SC_COMTE=2.6, FOOT_PAD=0.12; // le BOSS domine nettement les monstres (tailles VISIBLES, normalisées par fitSprite)
+  const SC_MOB=1.4, SC_COMTE=1.85, FOOT_PAD=0.12; // tailles VISIBLES (normalisées par fitSprite : les marges des PNG ne comptent plus)
   function spriteEntity(imgUrl,ringColor,fallbackColor,sc,friendly){
     sc=sc||1.5; const g=new THREE.Group();
     const sh=new THREE.Mesh(new THREE.CircleGeometry(sc*0.24,24),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.34,depthWrite:false}));
