@@ -698,7 +698,7 @@
     '..........####...........',
     '.........................',
     '.........................'];
-  // (plus aucun monstre pré-posé en Donjon : comme en Songe, TOUT se pose à la main — persos au clic gauche, Comte/Poutch au clic droit)
+  // (plus aucun monstre pré-posé en Donjon : comme en Songe, TOUT se pose à la main — persos par GLISSÉ du widget, Comte/Poutch au clic droit)
   function computeSongeVoids(){const v=new Set(),rw=(state.mapW-1)/2,rh=(state.mapH-1)/2; // Songe : cases hors de la zone jouable mapW×mapH (centrée) = hors-jeu
     for(let x=0;x<N;x++)for(let y=0;y<N;y++)if(Math.abs(x-HALF)>rw||Math.abs(y-HALF)>rh)v.add(key(x,y));return v;}
   function renderMap(){ // DESSINE la carte telle qu'elle est dans state (obstacles/voids) — ne régénère et n'efface RIEN
@@ -1860,8 +1860,8 @@
       moveEntity(state.setupSel,x,y);state.setupSel=null;refreshTiles();refreshHUD();toast('Placé.');return;}
     const ent=entityAt(x,y);
     if(ent){state.setupSel=ent;toast(selName(ent)+' sélectionné — clique une case pour le (re)placer.');refreshTiles();return;}
-    if(blocked(x,y)){toast('Clique une case LIBRE pour ajouter un personnage.');return;}
-    putPlayerAt(x,y);} // perso en attente, sinon nouveau joueur (le clic droit ne sert plus qu'au Comte et aux ennemis)
+    if(blocked(x,y)){toast('Case bloquée par un obstacle.');return;}
+    putPlayerAt(x,y);} // case libre : rappel « glisse depuis le widget » (le clic n'ajoute plus de perso)
   function setActive(i){if(i<0||i>=state.allies.length)return;state.active=i;
     if(state.phase==='playing'){state.curEnt={t:'ally',a:state.player};state.enemyTurn=false;} // sélectionner un perso = c'est SON tour de jeu (timeline allumée sur lui, cases de délock calculées pour lui)
     state.classSpells=state.player.classSpells||[];state.spell=null;
@@ -1942,7 +1942,7 @@
       restMove();refreshTiles();refreshHUD();return;}
     if(state.mode==='spell'){if(state.targets.has(key(u.x,u.y))){castCell(u.x,u.y);return;}
       restMove();refreshTiles();refreshHUD();toast('Sort désélectionné.');return;}
-    if(!o&&!blocked(u.x,u.y))putPlayerAt(u.x,u.y); // le boss est déjà posé (combat) : clic gauche sur une case libre = poser un allié de PLUS (chaque allié = une case de délock)
+    if(!o&&!blocked(u.x,u.y))putPlayerAt(u.x,u.y); // case libre en combat : simple rappel « glisse depuis le widget » (le clic n'ajoute plus d'allié)
   }
   let down=null,dragging=false,downBtn=0,edgeDrag=null;
   const camRight=new THREE.Vector3(),camFwd=new THREE.Vector3();
@@ -1982,22 +1982,9 @@
     else if(u&&!ent&&!blocked(u.x,u.y)){ // clic droit sur case LIBRE → poser un allié / un ennemi / le Comte (si absent)
       placeCell={x:u.x,y:u.y};const m=el('placeMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');
       el('pmComte').style.display=(comte()||state.map==='sable')?'none':'';}}); // pas de Comte en Bac à sable
-  function addPlayerAt(x,y){ // NOUVEAU joueur Crâ (rejoint l'équipe, contrôlable) posé sur la case — clic gauche sur une case libre
-    if(state.allies.length>=8){toast('Maximum 8 persos.');return;}
-    const i=state.allies.length,a=makeAlly(i);state.allies.push(a);
-    a.obj=buildAllyObj(i);a.x=x;a.y=y;a.placed=true;syncAlly(a);a.obj.position.copy(a.obj.userData.tp);a.obj.visible=true;
-    if(state.phase==='playing'){a.hp=a.hpMax;a.pa=PA_MAX;a.pm=PM_MAX;a.pmPen=0;}
-    setActive(i);selectClass(9); // Crâ (la seule classe) : tête + sorts + corps entier chargés
-    refreshTiles();refreshHUD();toast('🔵 '+skinOf(a).name+' ajouté en '+x+','+y+'.');maybeAutoStart();} // (la vitalité se règle au clic DROIT : plus de pop-up automatique)
-  function putPlayerAt(x,y){ // clic gauche sur une case libre : pose le perso qui attend, sinon en AJOUTE un nouveau (préparation comme combat)
-    if(state.map==='sable'){toast('🧪 Bac à sable : GLISSE une classe depuis le widget pour poser un perso.');return;} // pas d'ajout au clic ici — le widget des classes est la seule porte d'entrée
-    const un=state.allies.find(a=>!a.placed);
-    if(!un){addPlayerAt(x,y);return;}
-    un.x=x;un.y=y;un.placed=true;syncAlly(un);un.obj.position.copy(un.obj.userData.tp);un.obj.visible=true;
-    if(state.phase==='playing'){un.hp=un.hpMax;un.pa=PA_MAX;un.pm=PM_MAX;un.pmPen=0;} // posé en plein combat : il arrive frais
-    setActive(state.allies.indexOf(un));if(un.className==='—')selectClass(9); // classe Crâ automatique (plus de panneau d'équipe)
-    toast('🔵 Perso '+(un.id+1)+' placé.');refreshTiles();refreshHUD();maybeAutoStart();}
-  function spawnPoutch(){ // clic droit sur une case libre → Poutch (entité ennemie) ; les joueurs, eux, se posent au clic gauche
+  function putPlayerAt(x,y){ // clic gauche sur une case libre : plus AUCUN ajout de perso ici, sur AUCUNE carte — le GLISSÉ depuis le widget est la seule porte d'entrée
+    toast(state.map==='sable'?'🧪 Bac à sable : GLISSE une classe depuis le widget pour poser un perso.':'🐾 GLISSE un perso depuis le widget pour le poser sur la carte.');}
+  function spawnPoutch(){ // clic droit sur une case libre → Poutch (entité ennemie) ; les joueurs, eux, se GLISSENT depuis le widget
     if(!placeCell)return;const{x,y}=placeCell;placeCell=null;el('placeMenu').classList.remove('show');
     if(entityAt(x,y)||blocked(x,y)){toast('Case occupée ou bloquée.');return;}
     if(poutchCount()>=POUTCH_MAX){toast('Déjà '+POUTCH_MAX+' × '+POUTCH_NAME+' sur le terrain.');return;}
@@ -2333,7 +2320,7 @@
     ctxAlly=null;el('allyMenu').classList.remove('show');refreshTiles();refreshHUD();});
   el('amOff').onclick=ev=>{ev.stopPropagation();
     if(ctxAlly){ctxAlly.placed=false;ctxAlly.hp=0;if(ctxAlly.obj)ctxAlly.obj.visible=false; // mort = il quitte le terrain
-      toast('💀 '+skinOf(ctxAlly).name+' est mort — clique une case pour le reposer.');refreshTiles();refreshHUD();
+      toast('💀 '+skinOf(ctxAlly).name+' est mort — re-GLISSE-le depuis le widget pour le reposer.');refreshTiles();refreshHUD();
       ctxAlly=null;el('allyMenu').classList.remove('show');checkDefeat();return;} // plus personne en vie → « TU ES MORT »
     ctxAlly=null;el('allyMenu').classList.remove('show');};
   addEventListener('keydown',ev=>{if(ev.key==='Escape'&&state.multi){cancelMulti();refreshTiles();toast('🌀 Multicomte annulé.');}}); // sinon on resterait armé après un clic sur une case impossible
