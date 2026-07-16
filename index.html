@@ -1500,7 +1500,9 @@
     state.adviceCell=null;state.aimCell=null;state.hitCell=null; // recalculées à chaque conseil par aimHint/hitHint
     const mob=nearestMob();if(mob)return attackAdvice(mob); // des mobs en vie → on les tape D'ABORD (le délock du Comte attend)
     const C=delockTarget();
-    if(!C||!C.alive)return'Pose le <b>Comte</b> 🔷 (clic droit sur une case) pour lancer l\'assistant.';
+    if(!C||!C.alive)return state.map==='sable'
+      ?'🧪 <b>Bac à sable</b> : pose des <b>monstres</b> (clic droit → Acnoh, ou la recherche en haut) pour t\'entraîner à les taper.'
+      :'Pose le <b>Comte</b> 🔷 (clic droit sur une case) pour lancer l\'assistant.';
     const nom=C.kind==='count'?'le Comte':(C.name||'la cible');
     if(C.vulnerable)return'🎯 <b>C\'est bon, '+nom+' est TOUCHABLE !</b> Frappe-le vite :'+hitHint(C)+closerHint(C); // il a bougé → hitHint recalcule la case à cliquer depuis sa NOUVELLE position
     if(!comtePivots())return'🔒 <b>Rien à faire ce tour-ci.</b> Passe au <b>tour '+(state.tour+1)+'</b> (bouton <b>+</b> en haut) : c\'est là que ça marchera.'+closerHint(C); // tour « perdu » = le bon moment pour se rapprocher
@@ -1950,11 +1952,11 @@
       const t=tierOf(ctxAlly);m.querySelectorAll('.cpbtns button').forEach(b=>b.classList.toggle('on',+b.dataset.t===t)); // sa tranche en cours = bulle allumée
       m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');}
     else if(ent&&ent.t==='enemy'){ctxEnemy=ent.e;const m=el('ctxMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');
-      el('ctxComte').style.display=(ent.e.name===POUTCH_NAME&&ent.e.alive&&!comte())?'':'none'; // transformer un poutch en Comte (un seul Comte à la fois)
+      el('ctxComte').style.display=(ent.e.name===POUTCH_NAME&&ent.e.alive&&!comte()&&state.map!=='sable')?'':'none'; // transformer un poutch en Comte (un seul à la fois) — PAS en Bac à sable : cette carte n'est pas pour le Comte
       el('ctxMulti').style.display=(ent.e.kind==='count'&&ent.e.alive)?'':'none';} // son sort Multicomte : seulement sur LUI
     else if(u&&!ent&&!blocked(u.x,u.y)){ // clic droit sur case LIBRE → poser un allié / un ennemi / le Comte (si absent)
       placeCell={x:u.x,y:u.y};const m=el('placeMenu');m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';m.classList.add('show');
-      el('pmComte').style.display=comte()?'none':'';}});
+      el('pmComte').style.display=(comte()||state.map==='sable')?'none':'';}}); // pas de Comte en Bac à sable
   function addPlayerAt(x,y){ // NOUVEAU joueur Crâ (rejoint l'équipe, contrôlable) posé sur la case — clic gauche sur une case libre
     if(state.allies.length>=8){toast('Maximum 8 persos.');return;}
     const i=state.allies.length,a=makeAlly(i);state.allies.push(a);
