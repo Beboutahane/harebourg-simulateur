@@ -51,6 +51,12 @@
   /* le personnage qu'on tient : suit le curseur pendant tout le glissé, ancré près de ses pieds */
   #dragGhost{position:fixed;width:96px;height:96px;object-fit:contain;pointer-events:none;z-index:99;
     transform:translate(-50%,-88%);filter:drop-shadow(0 5px 12px rgba(0,0,0,.6))}
+  body.dragEnt,body.dragEnt *{cursor:none!important} /* pendant le glissé : plus de curseur, on ne voit QUE le personnage */
+  #roster .rico img{-webkit-user-drag:none;user-select:none} /* pas de drag natif d'image : le glissé est géré aux pointer events */
+  /* aimantation à la pose : il GLISSE s'aligner sur sa case (léger dépassement), puis est absorbé pendant que l'entité 3D apparaît */
+  #dragGhost.snap{transition:left .17s cubic-bezier(.25,.8,.35,1.25),top .17s cubic-bezier(.25,.8,.35,1.25),transform .17s;
+    transform:translate(-50%,-88%) scale(.94)}
+  #dragGhost.gone{transition:opacity .15s,transform .15s;opacity:0;transform:translate(-50%,-88%) scale(.7)}
   .rico{width:32px;height:32px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;border-radius:7px;background:rgba(0,0,0,.32);overflow:hidden}
   .rico img{max-width:100%;max-height:100%;object-fit:contain;pointer-events:none}
   .rtx{min-width:0;display:flex;flex-direction:column;line-height:1.22}
@@ -368,20 +374,20 @@
 <div class="hud card" id="roster">
   <h3>🎭 Glisse-les sur la map</h3>
   <div class="rsec">🔵 Alliés <b id="rosterAllies">0 / 8</b></div>
-  <div class="ritem" draggable="true" data-k="a0" title="Glisse-le sur une case libre — jusqu'à 8 alliés au total">
+  <div class="ritem" data-k="a0" title="Glisse-le sur une case libre — jusqu'à 8 alliés au total">
     <span class="rico"><img src="mika-bd.png" alt=""></span>
     <span class="rtx"><b>Mikassa-Ackerman</b><i class="rs">à poser</i></span>
   </div>
-  <div class="ritem" draggable="true" data-k="a1" title="Glisse-le sur une case libre — jusqu'à 8 alliés au total">
+  <div class="ritem" data-k="a1" title="Glisse-le sur une case libre — jusqu'à 8 alliés au total">
     <span class="rico"><img src="bebou-bd.png" alt=""></span>
     <span class="rtx"><b>Beboucafe</b><i class="rs">à poser</i></span>
   </div>
   <div class="rsec">🔴 Ennemis <b id="rosterFoes">0 / 8</b></div>
-  <div class="ritem boss" draggable="true" data-k="comte" title="Un seul Comte à la fois">
+  <div class="ritem boss" data-k="comte" title="Un seul Comte à la fois">
     <span class="rico"><img src="https://api.dofusdb.fr/img/monsters/993.png" alt=""></span>
     <span class="rtx"><b>Comte Harebourg</b><i class="rs">à poser</i></span>
   </div>
-  <div class="ritem mob" draggable="true" data-k="poutch" title="Jusqu'à 7 sur le terrain (8v8 avec le boss)">
+  <div class="ritem mob" data-k="poutch" title="Jusqu'à 7 sur le terrain (8v8 avec le boss)">
     <span class="rico"><img src="https://api.dofusdb.fr/img/monsters/278.png" alt=""></span>
     <span class="rtx"><b>Acnoh le poutch</b><i class="rs">0 / 7</i></span>
   </div>
@@ -1727,7 +1733,7 @@
   const ALLY_MAX=8; // 8v8 : jusqu'à 8 alliés contre le boss + 7 poutchs
   function renderRoster(){const box=el('roster');if(!box)return;
     const set=(k,plein,txt)=>{const it=box.querySelector('[data-k="'+k+'"]');if(!it)return;
-      it.classList.toggle('full',plein);it.draggable=!plein;it.querySelector('.rs').textContent=txt;};
+      it.classList.toggle('full',plein);it.querySelector('.rs').textContent=txt;};
     const na=aliveAllies().length,pleinA=na>=ALLY_MAX;
     set('a0',pleinA,pleinA?'équipe pleine':'à poser');set('a1',pleinA,pleinA?'équipe pleine':'à poser');
     set('comte',!!comte(),comte()?'sur le terrain':'à poser');
@@ -1760,41 +1766,44 @@
     setActive(state.allies.indexOf(a));if(a.className==='—')selectClass(9); // Crâ : ses sorts
     refreshTiles();refreshHUD();toast('🔵 '+skinOf(a).name+' posé en '+x+','+y+'.');maybeAutoStart();}
   (()=>{const box=el('roster');if(!box)return;
-    let dropKey=''; // dernière case survolée pendant le glissé (évite de repeindre à chaque pixel)
-    // Le PERSONNAGE suit le curseur pendant TOUT le glissé (pleine opacité, jusqu'à la pose) :
-    // on annule l'image de drag du navigateur (canvas 1×1 transparent) et on déplace nous-mêmes une <img> fixed sur chaque dragover.
-    let ghostEl=null;
-    const blank=document.createElement('canvas');blank.width=blank.height=1;
-    blank.style.cssText='position:fixed;left:-10px;top:-10px;opacity:0;pointer-events:none'; // ⚠️ setDragImage exige un élément DANS le document et rendu
-    document.body.appendChild(blank);
+    // Glissé du bac aux POINTER EVENTS (pas de drag HTML5 : impossible d'y masquer le curseur).
+    // Prise = le curseur disparaît, on ne voit QUE le personnage ; lâcher valide = AIMANTATION sur sa case.
+    let ghostEl=null,dropKey='',moved=false,gx=0,gy=0;
     const killGhost=()=>{if(ghostEl){ghostEl.remove();ghostEl=null;}};
-    document.addEventListener('dragover',e=>{if(ghostEl){ghostEl.style.left=e.clientX+'px';ghostEl.style.top=e.clientY+'px';}});
+    const endDrag=()=>{document.body.classList.remove('dragEnt');
+      box.querySelectorAll('.ritem.drag').forEach(x=>x.classList.remove('drag'));
+      dragKind=null;dropCell=null;dropKey='';refreshTiles();};
     box.querySelectorAll('.ritem').forEach(it=>{
-      it.addEventListener('dragstart',e=>{
-        if(it.classList.contains('full')){e.preventDefault();return;} // plus de place : rien à glisser
-        e.dataTransfer.setData('text/plain',it.dataset.k);e.dataTransfer.effectAllowed='copy';
-        dragKind=it.dataset.k;it.classList.add('drag');
-        try{e.dataTransfer.setDragImage(blank,0,0);}catch(_){}
-        const src=it.querySelector('.rico img');
-        if(src){killGhost();ghostEl=document.createElement('img');ghostEl.src=src.src;ghostEl.id='dragGhost';
-          ghostEl.style.left=e.clientX+'px';ghostEl.style.top=e.clientY+'px';document.body.appendChild(ghostEl);}});
-      it.addEventListener('dragend',()=>{it.classList.remove('drag');killGhost();
-        dragKind=null;dropCell=null;dropKey='';refreshTiles();});});
-    // le canvas accepte le lâcher : sans preventDefault sur dragover, « drop » ne se déclenche jamais
-    renderer.domElement.addEventListener('dragover',e=>{e.preventDefault();
-      const u=pickTile(e.clientX,e.clientY),k=u?(u.x+','+u.y):'';
-      e.dataTransfer.dropEffect=(u&&canDrop(dragKind,u.x,u.y))?'copy':'none';
-      if(k===dropKey)return;dropKey=k;
-      dropCell=u?{x:u.x,y:u.y,ok:canDrop(dragKind,u.x,u.y)}:null; // la case d'atterrissage : VERTE si ça passe, ROUGE sinon
-      hoverCell=u?{x:u.x,y:u.y}:null;refreshTiles();});
-    renderer.domElement.addEventListener('dragleave',()=>{if(dropCell){dropCell=null;dropKey='';refreshTiles();}});
-    renderer.domElement.addEventListener('drop',e=>{e.preventDefault();
-      const k=e.dataTransfer.getData('text/plain')||dragKind;
-      dropCell=null;dropKey='';dragKind=null;
-      if(!k)return;
-      const u=pickTile(e.clientX,e.clientY);
-      if(!u){refreshTiles();toast('Lâche-le sur une case de la carte.');return;}
-      dropEntity(k,u.x,u.y);});})();
+      it.addEventListener('pointerdown',e=>{
+        if(e.button!==0||it.classList.contains('full'))return; // plus de place : rien à prendre
+        e.preventDefault();try{it.setPointerCapture(e.pointerId);}catch(_){} // capturé : la vignette reçoit move/up même loin d'elle
+        dragKind=it.dataset.k;it.classList.add('drag');moved=false;gx=e.clientX;gy=e.clientY;
+        killGhost();const src=it.querySelector('.rico img');
+        if(src){ghostEl=document.createElement('img');ghostEl.src=src.src;ghostEl.id='dragGhost';
+          ghostEl.style.left=e.clientX+'px';ghostEl.style.top=e.clientY+'px';document.body.appendChild(ghostEl);}
+        document.body.classList.add('dragEnt');});
+      it.addEventListener('pointermove',e=>{
+        if(!dragKind||!ghostEl)return;
+        if(Math.abs(e.clientX-gx)+Math.abs(e.clientY-gy)>6)moved=true;
+        ghostEl.style.left=e.clientX+'px';ghostEl.style.top=e.clientY+'px';
+        const u=pickTile(e.clientX,e.clientY),k2=u?(u.x+','+u.y):'';
+        if(k2===dropKey)return;dropKey=k2;
+        dropCell=u?{x:u.x,y:u.y,ok:canDrop(dragKind,u.x,u.y)}:null; // la case d'atterrissage : VERTE si ça passe, ROUGE sinon
+        hoverCell=u?{x:u.x,y:u.y}:null;refreshTiles();});
+      const up=e=>{
+        if(!dragKind)return;
+        const k=dragKind,u=(moved&&e.type==='pointerup')?pickTile(e.clientX,e.clientY):null;
+        const ok=!!(u&&canDrop(k,u.x,u.y));
+        endDrag(); // curseur rendu + case éteinte : l'aimantation prend le relais visuel
+        if(ok&&ghostEl){ // AIMANTATION : il glisse s'aligner sur la case (léger dépassement), puis est absorbé quand l'entité 3D apparaît
+          const g=ghostEl;ghostEl=null;
+          const p=projectCell(u.x,u.y,0.1);
+          g.classList.add('snap');g.style.left=p.sx+'px';g.style.top=p.sy+'px';
+          setTimeout(()=>{dropEntity(k,u.x,u.y);g.classList.add('gone');setTimeout(()=>g.remove(),160);},170);}
+        else{killGhost();
+          if(moved&&e.type==='pointerup'){if(!u)toast('Lâche-le sur une case de la carte.');else dropEntity(k,u.x,u.y);}}}; // dropEntity explique le refus (occupée, équipe pleine…)
+      it.addEventListener('pointerup',up);
+      it.addEventListener('pointercancel',up);});})();
   function killEnemyEntity(e){if(!e)return;if(e.obj)scene.remove(e.obj);e.alive=false;state.enemies=state.enemies.filter(x=>x!==e);
     if(state.initiative)state.initiative=state.initiative.filter(it=>it.t!=='enemy'||it.e!==e);toast((e.name||'Monstre')+' retiré (mort).');refreshTiles();refreshHUD();}
   renderer.domElement.addEventListener('pointermove',e=>{
