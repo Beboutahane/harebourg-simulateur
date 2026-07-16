@@ -942,6 +942,9 @@
 
   /* ===== TILE VISUALS ===== */
   let hoverCell=null;
+  // Glissé depuis le bac à entités (déclarés ICI, avant refreshTiles qui les lit) :
+  let dragKind=null;  // la vignette qu'on tient (dataTransfer n'est PAS lisible pendant dragover)
+  let dropCell=null;  // {x,y,ok} : la case où ça atterrira si on lâche
   function hasLoS(x0,y0,x1,y1){ // ligne de vue : aucun OBSTACLE strictement entre les deux cases (les trous ne bloquent pas la vue)
     let dx=Math.abs(x1-x0),dy=Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1,err=dx-dy,x=x0,y=y0;
     while(!(x===x1&&y===y1)){const e2=2*err;
@@ -1158,6 +1161,9 @@
         if(d.x===hoverCell.x&&d.y===hoverCell.y)dm.color.setHex(0x2fae6a);else dm.color.setHex(0xc0392b);}}
     const sw=updateSwapGhost(); // prévisu de la rotation du Comte (désinvulnérabilité)
     if(sw&&inGrid(sw.x,sw.y)&&tiles[sw.x][sw.y].visible)tiles[sw.x][sw.y].material.color.setHex(sw.ok?0x7fd0ff:0xc0392b);
+    // ⚠️ TOUT À LA FIN : un glissé en cours prime sur le reste — sinon le bleu de survol (plus bas dans cette fonction) l'écrasait.
+    if(dropCell){const t=tiles[dropCell.x]&&tiles[dropCell.x][dropCell.y]; // la case d'ATTERRISSAGE : vert = il se posera là · rouge = impossible
+      if(t&&t.visible)t.material.color.setHex(dropCell.ok?0x35c46a:0xc0392b);}
     updateAllyFacing();} // les persos se tournent vers le Comte — appelé ICI aussi (pas que dans animate) : l'orientation suit l'ACTION, sans dépendre du rendu
 
   /* ===== HUD ===== */
@@ -1686,6 +1692,11 @@
       set('a'+i,pose,pose?'sur le terrain':'à poser');});
     set('comte',!!comte(),comte()?'sur le terrain':'à poser');
     const n=poutchCount();set('poutch',n>=POUTCH_MAX,n+' / '+POUTCH_MAX);}
+  function canDrop(k,x,y){ // cette vignette peut-elle atterrir ici ? (sert à la case verte/rouge du survol ET au lâcher)
+    if(!k||!inGrid(x,y)||!tiles[x]||!tiles[x][y]||!tiles[x][y].visible||blocked(x,y)||entityAt(x,y))return false;
+    if(k==='comte')return !comte();
+    if(k==='poutch')return poutchCount()<POUTCH_MAX;
+    const a=state.allies[+k.slice(1)];return !(a&&a.placed&&a.hp>0);}
   function dropEntity(k,x,y){ // lâcher d'une vignette sur une case
     if(!inGrid(x,y)||!tiles[x]||!tiles[x][y].visible||blocked(x,y)){toast('Case bloquée ou hors carte.');return;}
     if(entityAt(x,y)){toast('Il y a déjà quelqu\'un sur cette case.');return;}
@@ -1703,19 +1714,37 @@
     setActive(i);if(a.className==='—')selectClass(9); // Crâ : ses sorts
     refreshTiles();refreshHUD();toast('🔵 '+skinOf(a).name+' posé en '+x+','+y+'.');maybeAutoStart();}
   (()=>{const box=el('roster');if(!box)return;
+    let dropKey=''; // dernière case survolée pendant le glissé (évite de repeindre à chaque pixel)
     box.querySelectorAll('.ritem').forEach(it=>{
       it.addEventListener('dragstart',e=>{
         if(it.classList.contains('full')){e.preventDefault();return;} // plus de place : rien à glisser
-        e.dataTransfer.setData('text/plain',it.dataset.k);e.dataTransfer.effectAllowed='copy';it.classList.add('drag');});
-      it.addEventListener('dragend',()=>it.classList.remove('drag'));});
+        e.dataTransfer.setData('text/plain',it.dataset.k);e.dataTransfer.effectAllowed='copy';
+        dragKind=it.dataset.k;it.classList.add('drag');
+        // On glisse SEULEMENT le personnage, pas le rectangle de la vignette : image dédiée, plus grande, prise au curseur.
+        // ⚠️ setDragImage exige un élément DANS le document et rendu → on le pose hors écran, et on l'enlève une fois le snapshot pris.
+        const src=it.querySelector('.rico img');
+        if(src&&src.complete&&src.naturalWidth){
+          const g=new Image();g.src=src.src;
+          g.style.cssText='position:fixed;left:-9999px;top:0;width:72px;height:72px;object-fit:contain;pointer-events:none';
+          document.body.appendChild(g);
+          try{e.dataTransfer.setDragImage(g,36,64);}catch(_){} // ancré près de ses PIEDS : ce qu'on pose, c'est sa case
+          setTimeout(()=>g.remove(),0);}});
+      it.addEventListener('dragend',()=>{it.classList.remove('drag');
+        dragKind=null;dropCell=null;dropKey='';refreshTiles();});});
     // le canvas accepte le lâcher : sans preventDefault sur dragover, « drop » ne se déclenche jamais
-    renderer.domElement.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';
-      const u=pickTile(e.clientX,e.clientY);const k=u?(u.x+','+u.y):'';
-      if(k!==(hoverCell?hoverCell.x+','+hoverCell.y:'')){hoverCell=u?{x:u.x,y:u.y}:null;refreshTiles();}}); // la case survolée s'allume pendant le glissé
+    renderer.domElement.addEventListener('dragover',e=>{e.preventDefault();
+      const u=pickTile(e.clientX,e.clientY),k=u?(u.x+','+u.y):'';
+      e.dataTransfer.dropEffect=(u&&canDrop(dragKind,u.x,u.y))?'copy':'none';
+      if(k===dropKey)return;dropKey=k;
+      dropCell=u?{x:u.x,y:u.y,ok:canDrop(dragKind,u.x,u.y)}:null; // la case d'atterrissage : VERTE si ça passe, ROUGE sinon
+      hoverCell=u?{x:u.x,y:u.y}:null;refreshTiles();});
+    renderer.domElement.addEventListener('dragleave',()=>{if(dropCell){dropCell=null;dropKey='';refreshTiles();}});
     renderer.domElement.addEventListener('drop',e=>{e.preventDefault();
-      const k=e.dataTransfer.getData('text/plain');if(!k)return;
+      const k=e.dataTransfer.getData('text/plain')||dragKind;
+      dropCell=null;dropKey='';dragKind=null;
+      if(!k)return;
       const u=pickTile(e.clientX,e.clientY);
-      if(!u){toast('Lâche-le sur une case de la carte.');return;}
+      if(!u){refreshTiles();toast('Lâche-le sur une case de la carte.');return;}
       dropEntity(k,u.x,u.y);});})();
   function killEnemyEntity(e){if(!e)return;if(e.obj)scene.remove(e.obj);e.alive=false;state.enemies=state.enemies.filter(x=>x!==e);
     if(state.initiative)state.initiative=state.initiative.filter(it=>it.t!=='enemy'||it.e!==e);toast((e.name||'Monstre')+' retiré (mort).');refreshTiles();refreshHUD();}
