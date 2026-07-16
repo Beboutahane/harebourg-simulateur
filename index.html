@@ -955,16 +955,23 @@
   // ⚠️ Chargement des 4 vues du perso ICI et pas plus haut : texLoader est un `const`, l'utiliser avant cette
   // ligne lève un ReferenceError (zone morte temporelle) qui tuerait tout le script au démarrage.
   const skinLoaded={}; // ⚠️ chargement PARESSEUX : les 19 classes n'ont pas encore de fichiers → tout charger au démarrage = 76 × 404. On ne charge un skin qu'à sa 1re pose.
-  /* ⚠️ Scarlette : la mesure générique se fait piéger DEUX fois — de face, son AILE passe au-dessus du familier,
-     dont la patte avant entre alors dans la bande de semelle (bd/bg) ; de dos, les pattes NOIRES du costume panda
-     pendent jusqu'au niveau des pieds (hg/hd). Centres des VRAIES sandales mesurés au pixel sur les 4 planches
-     (bd : sandales x 163-251 → 0.692 · hg : pieds x 106-171 → 0.463 ; miroirs sommant à 1). */
-  const skinCxFix={'scarlette-bd':0.692,'scarlette-bg':0.308,'scarlette-hg':0.463,'scarlette-hd':0.537};
+  /* ⚠️ Les 3 persos custom : le SQUELETTE du perso et la BASE DE SES PIEDS font foi — le familier et tout ce qui
+     pend (cape, costume) sont IGNORÉS, même s'ils descendent plus bas ou s'étalent plus large que lui.
+     La mesure générique se fait piéger (l'aile de Scarlette passe au-dessus du dragon ; les familiers descendent
+     SOUS les bottes → cx tiré de côté ET perso flottant). Valeurs mesurées AU PIXEL sur les semelles des 12 planches
+     (mika : semelles grises x 170-256 en bd, 120-169 en hg · bebou : getas x 156-251 en bd, 127-193 en hg ·
+     scarlette : sandales x 163-251 en bd, 106-171 en hg) ; paires miroir sommant à 1. */
+  const skinCxFix={'scarlette-bd':0.692,'scarlette-bg':0.308,'scarlette-hg':0.463,'scarlette-hd':0.537,
+    'mika-bd':0.712,'mika-bg':0.288,'mika-hg':0.483,'mika-hd':0.517,
+    'bebou-bd':0.680,'bebou-bg':0.320,'bebou-hg':0.535,'bebou-hd':0.465};
+  const skinFootFix={'scarlette-bd':0.906,'scarlette-bg':0.906,'scarlette-hg':0.796,'scarlette-hd':0.796, // fraction de hauteur du BAS du pied le plus bas DU PERSO
+    'mika-bd':0.892,'mika-bg':0.892,'mika-hg':0.886,'mika-hd':0.886,
+    'bebou-bd':0.900,'bebou-bg':0.900,'bebou-hg':0.860,'bebou-hd':0.860};
   function loadSkinViews(idx){
     if(skinLoaded[idx]||idx==null||!SKINS[idx])return;skinLoaded[idx]=true;
     const s=SKINS[idx];['bd','bg','hg','hd'].forEach(d=>texLoader.load(s.pre+d+'.png',t=>{
       if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
-      skinTex[s.pre+d]=t;skinFoot[s.pre+d]=measureFoot(t.image);
+      skinTex[s.pre+d]=t;skinFoot[s.pre+d]=skinFootFix[s.pre+d]!=null?skinFootFix[s.pre+d]:measureFoot(t.image);
       skinCx[s.pre+d]=skinCxFix[s.pre+d]!=null?skinCxFix[s.pre+d]:measureCharCx(t.image); // pieds du PERSONNAGE mesurés sur CETTE vue (familier/compagnon écartés) → squelette pile au centre de sa case
       skinAspect[s.pre+d]=t.image.width/t.image.height; // cadre réel de CETTE planche (évite l'étirement)
       state.allies.forEach(a=>{if(a.obj)a.obj.userData.facing=null;});},undefined,()=>{})); // facing=null → la vue est (re)posée au prochain refreshTiles/animate
