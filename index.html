@@ -71,7 +71,7 @@
   #rosterClasses::-webkit-scrollbar-thumb{background:rgba(120,160,220,.32);border-radius:4px}
   #rosterClasses::-webkit-scrollbar-thumb:hover{background:rgba(120,160,220,.5)}
   .ritem.cls{padding:3px 6px;gap:7px;border-radius:8px} /* ligne fine */
-  .ritem.cls .rico{width:30px;height:30px;border-radius:50%} /* la bulle ronde de la classe */
+  .ritem.cls .rico{width:32px;height:32px} /* la vignette de la classe (sa vue de face) */
   .ritem.cls .rtx b{font-size:12px}
   #tips{top:12px;right:12px;width:262px;max-height:calc(100vh - 150px);overflow-y:auto;padding:13px 14px;display:flex;flex-direction:column;gap:8px}
   #tips h3{font-family:var(--display);font-size:13px;letter-spacing:.4px;color:var(--ice);display:flex;align-items:center;gap:6px;margin-bottom:2px}
@@ -889,6 +889,7 @@
     const k=sc/f.h;spr.scale.set(k,k,1);
     spr.center.set(f.cx,1-f.foot);spr.position.y=0;} // pieds POSÉS au sol, exactement comme les persos (skinY) : à 0.05 il lévitait
   const skinCx={}; // milieu horizontal MESURÉ, vue par vue
+  const skinAspect={}; // largeur/hauteur RÉELLE de chaque image : les planches n'ont pas toutes le même cadre (300×500, 263×524…) → sinon le perso est ÉTIRÉ
   const skinY=k=>SKIN_H*((skinFoot[k]||0.9)-0.5); // hauteur du sprite qui pose EXACTEMENT ses pieds sur la case
   const skinTex={}; // clé = pré + direction (ex. 'skin-bd') — rempli APRÈS la création de texLoader (cf. plus bas)
   function facingOf(a){ // vers quelle diagonale doit-il se tourner pour faire face au Comte ?
@@ -910,7 +911,7 @@
       const mat=a.obj.userData.mat,spr=a.obj.userData.spr;
       mat.map=t;mat.color.setHex(0xffffff);mat.needsUpdate=true;
       a.obj.userData.hasPerso=true; // priorité sur le Dopeul DofusDB (cf. applyAllyLook)
-      spr.scale.set(SKIN_H*SKIN_RATIO,SKIN_H,1);
+      spr.scale.set(SKIN_H*(skinAspect[k]||SKIN_RATIO),SKIN_H,1); // ratio RÉEL de la planche (SKIN_RATIO = repli 300/500)
       spr.center.set(skinCx[k]!=null?skinCx[k]:0.5,0.5); // ancré sur SES pieds, pas sur le milieu du cadre → pile au centre de sa case
       const y=skinY(k);a.obj.userData.baseY=y;spr.position.y=y;});} // baseY : animate() s'y cale (sinon il le ferait flotter)
   function buildAllyObj(i){const col=allyColors[i];
@@ -952,6 +953,7 @@
     const s=SKINS[idx];['bd','bg','hg','hd'].forEach(d=>texLoader.load(s.pre+d+'.png',t=>{
       if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
       skinTex[s.pre+d]=t;skinFoot[s.pre+d]=measureFoot(t.image);skinCx[s.pre+d]=measureCharCx(t.image); // pieds du PERSONNAGE mesurés sur CETTE vue (familier/compagnon écartés) → squelette pile au centre de sa case
+      skinAspect[s.pre+d]=t.image.width/t.image.height; // cadre réel de CETTE planche (évite l'étirement)
       state.allies.forEach(a=>{if(a.obj)a.obj.userData.facing=null;});},undefined,()=>{})); // facing=null → la vue est (re)posée au prochain refreshTiles/animate
   }
   for(let i=0;i<PERSO_COUNT;i++)loadSkinViews(i); // au démarrage : SEULEMENT les persos custom (leurs fichiers existent). Les classes se chargent à la pose.
@@ -1916,11 +1918,11 @@
     x.fillStyle='#fff';x.font='700 30px "Segoe UI",sans-serif';x.textAlign='center';x.textBaseline='middle';
     x.fillText(cls.name[0],32,34);return c.toDataURL();}
   function buildClassRoster(){const host=el('rosterClasses');if(!host||host.childElementCount)return; // généré une seule fois
-    // 📌 Visuels à venir : dès que les fichiers <slug>-bd.png existeront, remplacer `img.src=placeholderIcon(cls)` par `img.src=cls.slug+'-bd.png'`
-    //    (la vignette montrera alors le vrai perso ; le rendu 3D, lui, se charge déjà tout seul via loadSkinViews).
     CLASSES.forEach((cls,i)=>{const it=document.createElement('div');
       it.className='ritem cls';it.dataset.k='cls'+i;it.title='Glisse '+cls.name+' sur une case libre';
-      const img=new Image();img.alt='';img.src=placeholderIcon(cls); // pastille placeholder tant que les visuels ne sont pas fournis (aucun 404)
+      const img=new Image();img.alt='';
+      img.onerror=()=>{img.onerror=null;img.src=placeholderIcon(cls);}; // planche absente → pastille de secours
+      img.src=cls.slug+'-bd.png'; // la vraie vue de face de la classe (sert aussi d'image de glissé)
       const rico=document.createElement('span');rico.className='rico';rico.appendChild(img);
       const rtx=document.createElement('span');rtx.className='rtx';const b=document.createElement('b');b.textContent=cls.name;rtx.appendChild(b);
       it.appendChild(rico);it.appendChild(rtx);host.appendChild(it);});}
