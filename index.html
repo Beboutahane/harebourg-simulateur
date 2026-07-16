@@ -830,41 +830,33 @@
   /* ⚠️ Un personnage n'est PAS centré dans son image : DofusDB (et les planches de skin) le calent souvent de biais.
      Sans ça, le sprite est centré sur son CADRE, pas sur le perso → il flotte à côté de son anneau.
      On mesure donc le milieu horizontal de sa SEMELLE (ce qui touche le sol) et on s'en sert comme point d'ancrage (Sprite.center). */
-  function measureFit(img){ // {cx, foot, h} : milieu de la semelle (X), position des pieds (fraction depuis le haut), hauteur UTILE (fraction opaque)
+  // Analyse UNIFIÉE de la silhouette (toutes les entités : persos, monstres, boss, à venir).
+  // cx = milieu des PIEDS du PERSONNAGE. Astuce : on ne garde que les colonnes qui montent dans le tiers HAUT (le personnage),
+  // puis on lit la bande de pieds à leur point le PLUS BAS. Ça isole naturellement la figure du premier plan (la plus basse en iso)
+  // et écarte le familier ET un compagnon accroupi (qui restent en bas de l'image, sans colonne haute). Les paires miroir somment à 1.0.
+  function measureFit(img){ // {cx, foot (pieds du perso, fraction depuis le haut), h (hauteur visible du perso)}
     try{const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
       const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(img,0,0);
-      const p=g.getImageData(0,0,img.width,img.height).data,A=(x,y)=>p[(y*img.width+x)*4+3];
-      let footY=-1,topY=-1;
-      for(let y=img.height-1;y>=0&&footY<0;y--){let n=0;
-        for(let x=0;x<img.width;x++)if(A(x,y)>205&&++n>2){footY=y;break;}}
+      const W=img.width,H=img.height,p=g.getImageData(0,0,W,H).data,A=(x,y)=>p[(y*W+x)*4+3];
+      let topY=-1,footY=-1;
+      for(let y=0;y<H&&topY<0;y++){let n=0;for(let x=0;x<W;x++)if(A(x,y)>205&&++n>2){topY=y;break;}}
+      for(let y=H-1;y>=0&&footY<0;y--){let n=0;for(let x=0;x<W;x++)if(A(x,y)>205&&++n>2){footY=y;break;}}
       if(footY<0)return null;
-      for(let y=0;y<img.height&&topY<0;y++){let n=0;
-        for(let x=0;x<img.width;x++)if(A(x,y)>205&&++n>2){topY=y;break;}}
-      const band=Math.max(2,Math.round(img.height*0.06)); // la « semelle » : la bande juste au-dessus des pieds
-      let minX=img.width,maxX=-1;
-      for(let y=Math.max(0,footY-band);y<=footY;y++)
-        for(let x=0;x<img.width;x++)if(A(x,y)>205){if(x<minX)minX=x;if(x>maxX)maxX=x;}
-      return{cx:maxX>=minX?((minX+maxX)/2+0.5)/img.width:0.5,
-        foot:(footY+0.5)/img.height,
-        h:Math.max(0.2,(footY-Math.max(0,topY)+1)/img.height)};
+      const upY=topY+(footY-topY)*0.33; // au-dessus de cette ligne : uniquement le personnage
+      let charFoot=-1;const charCol=new Array(W).fill(false);
+      for(let x=0;x<W;x++){let up=false,low=-1;
+        for(let y=topY;y<=footY;y++)if(A(x,y)>205){if(y<upY)up=true;low=y;}
+        if(up){charCol[x]=true;if(low>charFoot)charFoot=low;}}
+      if(charFoot<0)charFoot=footY;
+      const band=Math.max(2,Math.round(H*0.06));
+      let minX=W,maxX=-1;
+      for(let x=0;x<W;x++)if(charCol[x])for(let y=Math.max(0,charFoot-band);y<=charFoot;y++)if(A(x,y)>205){if(x<minX)minX=x;if(x>maxX)maxX=x;break;}
+      return{cx:maxX>=minX?((minX+maxX)/2+0.5)/W:0.5,
+        foot:(charFoot+0.5)/H,
+        h:Math.max(0.2,(charFoot-Math.max(0,topY)+1)/H)};
     }catch(e){} // image cross-origin non lisible (CORS) → null, l'appelant garde le cadre
     return null;}
-  const measureCx=img=>{const f=measureFit(img);return f?f.cx:0.5;};
-  function measureSkinCx(img){ // l'AXE (squelette) du PERSONNAGE : centre de masse des colonnes verticalement DOMINANTES (le tronc).
-    // Le familier, l'ombre au sol et les mèches de coiffe pèsent trop peu colonne par colonne pour compter — c'est ce qui les écarte.
-    // (Le flood-fill depuis la tête ne marche pas : le familier TOUCHE le perso en pixels pleinement opaques.)
-    try{const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
-      const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(img,0,0);
-      const p=g.getImageData(0,0,img.width,img.height).data;
-      const W=img.width,H=img.height,mass=new Array(W).fill(0);
-      for(let x=0;x<W;x++)for(let y=0;y<H;y++)if(p[(y*W+x)*4+3]>205)mass[x]++;
-      const mmax=Math.max.apply(null,mass);
-      if(!mmax)return 0.5;
-      let sx=0,sm=0;
-      for(let x=0;x<W;x++)if(mass[x]>=mmax*0.45){sx+=(x+0.5)*mass[x];sm+=mass[x];}
-      return sm?sx/sm/W:0.5;
-    }catch(e){} // CORS → centre du cadre
-    return 0.5;}
+  const measureCharCx=img=>{const f=measureFit(img);return f?f.cx:0.5;}; // milieu des pieds du perso (pour les skins d'alliés)
   // Taille RÉELLE d'un monstre : les PNG DofusDB ont des marges transparentes variables → à échelle égale, deux monstres
   // paraissent différents. On normalise : la hauteur VISIBLE du sprite = sc exactement, et ses pieds mesurés touchent le sol.
   function fitSprite(spr,img,sc){const f=measureFit(img);if(!f)return;
@@ -933,7 +925,7 @@
     if(skinLoaded[idx]||idx==null||!SKINS[idx])return;skinLoaded[idx]=true;
     const s=SKINS[idx];['bd','bg','hg','hd'].forEach(d=>texLoader.load(s.pre+d+'.png',t=>{
       if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
-      skinTex[s.pre+d]=t;skinFoot[s.pre+d]=measureFoot(t.image);skinCx[s.pre+d]=measureSkinCx(t.image); // pieds du PERSONNAGE mesurés sur CETTE vue (le familier ne compte pas) → squelette pile au centre de sa case
+      skinTex[s.pre+d]=t;skinFoot[s.pre+d]=measureFoot(t.image);skinCx[s.pre+d]=measureCharCx(t.image); // pieds du PERSONNAGE mesurés sur CETTE vue (familier/compagnon écartés) → squelette pile au centre de sa case
       state.allies.forEach(a=>{if(a.obj)a.obj.userData.facing=null;});},undefined,()=>{})); // facing=null → la vue est (re)posée au prochain refreshTiles/animate
   }
   for(let i=0;i<PERSO_COUNT;i++)loadSkinViews(i); // au démarrage : SEULEMENT les persos custom (leurs fichiers existent). Les classes se chargent à la pose.
@@ -988,7 +980,9 @@
     x.lineWidth=6;x.strokeStyle='#8fe4ff';x.stroke();
     x.font='62px "Segoe UI Emoji",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('🛡️',64,70);
     const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,fog:false,depthWrite:false}));
-    s.scale.set(0.55,0.55,1);s.position.y=SC_COMTE+0.35;return s;} // au-dessus de la tête du boss agrandi
+    // ancré par le BAS (center y=0) → position.y = le bas de l'icône. Le sommet du sprite du boss est à SC_COMTE (hauteur visible normalisée),
+    // donc +0.4 laisse un vrai écart au-dessus du chapeau (avant : center 0.5 → le bas retombait sur 1.925, il touchait le chapeau à 1.85).
+    s.center.set(0.5,0);s.scale.set(0.55,0.55,1);s.position.y=SC_COMTE+0.4;return s;}
 
   /* ===== DATA LAYER (DofusDB) ===== */
   const qIn=(field,ids)=>ids.map(i=>field+'[$in][]='+i).join('&');
@@ -1400,6 +1394,7 @@
         const mx=2*x-C.x,my=2*y-C.y; // sa future case de délock
         if(!inGrid(mx,my)||blocked(mx,my)||!tiles[mx][my].visible)continue;
         const om=occupant(mx,my);if(om&&om.t==='enemy'&&!om.e.friendly)continue; // un ennemi y est : inutilisable
+        if(!canHitFrom(x,y,C.x,C.y))continue; // ⚠️ il faut aussi pouvoir FRAPPER le Comte depuis cette case (sinon la cawotte ne sert à rien) : portée + ligne de vue
         const d=manh(a,{x,y});if(!d)continue;
         const dC=manh({x,y},C); // le MOINS de déplacement possible : la case la plus proche du perso — la proximité de la cible ne fait que départager
         if(!best||d<best.d||(d===best.d&&dC<best.dC))best={a,x,y,mx,my,d,dC};}});
@@ -1452,6 +1447,14 @@
     const nom=C.kind==='count'?'le Comte':(C.name||'la cible');
     if(C.vulnerable)return'🎯 <b>C\'est bon, '+nom+' est TOUCHABLE !</b> Frappe-le vite :'+hitHint(C)+closerHint(C); // il a bougé → hitHint recalcule la case à cliquer depuis sa NOUVELLE position
     if(!comtePivots())return'🔒 <b>Rien à faire ce tour-ci.</b> Passe au <b>tour '+(state.tour+1)+'</b> (bouton <b>+</b> en haut) : c\'est là que ça marchera.'+closerHint(C); // tour « perdu » = le bon moment pour se rapprocher
+    // ⚠️ Le délock EXIGE de FRAPPER le Comte (le coup déclenche la rotation). Si d'ici on ne peut QU'invoquer une cawotte SANS toucher le Comte,
+    //    le placement est mauvais → on envoie directement sur la case VERTE (rapprochement), au lieu de conseiller une invocation inutile.
+    if(state.player&&state.player.placed){const P=livePos(state.player),clickC=state.confusion?undeflect(C.x,C.y):{x:C.x,y:C.y};
+      const bossTouchable=inGrid(clickC.x,clickC.y)&&!blocked(clickC.x,clickC.y)&&canHitFrom(P.x,P.y,clickC.x,clickC.y);
+      if(!bossTouchable){const mv=moveForDelock();
+        if(mv){state.adviceCell={x:mv.x,y:mv.y,who:skinOf(mv.a).name};
+          return'🧭 <b>D\'ici tu ne peux pas TOUCHER le Comte</b> — juste poser une cawotte ne suffit pas, il faut le FRAPPER pour le délock. Va sur la <b>case VERTE</b> avec <b>'+skinOf(mv.a).name+'</b> : de là tu pourras le taper.'+closerHint(C);}
+        return'🔒 <b>Tu ne peux pas encore toucher le Comte.</b> Rapproche-toi (ou dégage l\'obstacle qui bloque la vue) : une cawotte seule ne le délock pas.'+closerHint(C);}}
     // Priorité au perso que tu CONTRÔLES : sa case miroir est la case ORANGE affichée sur le terrain
     const pv=pivotCell(),moi='le personnage sélectionné'; // on ne le nomme pas : c'est celui qui porte le marqueur sur le terrain
     if(pv&&pv.status==='occupied')
