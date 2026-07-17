@@ -167,6 +167,10 @@
   #status.show{opacity:1}
   .collapsed{display:none!important}
   #mapPick{bottom:86px;left:14px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 14px;pointer-events:auto;z-index:6} /* laisse la place à #sablePick en dessous */
+  #backComte{position:absolute;bottom:86px;left:14px;pointer-events:auto;z-index:6;cursor:pointer;padding:10px 14px;
+    color:var(--frost);font-family:var(--font);font-size:13px;text-align:left}
+  #backComte:hover{border-color:var(--ice)}
+  #backComte b{font-weight:800}
   .mplbl{font-family:var(--display);font-size:16px;letter-spacing:.6px;color:var(--ice);text-align:center;font-weight:800;text-transform:uppercase;text-shadow:0 0 10px rgba(75,184,240,.35);width:100%}
   #mapPick select{width:180px;appearance:none;-webkit-appearance:none;cursor:pointer;font-family:var(--display);font-weight:700;font-size:13px;
     color:var(--frost);border:1px solid var(--border-strong);border-radius:11px;padding:9px 30px 9px 12px;
@@ -209,15 +213,25 @@
   #modeDj.on{border-color:#e8a04b;background:linear-gradient(120deg,rgba(232,160,75,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(232,160,75,.35)}
   #modeSonge.on{border-color:#b98cff;background:linear-gradient(120deg,rgba(185,140,255,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(185,140,255,.35)}
   #modeSable.on{border-color:#6be3c0;background:linear-gradient(120deg,rgba(107,227,192,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(107,227,192,.35)}
-  #modePorte.on{border-color:#f0975c;background:linear-gradient(120deg,rgba(240,151,92,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(240,151,92,.35)}
-  #porteWrap{position:relative;margin-top:4px}
-  #porteSelBtn{width:100%;padding:6px 8px;background:rgba(8,18,32,.85);color:#f0b98c;border:1px solid rgba(240,151,92,.45);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;text-align:left}
-  #porteSelBtn:hover{border-color:#f0975c}
-  #porteList{display:none;position:absolute;left:0;right:0;top:100%;margin-top:2px;max-height:230px;overflow-y:auto;background:rgba(8,18,32,.97);border:1px solid rgba(240,151,92,.45);border-radius:8px;z-index:30}
-  #porteList.open{display:block}
-  #porteList .pitem{padding:6px 9px;font-size:12px;font-weight:700;color:#e8d9c8;cursor:pointer;white-space:nowrap}
-  #porteList .pitem:hover{background:rgba(240,151,92,.18);color:#ffd9b0}
-  #portePrev{display:none;position:absolute;left:calc(100% + 6px);top:0;background:rgba(6,14,26,.97);border:1px solid rgba(240,151,92,.5);border-radius:8px;z-index:31;pointer-events:none}
+  /* « C'EST TON TOUR » : élément HTML net (l'ancien sprite canvas scintillait), style calé sur les cards de l'UI */
+  #turnBadge{position:fixed;left:0;top:0;display:none;z-index:8;pointer-events:none;transform:translate(-50%,-100%);
+    padding:5px 12px 6px;border-radius:9px;white-space:nowrap;
+    background:linear-gradient(180deg,rgba(16,34,64,.96),rgba(9,20,40,.96));
+    border:1px solid #4a7dff;box-shadow:0 4px 14px rgba(0,8,20,.55),0 0 12px rgba(74,125,255,.28);
+    color:#dce9ff;font-family:var(--font);font-size:12px;font-weight:800;letter-spacing:.5px}
+  #turnBadge::after{content:'';position:absolute;left:50%;top:100%;transform:translateX(-50%);
+    border:6px solid transparent;border-top-color:#4a7dff}
+  #songeSubs{display:none;position:relative;width:100%;flex-direction:column;gap:4px;margin-top:2px}
+  #songeSubs.open{display:flex}
+  .subwrap{position:relative}
+  .subbtn{width:100%;padding:6px 10px;background:rgba(8,18,32,.85);color:#f0b98c;border:1px solid rgba(240,151,92,.45);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;text-align:left}
+  .subbtn:hover{border-color:#f0975c}
+  .subbtn.on{border-color:#f0975c;background:linear-gradient(120deg,rgba(240,151,92,.22),rgba(8,18,32,.85));box-shadow:0 0 10px rgba(240,151,92,.3)}
+  .sublist{display:none;position:absolute;left:0;right:0;top:100%;margin-top:2px;max-height:230px;overflow-y:auto;background:rgba(8,18,32,.97);border:1px solid rgba(240,151,92,.45);border-radius:8px;z-index:30}
+  .sublist.open{display:block}
+  .sublist .pitem{padding:6px 9px;font-size:12px;font-weight:700;color:#e8d9c8;cursor:pointer;white-space:nowrap}
+  .sublist .pitem:hover{background:rgba(240,151,92,.18);color:#ffd9b0}
+  #portePrev{display:none;position:absolute;left:calc(100% + 8px);top:0;background:rgba(6,14,26,.97);border:1px solid rgba(240,151,92,.5);border-radius:8px;z-index:31;pointer-events:none}
   #ctxMenu,#placeMenu,#allyMenu{position:absolute;z-index:12;display:none;background:var(--panel);border:1px solid var(--border-strong);border-radius:9px;padding:4px;pointer-events:auto;box-shadow:0 10px 24px rgba(0,8,20,.6)}
   #ctxMenu.show,#placeMenu.show,#allyMenu.show{display:block}
   #ctxMenu button,#placeMenu button{display:block;width:100%;border:0;background:transparent;color:var(--danger);font-family:var(--font);font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:7px;cursor:pointer;text-align:left;white-space:nowrap}
@@ -247,6 +261,7 @@
   #heartVal{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%);font-family:var(--display);font-weight:800;font-size:16px;color:#fff;text-shadow:0 1px 2px #000,0 0 3px #000;pointer-events:none;white-space:nowrap}
   #heartVal.small{font-size:10.5px}
   .slotwrap{display:flex;gap:5px;max-width:52vw;overflow-x:auto;overflow-y:hidden;padding-bottom:2px} /* une seule rangée : la barre s'adapte au nombre de sorts */
+  .slotwrap.deux{flex-wrap:wrap;overflow:visible;max-width:none;flex-shrink:0} /* Bac à sable : tous les sorts visibles sur 2 lignes (shrink:0 : le parent ne la compresse pas en 3 lignes) */
   .slotwrap .slot{flex:0 0 auto}
   .slotwrap:empty{display:flex;min-width:120px}
   .slotwrap:empty::before{content:'Choisis une classe ↓';color:var(--muted);font-size:11px;align-self:center}
@@ -378,15 +393,18 @@
       <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M7 12C2.5 9.5 1.5 3.5 3.8 2.4C6.6 4.2 8.4 7.6 9.2 10.8Z" fill="#4bb8f0"/><path d="M25 12C29.5 9.5 30.5 3.5 28.2 2.4C25.4 4.2 23.6 7.6 22.8 10.8Z" fill="#4bb8f0"/><path d="M16 5C9.4 5 6 9.7 6 14.6C6 18.2 8.4 20 8.4 22V25C8.4 26.1 9.3 27 10.4 27H12V24.4H14V27H18V24.4H20V27H21.6C22.7 27 23.6 26.1 23.6 25V22C23.6 20 26 18.2 26 14.6C26 9.7 22.6 5 16 5Z" fill="#eef5ff"/><ellipse cx="12" cy="15.5" rx="2.7" ry="3.1" fill="#0c2740"/><ellipse cx="20" cy="15.5" rx="2.7" ry="3.1" fill="#0c2740"/><circle cx="12" cy="15.3" r="1.1" fill="#39d0ff"/><circle cx="20" cy="15.3" r="1.1" fill="#39d0ff"/><path d="M16 18.2L14.4 21.4H17.6Z" fill="#0c2740"/></svg></span><span class="mtxt"><b>Donjon</b><i>la vraie salle du boss</i></span></button>
     <button class="mbtn on" id="modeSonge" title="Grande map vide : construis la tienne avec ✏️ Obstacles">
       <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M16 16C16.4 14.6 18.2 14.2 19.3 15.4C21 16.9 20 19.8 17.4 20.4C13.6 21.2 10.4 18 11 14C11.7 9.2 16.8 6.2 21.6 7.6C27.2 9.2 29.6 15.8 26.8 21.4" fill="none" stroke="#f4c65a" stroke-width="2.6" stroke-linecap="round"/><circle cx="16" cy="16" r="1.5" fill="#ffe9a8"/></svg></span><span class="mtxt"><b>Songe</b><i>grande map à construire</i></span></button>
-    <button class="mbtn" id="modePorte" title="Les maps de tes screens, reconstruites case par case : sol, blocs et trous (corrigeables, sauvegardées)">
-      <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M16 3L29 16L16 29L3 16Z" fill="none" stroke="#f0975c" stroke-width="2.2" stroke-linejoin="round"/><path d="M16 9L23 16L16 23L9 16Z" fill="#f0975c" opacity=".45"/><path d="M13 14h6v6h-6z" fill="#2b1608"/></svg></span><span class="mtxt"><b>Portes de Songe</b><i>les maps de tes screens</i></span></button>
-    <div id="porteWrap">
-      <button id="porteSelBtn" type="button" title="Choisis la map — survole une entrée pour l'APERÇU, clique pour l'ouvrir">Boss 1 ▾</button>
-      <div id="porteList"></div>
+    <div id="songeSubs"><!-- s'ouvre avec l'onglet Songe : les maps de BOSS et les maps de tes screens -->
+      <div class="subwrap"><button class="subbtn" id="bossSelBtn" type="button" title="Les maps de boss reconstruites — survole une entrée pour l'aperçu, clique pour l'ouvrir">👹 Boss ▾</button>
+        <div class="sublist" id="bossList"></div></div>
+      <div class="subwrap"><button class="subbtn" id="mapsSelBtn" type="button" title="Les maps de tes screens — survole une entrée pour l'aperçu, clique pour l'ouvrir">🗺️ Maps ▾</button>
+        <div class="sublist" id="mapsList"></div></div>
       <canvas id="portePrev" width="176" height="124"></canvas>
     </div>
   </div>
 </div>
+
+<!-- En Bac à sable : la grande card « LE COMTE EN » se replie en ce simple bouton de retour -->
+<button class="hud card" id="backComte" style="display:none" title="Retourner aux cartes du Comte (Donjon / Songe / Portes de Songe)">❄️ <b>Retour au Comte</b></button>
 
 <!-- Bac à sable : carte À PART (ce n'est pas une salle « du Comte »), juste sous le sélecteur, même UI -->
 <div class="hud card" id="sablePick">
@@ -455,6 +473,7 @@
 </div>
 
 <div id="toast"></div>
+<div id="turnBadge">C'EST TON TOUR</div>
 <!-- Vignette de survol : pour un perso joué, blason + guilde + pseudo, tout CENTRÉ. `blason.png` = le vrai blason Neo Midgard, recadré pile sur son disque (l'original n'a pas d'alpha : ses coins de damier sont masqués par le border-radius:50% de .hhblz). -->
 <div id="hoverHp">
   <div class="hhtop">
@@ -900,21 +919,6 @@
     g.addColorStop(.78,'rgba(74,125,255,.16)');g.addColorStop(1,'rgba(74,125,255,0)');
     x.fillStyle=g;x.fillRect(0,0,256,256);
     return new THREE.CanvasTexture(c);}
-  function badgeTex(){ // étiquette « C'EST TON TOUR » + pointe vers le perso : bien plus parlant qu'un cône
-    const txt='C\'EST TON TOUR',F='800 44px "Segoe UI",sans-serif';
-    const m=document.createElement('canvas').getContext('2d');m.font=F;
-    const W=Math.ceil(m.measureText(txt).width)+64,BH=76,PT=22,H=BH+PT; // PT = la pointe qui désigne sa tête
-    const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
-    const r=18;x.beginPath(); // bulle arrondie + pointe (un seul tracé : bord et ombre continus)
-    x.moveTo(r,0);x.lineTo(W-r,0);x.quadraticCurveTo(W,0,W,r);x.lineTo(W,BH-r);x.quadraticCurveTo(W,BH,W-r,BH);
-    x.lineTo(W/2+16,BH);x.lineTo(W/2,H);x.lineTo(W/2-16,BH); // la pointe
-    x.lineTo(r,BH);x.quadraticCurveTo(0,BH,0,BH-r);x.lineTo(0,r);x.quadraticCurveTo(0,0,r,0);x.closePath();
-    x.shadowColor='rgba(0,6,14,.9)';x.shadowBlur=12;x.fillStyle='rgba(10,26,52,.95)';x.fill();
-    x.shadowBlur=0;x.lineWidth=4;x.strokeStyle='#4a7dff';x.stroke();
-    x.font=F;x.textAlign='center';x.textBaseline='middle';x.fillStyle='#dce9ff';x.fillText(txt,W/2,BH/2+1);
-    const t=new THREE.CanvasTexture(c);if(renderer.capabilities)t.anisotropy=renderer.capabilities.getMaxAnisotropy();
-    return{tex:t,ratio:W/H,h:H/BH};}
-  const BADGE_H=0.44; // ⚠️ En vue iso, tout ce qui monte se décale vers le haut de l'écran : gros ou haut, il « appartiendrait » à la case du dessus.
   const activeMark=(()=>{const g=new THREE.Group();
     // ⚠️ L'anneau est OPAQUE et sans depthTest:false, exactement comme les anneaux rouges/bleus des entités (ring()) :
     // c'est ce qui garantit qu'il est rendu AVANT les sprites (passe opaque) → le skin passe toujours devant, jamais l'inverse.
@@ -926,14 +930,13 @@
     const h=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:haloTex(),transparent:true,
       depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));
     h.rotation.x=-Math.PI/2;h.position.y=0.02;h.renderOrder=-1;g.add(h);
-    const b=badgeTex(); // l'étiquette : ancrée sur sa POINTE (center y=0) → position.y = la tête qu'elle désigne
-    const s=new THREE.Sprite(new THREE.SpriteMaterial({map:b.tex,transparent:true,depthTest:false,fog:false}));
-    s.center.set(0.5,0);s.scale.set(BADGE_H*b.h*b.ratio,BADGE_H*b.h,1);s.renderOrder=6; // toujours visible, même derrière un mur
-    g.add(s);
-    g.userData={ring:r,halo:h,badge:s};g.visible=false;scene.add(g);return g;})();
+    g.userData={ring:r,halo:h};g.visible=false;scene.add(g);return g;})();
+  // « C'EST TON TOUR » = un élément HTML (net, style de l'UI) projeté au-dessus de sa tête à chaque frame —
+  // l'ancien sprite canvas scintillait sur les bords (mip/anisotropie + pulsation de position).
+  const turnBadgeEl=document.getElementById('turnBadge'),_badgeV=new THREE.Vector3();
   function updateActiveMark(t){ // suit le perso ACTIF (sa position d'objet : le marqueur colle à lui même en pleine marche)
     const a=(state.phase==='playing'&&!state.enemyTurn)?state.player:null;
-    if(!a||!a.placed||a.hp<=0||!a.obj||!a.obj.visible){activeMark.visible=false;return;}
+    if(!a||!a.placed||a.hp<=0||!a.obj||!a.obj.visible){activeMark.visible=false;if(turnBadgeEl)turnBadgeEl.style.display='none';return;}
     activeMark.visible=true;
     const p=a.obj.position,puls=0.5+0.5*Math.sin(t*3.4);
     activeMark.position.set(p.x,0,p.z);
@@ -941,9 +944,13 @@
     activeMark.userData.ring.material.color.setHex(ACTIVE_COL).multiplyScalar(0.62+puls*0.38); // respire par la luminosité (l'anneau reste opaque)
     const h=activeMark.userData.halo,hs=1.5+puls*0.22; // le halo respire : il enfle et s'éclaire en même temps que l'anneau
     h.scale.set(hs,hs,1);h.material.opacity=0.5+puls*0.42;
-    const b=activeMark.userData.badge,spr=a.obj.userData.spr;
-    const top=spr?spr.position.y+spr.scale.y*(1-spr.center.y):1.3; // le sommet de SON sprite : l'étiquette suit sa taille réelle
-    b.position.y=top+0.05+puls*0.05;} // elle flotte juste au-dessus de sa tête
+    if(turnBadgeEl){const spr=a.obj.userData.spr;
+      const top=spr?spr.position.y+spr.scale.y*(1-spr.center.y):1.3; // le sommet de SON sprite : l'étiquette suit sa taille réelle
+      _badgeV.set(p.x,top+0.14,p.z).project(activeCam);
+      if(_badgeV.z<1){turnBadgeEl.style.display='block';
+        turnBadgeEl.style.left=((_badgeV.x*0.5+0.5)*innerWidth)+'px';
+        turnBadgeEl.style.top=((-_badgeV.y*0.5+0.5)*innerHeight)+'px';}
+      else turnBadgeEl.style.display='none';}}
   function tokenTex(label,color){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
     x.beginPath();x.arc(64,64,52,0,6.28);x.fillStyle='#'+color.toString(16).padStart(6,'0');x.fill();
     x.lineWidth=7;x.strokeStyle='rgba(255,255,255,.8)';x.stroke();
@@ -1022,9 +1029,28 @@
   const measureCharCx=img=>{const f=measureFit(img);return f?f.cx:0.5;}; // milieu des pieds du perso (pour les skins d'alliés)
   // Taille RÉELLE d'un monstre : les PNG DofusDB ont des marges transparentes variables → à échelle égale, deux monstres
   // paraissent différents. On normalise : la hauteur VISIBLE du sprite = sc exactement, et ses pieds mesurés touchent le sol.
+  function monsterCx(img){ // centre horizontal des MONSTRES : mi-chemin entre la masse de la BANDE BASSE (les appuis au sol)
+    // et la masse GLOBALE de la silhouette — robuste à la fois pour les flottants symétriques (Vortex) et les quadrupèdes
+    // qui penchent (Bouftou). L'heuristique « colonnes du tiers haut » de measureFit, pensée pour écarter les FAMILIERS
+    // des persos, se faisait piéger par les crêtes/mèches des monstres (une seule pièce, pas de familier à écarter).
+    try{const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
+      const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(img,0,0);
+      const W=img.width,H=img.height,p=g.getImageData(0,0,W,H).data,A=(x,y)=>p[(y*W+x)*4+3];
+      let topY=-1,footY=-1;
+      for(let y=0;y<H&&topY<0;y++){let n=0;for(let x=0;x<W;x++)if(A(x,y)>205&&++n>2){topY=y;break;}}
+      for(let y=H-1;y>=0&&footY<0;y--){let n=0;for(let x=0;x<W;x++)if(A(x,y)>205&&++n>2){footY=y;break;}}
+      if(footY<0)return 0.5;
+      const b2=Math.max(3,Math.round((footY-topY)*0.12));
+      let sw=0,sx=0,gw=0,gx=0;
+      for(let y=topY;y<=footY;y++)for(let x=0;x<W;x++){const a=A(x,y);if(a>205){gw+=a;gx+=a*x;
+        if(y>=footY-b2){sw+=a;sx+=a*x;}}}
+      if(!gw)return 0.5;
+      const bande=sw?sx/sw:gx/gw,glob=gx/gw;
+      return ((bande+glob)/2+0.5)/W;
+    }catch(e){}return 0.5;}
   function fitSprite(spr,img,sc){const f=measureFit(img);if(!f)return;
     const k=sc/f.h;spr.scale.set(k,k,1);
-    spr.center.set(f.cx,1-f.foot);spr.position.y=0;} // pieds POSÉS au sol, exactement comme les persos (skinY) : à 0.05 il lévitait
+    spr.center.set(monsterCx(img),1-f.foot);spr.position.y=0;} // pieds POSÉS au sol ; centre = monsterCx (measureFit.cx reste la mesure des PERSOS)
   const skinCx={}; // milieu horizontal MESURÉ, vue par vue
   const skinAspect={}; // largeur/hauteur RÉELLE de chaque image : les planches n'ont pas toutes le même cadre (300×500, 263×524…) → sinon le perso est ÉTIRÉ
   const skinY=k=>SKIN_H*((skinFoot[k]||0.9)-0.5); // hauteur du sprite qui pose EXACTEMENT ses pieds sur la case
@@ -1534,8 +1560,11 @@
     if(C&&C.obj&&C.obj.userData.invuln)C.obj.userData.invuln.visible=C.alive&&!C.vulnerable; // état 🛡️ au-dessus de sa tête : disparaît une fois délock, revient quand il se re-verrouille
     el('paNum').textContent=state.player.pa;el('pmNum').textContent=state.player.pm;
     const playing=state.phase==='playing';
-    el('topbar').style.display=playing?'':'none'; // bandeau Tour/parité/vulnérabilité/confusion : seulement en combat
+    el('topbar').style.display=(playing&&state.map!=='sable')?'':'none'; // bandeau Tour/parité/vulnérabilité : en combat, mais PAS en Bac à sable (pas de Comte à y gérer)
     if(el('retreat'))el('retreat').style.display=playing?'':'none'; // « Abandonner » : seulement en combat
+    {const sable2=state.map==='sable'; // en sable, la grande card « LE COMTE EN » laisse place à un simple bouton de retour
+     el('mapPick').style.display=sable2?'none':'flex';
+     if(el('backComte'))el('backComte').style.display=sable2?'':'none';}
     {const dj=state.map==='dj',porte=isPorte(state.map),sable=state.map==='sable'; // le DONJON reste figé ; les maps PORTE sont CORRIGEABLES (pinceaux) mais pas étirables (formes réelles)
      const showSetup=(state.phase==='setup'||!comte())&&!dj; // les outils de map restent tant que le COMTE n'est pas là (le combat, lui, démarre dès le 1er perso posé)
      el('setup').style.display=showSetup?'flex':'none';
@@ -1735,7 +1764,7 @@
   function updateHints(){
     const sig=()=>[state.adviceCell,state.aimCell,state.hitCell].map(c=>c?key(c.x,c.y):'-').join('|'); // les 3 cases (verte, cyan, violette)
     const was=sig();
-    const on=state.phase==='playing'&&state.showDelock;
+    const on=state.phase==='playing'&&state.showDelock&&state.map!=='sable'; // pas de bandeau assistant en Bac à sable (terrain d'essai libre)
     const txt=on?delockAdvice():(state.adviceCell=state.aimCell=state.hitCell=null,'');
     const m=el('delockMsg');
     if(m){if(on){m.innerHTML=txt;m.classList.add('show');}else m.classList.remove('show');}
@@ -2344,8 +2373,11 @@
     if(loadMapState(m))renderMap();else freshMapState(); // carte déjà visitée → retrouvée INTACTE ; sinon → carte neuve
     applyRosterMode(); // bac à sable → widget des 19 classes ; sinon → persos + Comte + poutchs
     updateSetupBtns();updateMapSizeLabels();setActive(state.active);refreshTiles();refreshHUD();renderTips();
-    el('modeDj').classList.toggle('on',m==='dj');el('modeSonge').classList.toggle('on',m==='songe');el('modeSable').classList.toggle('on',m==='sable');el('modePorte').classList.toggle('on',isPorte(m));
-    if(isPorte(m)&&el('porteSelBtn'))el('porteSelBtn').textContent=(PS_MAPS[+m.slice(5)||0]||PS_MAPS[0]).name+' ▾'; // le bouton de la liste affiche la map active
+    el('modeDj').classList.toggle('on',m==='dj');el('modeSonge').classList.toggle('on',m==='songe'||isPorte(m));el('modeSable').classList.toggle('on',m==='sable');
+    if(el('songeSubs')){el('songeSubs').classList.toggle('open',m==='songe'||isPorte(m)); // l'onglet Songe déplie ses 2 listes (boss + maps)
+      const bi=isPorte(m)?(+m.slice(5)||0):-1,nm=bi>=0?(PS_MAPS[bi]||PS_MAPS[0]).name:null,isBoss=!!(nm&&nm.slice(0,4)==='Boss');
+      el('bossSelBtn').textContent='👹 '+(isBoss?nm:'Boss')+' ▾';el('bossSelBtn').classList.toggle('on',isBoss);
+      el('mapsSelBtn').textContent='🗺️ '+(nm&&!isBoss?nm:'Maps')+' ▾';el('mapsSelBtn').classList.toggle('on',!!(nm&&!isBoss));}
     toast(isPorte(m)?('🚪 '+(PS_MAPS[+m.slice(5)||0]||PS_MAPS[0]).name+' : map reconstruite de ton screen — corrige-la avec les pinceaux, tout est sauvegardé. Chaque carte est totalement séparée des autres.')
          :({dj:'🏰 Donjon : la vraie salle du Comte — pose tes persos et le boss à la main.',
            songe:'🌙 Songe : grande map à construire.',
@@ -2353,9 +2385,9 @@
   el('modeDj').onclick=()=>setMapMode('dj');
   el('modeSonge').onclick=()=>setMapMode('songe');
   el('modeSable').onclick=()=>setMapMode('sable');
-  (function(){ // liste déroulante custom des maps Porte : SURVOL = aperçu dessiné de la carte, clic = ouverture
-    const btn=el('porteSelBtn'),list=el('porteList'),prev=el('portePrev');
-    let curIdx=0;
+  el('backComte').onclick=()=>setMapMode('songe'); // depuis le Bac à sable : retour aux cartes du Comte
+  (function(){ // les 2 listes déroulantes de l'onglet Songe (Boss / Maps) : SURVOL = aperçu dessiné de la carte, clic = ouverture
+    const prev=el('portePrev'),subs=el('songeSubs');
     function drawPrev(i){ // mini-rendu iso 2D (les corrections localStorage de CETTE map priment sur le layout gravé)
       const g2=prev.getContext('2d');g2.clearRect(0,0,prev.width,prev.height);
       let cells=null;
@@ -2378,16 +2410,24 @@
         g2.moveTo(cx+hw,cy);g2.lineTo(cx,cy+hh);g2.lineTo(cx-hw,cy);g2.lineTo(cx,cy-hh);g2.closePath();g2.fill();};
       cells.forEach((t,k)=>{const[x,y]=k.split(',').map(Number);if(t==='#')dr(x,y,((x+y)&1)?'#1b3d5e':'#22456b');});
       cells.forEach((t,k)=>{const[x,y]=k.split(',').map(Number);if(t==='X'){dr(x,y-0.45,'#c98042');dr(x,y,'#8a5427');}});}
-    PS_MAPS.forEach((mp,i)=>{const it=document.createElement('div');
-      it.className='pitem';it.textContent=mp.name;
-      it.onmouseenter=()=>{drawPrev(i);prev.style.display='block';
-        prev.style.top=Math.max(0,list.offsetTop+it.offsetTop-list.scrollTop-40)+'px';};
-      it.onmouseleave=()=>{prev.style.display='none';};
-      it.onclick=ev=>{ev.stopPropagation();curIdx=i;list.classList.remove('open');prev.style.display='none';setMapMode('porte'+i);};
-      list.appendChild(it);});
-    btn.onclick=ev=>{ev.stopPropagation();list.classList.toggle('open');prev.style.display='none';};
-    document.addEventListener('pointerdown',ev=>{if(!list.contains(ev.target)&&ev.target!==btn){list.classList.remove('open');prev.style.display='none';}});
-    el('modePorte').onclick=()=>setMapMode('porte'+curIdx);})();
+    const closeAll=()=>{subs.querySelectorAll('.sublist').forEach(l=>l.classList.remove('open'));prev.style.display='none';};
+    function wire(btnId,listId,indices){
+      const btn=el(btnId),list=el(listId);
+      indices.forEach(i=>{const it=document.createElement('div');
+        it.className='pitem';it.textContent=PS_MAPS[i].name;
+        it.onmouseenter=()=>{drawPrev(i);prev.style.display='block';
+          const r=it.getBoundingClientRect(),R=subs.getBoundingClientRect();
+          prev.style.top=Math.max(0,r.top-R.top-40)+'px';};
+        it.onmouseleave=()=>{prev.style.display='none';};
+        it.onclick=ev=>{ev.stopPropagation();closeAll();setMapMode('porte'+i);};
+        list.appendChild(it);});
+      btn.onclick=ev=>{ev.stopPropagation();const was=list.classList.contains('open');closeAll();if(!was)list.classList.add('open');};}
+    const bossIdx=[],mapsIdx=[];
+    PS_MAPS.forEach((mp,i)=>(mp.name.slice(0,4)==='Boss'?bossIdx:mapsIdx).push(i)); // « Boss … » = la liste des boss (3 à terme) ; le reste = les maps
+    wire('bossSelBtn','bossList',bossIdx);
+    wire('mapsSelBtn','mapsList',mapsIdx);
+    document.addEventListener('pointerdown',ev=>{if(!ev.target.closest('#songeSubs'))closeAll();});
+    if(state.map==='songe'||isPorte(state.map))subs.classList.add('open');})(); // au boot, la carte par défaut est Songe → ses listes sont visibles d'entrée
   el('invTag').onclick=()=>{const C=comte();if(!C){toast('Le boss apparaîtra au lancement du combat.');return;}
     C.vulnerable=!C.vulnerable;refreshHUD();toast(C.vulnerable?'🎯 Boss signalé VULNÉRABLE (délock).':'🛡️ Boss signalé invulnérable.');};
   // (bouton « 🔓 DÉLOCK » de secours retiré : le clic sur 🛡️/🎯 juste à côté fait déjà basculer l'état du boss à la main)
@@ -2444,6 +2484,9 @@
           +`<div class="slot act sum" data-act="arakne" title="Invoquer une Arakne"><span class="ic">🕷️</span><span class="lab">+</span></div>`;
     }
     box.innerHTML=html;
+    const nSlots=box.children.length,deux=state.map==='sable'&&nSlots>8; // Bac à sable : les ~22 sorts d'une classe sur DEUX lignes, sans défilement
+    box.classList.toggle('deux',deux);
+    box.style.width=deux?(Math.ceil(nSlots/2)*49+4)+'px':'';
     box.querySelectorAll('.slot').forEach(d=>{
       if(d.dataset.act){d.onclick=()=>doAction(d.dataset.act);return;}
       const sp=(spells||[]).find(s=>s.id===+d.dataset.id);
