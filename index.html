@@ -417,8 +417,8 @@
 <div id="loading">❄️ Chargement de l'arène 3D et des données Dofus…</div>
 
 <div id="homePick"><div class="hp-in">
-  <h1>❄️ HAREBOURG TACTIQUE</h1>
-  <div class="hp-sub" id="hpSub">Choisis ta partie</div>
+  <h1>❄️ Assistant Comte Harebourg</h1>
+  <div class="hp-sub" id="hpSub">Choisis ton mode de jeu</div>
   <div class="hp-cards" id="hpStep1">
     <button class="hp-card" id="hpComte" type="button"><span class="hp-ic">👑</span><b>Comte Harebourg</b><span>Donjon &amp; Songe — le combat, l'assistant et le délock.</span></button>
     <button class="hp-card" id="hpSable" type="button"><span class="hp-ic">🧪</span><b>Bac à sable</b><span>Grande carte libre — classes, sorts et monstres sans règles.</span></button>
@@ -3013,7 +3013,7 @@
   (()=>{const hp=el('homePick');if(!hp)return; // ACCUEIL en 2 étapes : ① Comte / Bac à sable → ② Donjon / Songe (direction directe)
     const bye=()=>{hp.classList.add('bye');setTimeout(()=>hp.remove(),450);};
     el('hpComte').onclick=()=>{el('hpStep1').style.display='none';el('hpStep2').style.display='block';el('hpSub').textContent='En Donjon ou en Songe ?';};
-    el('hpBack').onclick=()=>{el('hpStep2').style.display='none';el('hpStep1').style.display='flex';el('hpSub').textContent='Choisis ta partie';};
+    el('hpBack').onclick=()=>{el('hpStep2').style.display='none';el('hpStep1').style.display='flex';el('hpSub').textContent='Choisis ton mode de jeu';};
     el('hpDj').onclick=()=>{setMapMode('dj');bye();}; // → directement la vraie salle
     el('hpSonge').onclick=()=>{bye();if(state.map==='songe'&&openRoomPick)openRoomPick();}; // → la page Songe (map d'attente) + son choix de salle
     el('hpSable').onclick=()=>{setMapMode('sable');bye();};})();
