@@ -433,7 +433,7 @@
 
 <!-- SONGE : le choix de la salle à afficher (le Donjon, lui, se choisit à l'ACCUEIL — pas de doublon ici) -->
 <div id="roomPick"><div class="rp-in">
-  <h2>🌙 PORTE DE SONGE</h2>
+  <h2>🌙 SALLES EN SONGE</h2>
   <div class="rp-sub">Choisis la salle à afficher</div>
   <h3>👹 Maps Finale</h3><div class="rp-grid" id="rpBoss"></div>
   <h3>🗺️ Maps des salles</h3><div class="rp-grid" id="rpRooms"></div>
@@ -727,7 +727,7 @@
   // LUMIÈRE NÉON sous le plateau : la silhouette de la map est peinte sur un canvas puis FLOUTÉE (2 passes),
   // et plaquée en blending ADDITIF → un halo diffus qui épouse la forme (octogone, trous…) sans AUCUN bord net.
   // (remplace l'ancienne « plaque » à quads par case : plate, carrée, contours visibles)
-  const NEON_S=512,neonCv=document.createElement('canvas');neonCv.width=neonCv.height=NEON_S;
+  const NEON_S=1024,neonCv=document.createElement('canvas');neonCv.width=neonCv.height=NEON_S; // 1024 : au zoom du cadrage auto, 512 laissait voir les pixels du halo
   const neonTex=new THREE.CanvasTexture(neonCv);
   const NEON_SPAN=N*TILE*1.25; // le plane déborde de 25% : la lumière peut fuir au-delà du bord des cases
   const neonFloor=new THREE.Mesh(new THREE.PlaneGeometry(NEON_SPAN,NEON_SPAN),
@@ -741,8 +741,8 @@
       r2.fillRect(off+x*sc,off+y*sc,sc+0.5,sc+0.5);} // +0.5 : pas de coutures entre cases voisines
     const tint=c=>{r2.globalCompositeOperation='source-in';r2.fillStyle=c;r2.fillRect(0,0,S,S);r2.globalCompositeOperation='source-over';};
     const c2=neonCv.getContext('2d');c2.clearRect(0,0,S,S);
-    tint('#2f9df0');c2.filter='blur('+(sc*1.6)+'px)';c2.globalAlpha=.9;c2.drawImage(raw,0,0);   // halo bleu, large et doux
-    tint('#c8ecff');c2.filter='blur('+(sc*0.55)+'px)';c2.globalAlpha=.75;c2.drawImage(raw,0,0); // cœur presque blanc (additif → centre lumineux)
+    tint('#2f9df0');c2.filter='blur('+(sc*2.3)+'px)';c2.globalAlpha=.8;c2.drawImage(raw,0,0);   // halo bleu LARGE (≥2 cases : gomme les dents du contour → diffusion progressive)
+    tint('#9fd9ff');c2.filter='blur('+(sc*0.9)+'px)';c2.globalAlpha=.6;c2.drawImage(raw,0,0);   // cœur plus clair, lui aussi bien fondu (aucun bord net)
     c2.filter='none';c2.globalAlpha=1;
     c2.globalCompositeOperation='destination-out';c2.fillStyle='#fff'; // les TROUS INTERNES restent SOMBRES : sans ça, le halo flou fuit par l'ouverture et noie les parois du gouffre
     innerHoles().forEach(k=>{const[x,y]=k.split(',').map(Number);c2.fillRect(off+x*sc-0.5,off+y*sc-0.5,sc+1,sc+1);});
@@ -2653,7 +2653,8 @@
       btn.onclick=ev=>{ev.stopPropagation();const was=list.classList.contains('open');closeAll();if(!was){list.classList.add('open');sdUpd();}};} // mesurable seulement une fois la liste AFFICHÉE
     const bossIdx=[],mapsIdx=[];
     PS_MAPS.forEach((mp,i)=>(mp.name.slice(0,4)==='Boss'?bossIdx:mapsIdx).push(i)); // « Boss … » = la liste des boss (3 à terme) ; le reste = les maps
-    wire('mapsSelBtn','mapsList',[...bossIdx,...mapsIdx]); // liste UNIQUE : Boss 1 en tête, puis les salles (le bouton « Maps Finale » a été supprimé)
+    wire('mapsSelBtn','mapsList',[...bossIdx,...mapsIdx]); // (la liste reste construite pour l'aperçu au survol, mais le clic ouvre désormais le PANNEAU)
+    el('mapsSelBtn').onclick=ev=>{ev.stopPropagation();closeAll();if(openRoomPick)openRoomPick();}; // « Choisis ta map » = la grande interface des salles (vignettes), plus la petite liste
     document.addEventListener('pointerdown',ev=>{if(!ev.target.closest('#songeSubs'))closeAll();});
     if(state.map==='songe'||isPorte(state.map))subs.classList.add('open'); // au boot, la carte par défaut est Songe → ses listes sont visibles d'entrée
     // ---- panneau central « Choisis ta salle » : ouvert en arrivant sur Songe (mêmes maps que les 2 listes) ----
