@@ -416,20 +416,10 @@
     background:rgba(6,14,26,.42);backdrop-filter:blur(9px) saturate(1.1);-webkit-backdrop-filter:blur(9px) saturate(1.1)}
   #roomPick.show{display:flex;animation:rpin .22s ease-out}
   @keyframes rpin{from{opacity:0}to{opacity:1}}
-  /* fond : DAMIER (2 gradients à 45° décalés d'une demi-tuile = cases alternées) qui DÉRIVE lentement en diagonale,
-     sous le dégradé de la card — très discret, il ne doit pas gêner la lecture des vignettes.
-     ⚠️ La tuile doit rester CARRÉE : en 2:1 (pour imiter l'iso du jeu) les gradients se déforment en zigzags. */
   #roomPick .rp-in{max-width:min(92vw,880px);max-height:86vh;overflow:auto;padding:26px 30px 24px;border-radius:18px;
-    background:
-      linear-gradient(45deg,rgba(75,184,240,.06) 25%,transparent 25%,transparent 75%,rgba(75,184,240,.06) 75%) 0 0/46px 46px,
-      linear-gradient(45deg,rgba(75,184,240,.06) 25%,transparent 25%,transparent 75%,rgba(75,184,240,.06) 75%) 23px 23px/46px 46px,
-      linear-gradient(165deg,rgba(16,34,58,.96),rgba(8,18,34,.97));
-    animation:rpDamier 26s linear infinite; /* lent : une tuile toutes les 26 s, on le devine plus qu'on ne le voit */
-    border:1px solid var(--border-strong);
+    background:linear-gradient(165deg,rgba(16,34,58,.96),rgba(8,18,34,.97));border:1px solid var(--border-strong);
     box-shadow:0 24px 70px rgba(0,0,0,.6),inset 0 1px 0 rgba(143,228,255,.12);text-align:center;
     scrollbar-width:none} /* scrollable SANS barre visible : les coins arrondis restent nets des deux côtés */
-  @keyframes rpDamier{from{background-position:0 0,23px 23px,0 0}to{background-position:46px 46px,69px 69px,0 0}}
-  @media (prefers-reduced-motion:reduce){#roomPick .rp-in{animation:none}}
   #roomPick .rp-in::-webkit-scrollbar{display:none}
   #roomPick h2{font-family:var(--display);font-size:22px;letter-spacing:.1em;color:var(--frost);margin-bottom:2px;text-shadow:0 2px 14px rgba(75,184,240,.45)}
   #roomPick .rp-sub{color:var(--muted);font-size:12px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:14px}
