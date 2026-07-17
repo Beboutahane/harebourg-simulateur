@@ -210,8 +210,14 @@
   #modeSonge.on{border-color:#b98cff;background:linear-gradient(120deg,rgba(185,140,255,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(185,140,255,.35)}
   #modeSable.on{border-color:#6be3c0;background:linear-gradient(120deg,rgba(107,227,192,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(107,227,192,.35)}
   #modePorte.on{border-color:#f0975c;background:linear-gradient(120deg,rgba(240,151,92,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(240,151,92,.35)}
-  #porteSel{width:100%;margin-top:4px;padding:6px 8px;background:rgba(8,18,32,.85);color:#f0b98c;border:1px solid rgba(240,151,92,.45);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer}
-  #porteSel:hover{border-color:#f0975c}
+  #porteWrap{position:relative;margin-top:4px}
+  #porteSelBtn{width:100%;padding:6px 8px;background:rgba(8,18,32,.85);color:#f0b98c;border:1px solid rgba(240,151,92,.45);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;text-align:left}
+  #porteSelBtn:hover{border-color:#f0975c}
+  #porteList{display:none;position:absolute;left:0;right:0;top:100%;margin-top:2px;max-height:230px;overflow-y:auto;background:rgba(8,18,32,.97);border:1px solid rgba(240,151,92,.45);border-radius:8px;z-index:30}
+  #porteList.open{display:block}
+  #porteList .pitem{padding:6px 9px;font-size:12px;font-weight:700;color:#e8d9c8;cursor:pointer;white-space:nowrap}
+  #porteList .pitem:hover{background:rgba(240,151,92,.18);color:#ffd9b0}
+  #portePrev{display:none;position:absolute;left:calc(100% + 6px);top:0;background:rgba(6,14,26,.97);border:1px solid rgba(240,151,92,.5);border-radius:8px;z-index:31;pointer-events:none}
   #ctxMenu,#placeMenu,#allyMenu{position:absolute;z-index:12;display:none;background:var(--panel);border:1px solid var(--border-strong);border-radius:9px;padding:4px;pointer-events:auto;box-shadow:0 10px 24px rgba(0,8,20,.6)}
   #ctxMenu.show,#placeMenu.show,#allyMenu.show{display:block}
   #ctxMenu button,#placeMenu button{display:block;width:100%;border:0;background:transparent;color:var(--danger);font-family:var(--font);font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:7px;cursor:pointer;text-align:left;white-space:nowrap}
@@ -374,7 +380,11 @@
       <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M16 16C16.4 14.6 18.2 14.2 19.3 15.4C21 16.9 20 19.8 17.4 20.4C13.6 21.2 10.4 18 11 14C11.7 9.2 16.8 6.2 21.6 7.6C27.2 9.2 29.6 15.8 26.8 21.4" fill="none" stroke="#f4c65a" stroke-width="2.6" stroke-linecap="round"/><circle cx="16" cy="16" r="1.5" fill="#ffe9a8"/></svg></span><span class="mtxt"><b>Songe</b><i>grande map à construire</i></span></button>
     <button class="mbtn" id="modePorte" title="Les maps de tes screens, reconstruites case par case : sol, blocs et trous (corrigeables, sauvegardées)">
       <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M16 3L29 16L16 29L3 16Z" fill="none" stroke="#f0975c" stroke-width="2.2" stroke-linejoin="round"/><path d="M16 9L23 16L16 23L9 16Z" fill="#f0975c" opacity=".45"/><path d="M13 14h6v6h-6z" fill="#2b1608"/></svg></span><span class="mtxt"><b>Portes de Songe</b><i>les maps de tes screens</i></span></button>
-    <select id="porteSel" title="Choisis la map — elle s'ouvre directement"></select>
+    <div id="porteWrap">
+      <button id="porteSelBtn" type="button" title="Choisis la map — survole une entrée pour l'APERÇU, clique pour l'ouvrir">Boss 1 ▾</button>
+      <div id="porteList"></div>
+      <canvas id="portePrev" width="176" height="124"></canvas>
+    </div>
   </div>
 </div>
 
@@ -712,14 +722,13 @@
   // du dossier Desktop\MAPS (grille détectée par les liserés des cases de départ, hw≈21.6 ; doublons écartés :
   // capture 10 = capture 7, capture 19 = capture 18). Chaque map est CENTRÉE sur la grille 31×31 au rendu. =====
   const PS_MAPS=[
-   {name:'Porte de Songe',rows:[
-    '.....####......................','...######......................','..#############........#####...',
-    '..###########XX........######..','.################...#########..','.####X###########..XX########..',
-    '.################...##########.','.##########..#################.','.#############################.',
-    '################XX######.####..','####.###########XX######.####..','####.#################XX.####..',
-    '#########XX##################..','##########...################..','.#######.....##############....',
-    '..#####........#####X######....','.....................######....','......................#####....',
-    '......................####.....']},
+   {name:'Boss 1',rows:[ // la Porte de Songe CORRIGÉE par l'utilisateur (relue depuis sa capture du simulateur — homographie sur le damier, sa sauvegarde locale ayant été perdue)
+    '.......###..............','......###...............','......##................',
+    '.....###................','....######..............','...########.#...........',
+    '.###########X##....###..','#######X#######..X.####.','.###.############X######',
+    '.##..###################','....##########XX########','....######X###X###X####.',
+    '....######X############.','.....#####..###########.','......###.....###X#####.',
+    '..................####..','..................###...']},
    {name:'map songe 1',rows:[
     '.......#####X.......','...#########X####...','...##############X..','.X####X##########X..',
     '.X###########X###XXX','.X#########..X#####X','XXXX....############','X###################',
@@ -834,8 +843,7 @@
         else if(c==='X')state.obstacles.add(key(x,y));} // bloc posé sur du sol
     }else if(isPorte(state.map)){ // PORTES DE SONGE = maps reconstruites des screenshots — les retouches de l'utilisateur (localStorage, par map) priment
       state.obstacles=new Set();
-      let saved=null;try{saved=JSON.parse(localStorage.getItem('ps_map_custom_v1:'+state.map)
-        ||(state.map==='porte0'?localStorage.getItem('ps_map_custom_v1'):null)||'null');}catch(_){} // compat : l'ancienne clé (v4.33) = la 1re map
+      let saved=null;try{saved=JSON.parse(localStorage.getItem('ps_map_custom_v1:'+state.map)||'null');}catch(_){} // (plus de repli sur l'ancienne clé v4.33 : elle masquerait « Boss 1 », qui EST la version corrigée gravée)
       if(saved&&saved.v&&saved.o){state.voids=new Set(saved.v);state.obstacles=new Set(saved.o);}
       else{const def=PS_MAPS[+state.map.slice(5)||0]||PS_MAPS[0];
         const offX=Math.floor((N-def.rows[0].length)/2),offY=Math.floor((N-def.rows.length)/2); // map CENTRÉE sur la grille
@@ -2337,7 +2345,7 @@
     applyRosterMode(); // bac à sable → widget des 19 classes ; sinon → persos + Comte + poutchs
     updateSetupBtns();updateMapSizeLabels();setActive(state.active);refreshTiles();refreshHUD();renderTips();
     el('modeDj').classList.toggle('on',m==='dj');el('modeSonge').classList.toggle('on',m==='songe');el('modeSable').classList.toggle('on',m==='sable');el('modePorte').classList.toggle('on',isPorte(m));
-    if(isPorte(m)&&el('porteSel'))el('porteSel').selectedIndex=+m.slice(5)||0; // la liste déroulante suit la carte active
+    if(isPorte(m)&&el('porteSelBtn'))el('porteSelBtn').textContent=(PS_MAPS[+m.slice(5)||0]||PS_MAPS[0]).name+' ▾'; // le bouton de la liste affiche la map active
     toast(isPorte(m)?('🚪 '+(PS_MAPS[+m.slice(5)||0]||PS_MAPS[0]).name+' : map reconstruite de ton screen — corrige-la avec les pinceaux, tout est sauvegardé. Chaque carte est totalement séparée des autres.')
          :({dj:'🏰 Donjon : la vraie salle du Comte — pose tes persos et le boss à la main.',
            songe:'🌙 Songe : grande map à construire.',
@@ -2345,9 +2353,41 @@
   el('modeDj').onclick=()=>setMapMode('dj');
   el('modeSonge').onclick=()=>setMapMode('songe');
   el('modeSable').onclick=()=>setMapMode('sable');
-  PS_MAPS.forEach((mp,i)=>{const o=document.createElement('option');o.value=i;o.textContent=mp.name;el('porteSel').appendChild(o);}); // la liste déroulante des maps Porte
-  el('modePorte').onclick=()=>setMapMode('porte'+(+el('porteSel').value||0));
-  el('porteSel').onchange=()=>setMapMode('porte'+(+el('porteSel').value||0));
+  (function(){ // liste déroulante custom des maps Porte : SURVOL = aperçu dessiné de la carte, clic = ouverture
+    const btn=el('porteSelBtn'),list=el('porteList'),prev=el('portePrev');
+    let curIdx=0;
+    function drawPrev(i){ // mini-rendu iso 2D (les corrections localStorage de CETTE map priment sur le layout gravé)
+      const g2=prev.getContext('2d');g2.clearRect(0,0,prev.width,prev.height);
+      let cells=null;
+      try{const sv=JSON.parse(localStorage.getItem('ps_map_custom_v1:porte'+i)||'null');
+        if(sv&&sv.v&&sv.o){cells=new Map();const voids=new Set(sv.v),obs=new Set(sv.o);
+          for(let y=0;y<N;y++)for(let x=0;x<N;x++){const k=x+','+y;
+            if(!voids.has(k))cells.set(k,obs.has(k)?'X':'#');}}}catch(_){}
+      if(!cells){cells=new Map();
+        (PS_MAPS[i]||PS_MAPS[0]).rows.forEach((row,y)=>{for(let x=0;x<row.length;x++)if(row[x]!=='.')cells.set(x+','+y,row[x]);});}
+      if(!cells.size)return;
+      let xMin=1e9,xMax=-1,yMin=1e9,yMax=-1;
+      cells.forEach((_,k)=>{const[x,y]=k.split(',').map(Number);
+        xMin=Math.min(xMin,x);xMax=Math.max(xMax,x);yMin=Math.min(yMin,y);yMax=Math.max(yMax,y);});
+      const span=(xMax-xMin)+(yMax-yMin)+2;
+      const hw=Math.min((prev.width-10)/span,(prev.height-12)*2/span),hh=hw/2;
+      const ox=prev.width/2-((xMax+xMin)/2-(yMax+yMin)/2)*hw;
+      const oy=prev.height/2-((xMax+xMin)/2+(yMax+yMin)/2)*hh;
+      const dr=(x,y,col)=>{const cx=ox+(x-y)*hw,cy=oy+(x+y)*hh;
+        g2.fillStyle=col;g2.beginPath();
+        g2.moveTo(cx+hw,cy);g2.lineTo(cx,cy+hh);g2.lineTo(cx-hw,cy);g2.lineTo(cx,cy-hh);g2.closePath();g2.fill();};
+      cells.forEach((t,k)=>{const[x,y]=k.split(',').map(Number);if(t==='#')dr(x,y,((x+y)&1)?'#1b3d5e':'#22456b');});
+      cells.forEach((t,k)=>{const[x,y]=k.split(',').map(Number);if(t==='X'){dr(x,y-0.45,'#c98042');dr(x,y,'#8a5427');}});}
+    PS_MAPS.forEach((mp,i)=>{const it=document.createElement('div');
+      it.className='pitem';it.textContent=mp.name;
+      it.onmouseenter=()=>{drawPrev(i);prev.style.display='block';
+        prev.style.top=Math.max(0,list.offsetTop+it.offsetTop-list.scrollTop-40)+'px';};
+      it.onmouseleave=()=>{prev.style.display='none';};
+      it.onclick=ev=>{ev.stopPropagation();curIdx=i;list.classList.remove('open');prev.style.display='none';setMapMode('porte'+i);};
+      list.appendChild(it);});
+    btn.onclick=ev=>{ev.stopPropagation();list.classList.toggle('open');prev.style.display='none';};
+    document.addEventListener('pointerdown',ev=>{if(!list.contains(ev.target)&&ev.target!==btn){list.classList.remove('open');prev.style.display='none';}});
+    el('modePorte').onclick=()=>setMapMode('porte'+curIdx);})();
   el('invTag').onclick=()=>{const C=comte();if(!C){toast('Le boss apparaîtra au lancement du combat.');return;}
     C.vulnerable=!C.vulnerable;refreshHUD();toast(C.vulnerable?'🎯 Boss signalé VULNÉRABLE (délock).':'🛡️ Boss signalé invulnérable.');};
   // (bouton « 🔓 DÉLOCK » de secours retiré : le clic sur 🛡️/🎯 juste à côté fait déjà basculer l'état du boss à la main)
