@@ -411,14 +411,15 @@
      toujours DERRIÈRE les vignettes (.hp-in est en z-index:1).
      ⚠️ Aucun `filter` ni `mix-blend-mode` ici (parent #homePick en backdrop-filter → ils ré-afficheraient le fond
      flouté dans le rectangle du div, cf. « fond horrible » déjà rencontré). Juste background + animation d'entrée. */
-  /* Fond d'accueil : L'ARTWORK COMPLET fourni par l'user (Comte + nuit + sol dallé, harebourg-fond.webp 1536×1024)
-     posé TEL QUEL en cover, ancré à DROITE (le Comte reste toujours entier ; c'est le vide de gauche qui se rogne
-     sur les écrans étroits). Plus AUCUN détourage, calque, grain ni étoile CSS : l'image fait tout. */
+  /* Fond d'accueil : la PARTIE GAUCHE (nuit + sol dallé embrumé, SANS le Comte peint à droite) de harebourg-fond.webp,
+     cadrée `left center` avec une taille qui pousse le Comte intégré HORS ÉCRAN (il commence à x≈900/1536 → largeur
+     ≥ 170.7vw ; et ≥150vh pour couvrir en hauteur). Le Comte AFFICHÉ est le calque détouré ancré sur la vignette
+     Songe (.hpComteArt) : l'INTERFACE reste centrée et immobile, c'est le DÉCOR qui se cale sur elle. */
   #hpBg{position:absolute;inset:0;z-index:0;pointer-events:none;
-    background:#04080c url(harebourg-fond.webp) right center/cover no-repeat;
+    background:#04080c url(harebourg-fond.webp) left center/max(170.7vw,150vh) no-repeat;
     animation:hpBgIn 1.2s ease-out both}
   @keyframes hpBgIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
-  #homePick .hp-in{text-align:center;position:relative;z-index:1} /* positionné PAR JS : le coin haut-droit de la carte Songe se cale sous les DOIGTS du Comte du fond (cover ancré à droite → dépend de l'écran) */
+  #homePick .hp-in{text-align:center;transform:translateY(-3vh);position:relative;z-index:1} /* vignettes CENTRÉES et immobiles (règle : l'interface ne bouge pas, c'est le décor qui s'adapte) */
   #homePick h1{font-family:var(--display);font-size:34px;letter-spacing:.12em;color:var(--frost);
     /* ombre SOMBRE d'abord (lisibilité par-dessus les zones claires de l'artwork), puis une pointe de bleu pour le style.
        z-index : le titre passe AU-DESSUS du Comte accoudé (son épaulière recouvrait la fin du titre). */
@@ -458,7 +459,12 @@
      pile sur le coin haut-droit de la vraie vignette → le coude se pose dessus à toutes les tailles d'écran.
      ⚠️ AUCUN filter/blend ici (parent #homePick en backdrop-filter, cf. v4.69). pointer-events:none : le clic passe
      au bouton, et le hover du bouton soulève carte + Comte ensemble. */
-  /* (plus de calque .hpComteArt : le Comte fait partie du fond harebourg-fond.webp) */
+  /* Le COMTE = un CALQUE DE DÉCOR (détouré, harebourg-comte-songe.webp) ancré sur la vignette Songe : il s'appuie
+     dessus, main qui retombe devant (pose de la référence). Wrapper autour du bouton → au survol la carte se
+     soulève seule ; l'img APRÈS le bouton dans le DOM → le bras passe DEVANT la carte ; pointer-events:none. */
+  .hpSongeWrap{position:relative;display:flex}
+  .hpSongeWrap .hpComteArt{position:absolute;right:-345px;top:-385px;width:565px;pointer-events:none;display:block}
+  @media (max-width:1100px){.hpSongeWrap .hpComteArt{display:none}} /* écran étroit : pas la place pour le calque */
   .hp-card b{display:block;font-family:var(--display);font-size:18px;letter-spacing:.06em;color:var(--frost);margin-bottom:7px}
   .hp-card span{display:block;font-size:12px;line-height:1.45;color:var(--muted)}
   /* ===== SONGE : choix de la salle à afficher (par-dessus la map d'attente floutée) ===== */
@@ -493,7 +499,7 @@
   <h1>❄️ Assistant Comte Harebourg</h1>
   <div class="hp-cards" id="hpStep1"><!-- ACCUEIL DIRECT : Donjon ou Songe (le Bac à sable est relégué en bas-droite, en bêta) -->
     <button class="hp-card" id="hpDj" type="button"><span class="hp-ic"><img src="donjon-icon.png" alt=""></span><b>Donjon</b><span>Affrontes le Comte dans son donjon</span></button>
-    <button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button><!-- (le Comte fait partie du FOND harebourg-fond.webp : plus aucun calque rapporté) -->
+    <div class="hpSongeWrap"><button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button><img class="hpComteArt" src="harebourg-comte-songe.webp" alt="" aria-hidden="true"></div><!-- le Comte = calque de DÉCOR ancré à la vignette, dessiné DEVANT elle (le clic traverse) -->
   </div>
 </div>
   <div id="hpSandbox"><!-- vignette secondaire, coin bas-droite -->
@@ -3214,18 +3220,7 @@
     el('hpSonge').onclick=()=>{bye(); // → la page Songe : si on vient d'une AUTRE carte (ex. Bac à sable via « Retour au Comte »), on BASCULE d'abord (setMapMode ouvre lui-même le choix de salle) — avant, le clic ne changeait rien et on restait en sable
       if(state.map!=='songe'&&!isPorte(state.map))setMapMode('songe');
       else if(state.map==='songe'&&openRoomPick)openRoomPick();};
-    el('hpSable').onclick=()=>{setMapMode('sable');bye();};
-    // Le Comte du FOND (cover ancré à droite) repose sa main sur la vignette Songe : on cale le coin HAUT-DROIT
-    // de la carte sous ses doigts — point mesuré (1112,545) dans harebourg-fond.webp (1536×1024) — en répliquant
-    // la formule du navigateur pour `cover` + `right center`, à chaque redimensionnement.
-    const placeHome=()=>{const inb=hp.querySelector('.hp-in'),sg=el('hpSonge');if(!inb||!sg)return;
-      const vw=innerWidth,vh=innerHeight,s=Math.max(vw/1536,vh/1024);
-      const ax=1112*s+(vw-1536*s), ay=545*s+(vh-1024*s)/2; // les doigts, à l'écran
-      inb.style.position='absolute';inb.style.transform='none';inb.style.left='0px';inb.style.top='0px';
-      const r=sg.getBoundingClientRect(), rin=inb.getBoundingClientRect();
-      const L=Math.max(10,ax-(r.right-rin.left)), T=Math.max(10,ay-(r.top-rin.top));
-      inb.style.left=L+'px';inb.style.top=T+'px';};
-    placeHome();addEventListener('resize',placeHome);})();
+    el('hpSable').onclick=()=>{setMapMode('sable');bye();};})(); // (plus de placeHome : l'interface reste centrée, le Comte-calque est ancré à la vignette en CSS)
   breedsReady=loadBreeds(); // promesse gardée : une classe posée AVANT la fin du chargement attend au lieu de retomber sur Crâ
   // (plus de chrono de tour : jeu libre)
 })();
