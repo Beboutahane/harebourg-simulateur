@@ -153,6 +153,12 @@
   #overlay h2{font-family:var(--display);font-size:30px;margin-bottom:8px}#overlay p{color:var(--muted);margin-bottom:18px}
   #overlay button{border:0;background:linear-gradient(120deg,var(--ice),var(--ice-2));color:#06121f;font-family:var(--font);font-weight:700;font-size:14px;padding:11px 24px;border-radius:11px;cursor:pointer}
   .turnBtns{display:flex;gap:6px;align-items:stretch}
+  /* ♻️ Remise à zéro de la carte — coin bas-droite, toujours à portée (le « Réinitialiser » de la barre, lui, ne concerne que le combat lancé) */
+  #resetMapBtn{position:fixed;right:14px;bottom:14px;z-index:7;display:none;cursor:pointer;
+    border:1px solid rgba(255,150,150,.38);background:linear-gradient(180deg,rgba(40,18,26,.92),rgba(26,12,18,.92));
+    color:#ff9a9a;font-family:var(--font);font-weight:700;font-size:11.5px;padding:8px 13px;border-radius:10px;white-space:nowrap;
+    box-shadow:0 4px 14px rgba(0,8,20,.5);transition:background .15s ease,border-color .15s ease,transform .15s ease}
+  #resetMapBtn:hover{background:rgba(255,120,120,.26);border-color:#ff9a9a;transform:translateY(-2px)}
   #retreat{border:1px solid rgba(255,150,150,.4);background:rgba(255,120,120,.14);color:#ff9a9a;font-family:var(--font);font-weight:700;font-size:11px;padding:0 10px;border-radius:9px;cursor:pointer;white-space:nowrap}
   #retreat:hover{background:rgba(255,120,120,.24);border-color:#ff9a9a}
   #retreatBox{position:absolute;left:50%;bottom:150px;transform:translateX(-50%);z-index:12;display:none;max-width:340px;padding:16px 18px;text-align:center}
@@ -407,10 +413,20 @@
     background:rgba(6,14,26,.42);backdrop-filter:blur(9px) saturate(1.1);-webkit-backdrop-filter:blur(9px) saturate(1.1)}
   #roomPick.show{display:flex;animation:rpin .22s ease-out}
   @keyframes rpin{from{opacity:0}to{opacity:1}}
+  /* fond : DAMIER (2 gradients à 45° décalés d'une demi-tuile = cases alternées) qui DÉRIVE lentement en diagonale,
+     sous le dégradé de la card — très discret, il ne doit pas gêner la lecture des vignettes.
+     ⚠️ La tuile doit rester CARRÉE : en 2:1 (pour imiter l'iso du jeu) les gradients se déforment en zigzags. */
   #roomPick .rp-in{max-width:min(92vw,880px);max-height:86vh;overflow:auto;padding:26px 30px 24px;border-radius:18px;
-    background:linear-gradient(165deg,rgba(16,34,58,.96),rgba(8,18,34,.97));border:1px solid var(--border-strong);
+    background:
+      linear-gradient(45deg,rgba(75,184,240,.06) 25%,transparent 25%,transparent 75%,rgba(75,184,240,.06) 75%) 0 0/46px 46px,
+      linear-gradient(45deg,rgba(75,184,240,.06) 25%,transparent 25%,transparent 75%,rgba(75,184,240,.06) 75%) 23px 23px/46px 46px,
+      linear-gradient(165deg,rgba(16,34,58,.96),rgba(8,18,34,.97));
+    animation:rpDamier 26s linear infinite; /* lent : une tuile toutes les 26 s, on le devine plus qu'on ne le voit */
+    border:1px solid var(--border-strong);
     box-shadow:0 24px 70px rgba(0,0,0,.6),inset 0 1px 0 rgba(143,228,255,.12);text-align:center;
     scrollbar-width:none} /* scrollable SANS barre visible : les coins arrondis restent nets des deux côtés */
+  @keyframes rpDamier{from{background-position:0 0,23px 23px,0 0}to{background-position:46px 46px,69px 69px,0 0}}
+  @media (prefers-reduced-motion:reduce){#roomPick .rp-in{animation:none}}
   #roomPick .rp-in::-webkit-scrollbar{display:none}
   #roomPick h2{font-family:var(--display);font-size:22px;letter-spacing:.1em;color:var(--frost);margin-bottom:2px;text-shadow:0 2px 14px rgba(75,184,240,.45)}
   #roomPick .rp-sub{color:var(--muted);font-size:12px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:14px}
@@ -421,9 +437,6 @@
   .rp-item:hover{transform:translateY(-3px);border-color:var(--ice-2);box-shadow:0 10px 26px rgba(0,0,0,.45),0 0 22px rgba(75,184,240,.2)}
   .rp-item canvas{width:142px;height:96px;display:block;border-radius:8px;background:rgba(5,12,24,.8)}
   .rp-item b{display:block;font-size:11.5px;color:var(--frost);margin-top:6px;font-family:var(--display);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #roomPick .rp-later{margin-top:16px;background:transparent;border:1px solid var(--border);color:var(--muted);
-    font-family:var(--font);font-size:12px;padding:8px 18px;border-radius:10px;cursor:pointer}
-  #roomPick .rp-later:hover{color:var(--frost);border-color:var(--border-strong)}
 </style>
 </head>
 <body>
@@ -453,7 +466,6 @@
   <div class="rp-sub">Choisis la salle à afficher</div>
   <h3>👹 Maps Finale</h3><div class="rp-grid" id="rpBoss"></div>
   <h3>🗺️ Maps des salles</h3><div class="rp-grid" id="rpRooms"></div>
-  <button class="rp-later" id="rpLater" type="button">Plus tard — rester sur la map d'attente</button>
 </div></div>
 
 <div class="hud" id="topbar"><div class="card">
@@ -587,6 +599,7 @@
   </div>
 </div>
 
+<button id="resetMapBtn" type="button" title="Remet la carte à son état de départ : les monstres et le Comte reviennent à leur position, les alliés quittent le terrain (comme un rechargement de la page)">♻️ Réinitialiser la map</button>
 <div id="toast"></div>
 <div id="turnBadge">C'EST TON TOUR</div>
 <!-- Vignette de survol : pour un perso joué, blason + guilde + pseudo, tout CENTRÉ. `blason.png` = le vrai blason Neo Midgard, recadré pile sur son disque (l'original n'a pas d'alpha : ses coins de damier sont masqués par le border-radius:50% de .hhblz). -->
@@ -1810,6 +1823,7 @@
     el('topbar').style.display=(playing&&state.map!=='sable')?'':'none'; // bandeau Tour/parité/vulnérabilité : en combat, mais PAS en Bac à sable (pas de Comte à y gérer)
     const showReset=playing&&state.enemies.some(e=>e.alive)&&state.allies.some(a=>a.placed&&a.hp>0); // « Réinitialiser » : seulement quand au moins un ennemi ET un allié sont sur le terrain
     if(el('retreat'))el('retreat').style.display=showReset?'':'none';
+    if(el('resetMapBtn'))el('resetMapBtn').style.display=(state.map!=='sable')?'block':'none'; // cartes du Comte seulement : le Bac à sable a déjà « Tout vider » (et son setup est auto-sauvé)
     {const sable2=state.map==='sable'; // en sable, la grande card « LE COMTE EN » laisse place à un simple bouton de retour
      el('mapPick').style.display=sable2?'none':'flex';
      if(el('backComte'))el('backComte').style.display=sable2?'':'none';}
@@ -2673,8 +2687,8 @@
     down=null;edgeDrag=null;dragEnt=null;dragLive=null;paintStroke=null;});
   renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();radius=Math.max(8,Math.min(60,radius+Math.sign(e.deltaY)*2));updateCam();},{passive:false});
 
-  const TIPS_DJ=['✅ Tuer les mobs avant le Comte.','✅ Focus le Cycloïde en premier.','✅ Finir rapidement le Granduk une fois entamé.','✅ Au début de son tour, le Comte pose une grande glyphe en croix 3 de PO : si tu commences dessus, tu meurs.','✅ Ne pas compter sur les obstacles : Jacquemart frappe sans ligne de vue. (Portée : 1 à 4 cases)','✅ Plus le Comte est bas en vie, plus il devient menaçant.'];
-  const TIPS_SONGE=['✅ Tuer les mobs avant le Comte.','✅ Au début de son tour, le Comte pose une grande glyphe en croix 3 de PO : si tu commences dessus, tu meurs.','✅ Ne pas compter sur les obstacles : Jacquemart frappe sans ligne de vue. (Portée : 1 à 4 cases)','✅ Plus le Comte est bas en vie, plus il devient menaçant.'];
+  const TIPS_DJ=['✅ Tuer les mobs avant le Comte.','✅ Focus le Cycloïde en premier.','✅ Finir rapidement le Granduk une fois entamé.','✅ Au début de son tour, le Comte pose une grande glyphe en croix 3 de PO : si tu commences dessus, tu meurs.','✅ Plus le Comte est bas en vie, plus il devient menaçant.'];
+  const TIPS_SONGE=['✅ Tuer les mobs avant le Comte.','✅ Au début de son tour, le Comte pose une grande glyphe en croix 3 de PO : si tu commences dessus, tu meurs.','✅ Plus le Comte est bas en vie, plus il devient menaçant.'];
   function renderTips(){const t=el('tips');if(!t)return;const dj=state.map==='dj';
     t.innerHTML='<h3>📜 Pense-bête</h3><ul class="tiplist">'+(dj?TIPS_DJ:TIPS_SONGE).map(i=>'<li>'+i+'</li>').join('')+'</ul>';}
   // ===== Donjon / Songe / Bac à sable = 3 cartes TOTALEMENT séparées : terrain, persos, monstres, phase. Rien de ce qu'on fait sur l'une ne touche les autres =====
@@ -2702,6 +2716,17 @@
     state.mapW=state.mapH=(state.map==='sable'?21:15); // le Bac à sable démarre GRAND (étirable jusqu'à 25 en tirant sur les bords)
     applyAmbiance();
     if(state.map==='dj')djPackInit();} // Donjon neuf : le Comte + les 3 mobs de base (B4) arrivent déjà placés
+  function resetMap(){ // ♻️ REMISE À ZÉRO de la carte courante = « comme un rechargement de la page » :
+    // les alliés quittent le terrain, les monstres et le Comte reviennent à leur position de DÉPART (B4 en Donjon), le tour repart à 1.
+    cancelMulti();
+    state.allies.forEach(a=>{if(a.obj)scene.remove(a.obj);}); // (applyAmbiance, appelée par freshMapState, se charge des ennemis)
+    state.edit=false;state.mode='idle';state.setupSel=null;state.spell=null;state.toPlace=null;state.editHistory=[];
+    state.targets=new Set();state.curEnt=null;state.enemyTurn=false;state.glyph.clear();_glyphAt=null;drawGlyph();
+    state.adviceCell=null;state.aimCell=null;state.hitCell=null; // les cases de conseil de l'assistant repartent de zéro
+    freshMapState(); // perso neuf « à poser », terrain régénéré, et en Donjon le pack B4 replacé
+    applyRosterMode();updateSetupBtns();updateMapSizeLabels();setActive(state.active);
+    refreshTiles();refreshHUD();renderTips();fitCamToMap(); // (refreshHUD appelle saveSableSoon : le Bac à sable auto-sauvé oublie l'ancien setup au lieu de le ressusciter)
+    toast('♻️ Carte réinitialisée : monstres à leur place de départ, alliés retirés du terrain.');}
   let openRoomPick=null; // rempli plus bas (IIFE des listes de salles) : ouvre le panneau « Choisis ta salle »
   function setMapMode(m){if(m===state.map)return; // déjà sur cette carte : on n'y touche pas
     cancelMulti(); // un Multicomte armé ne suit pas d'une carte à l'autre
@@ -2785,8 +2810,7 @@
       [['rpBoss',bossIdx],['rpRooms',mapsIdx]].forEach(([id,idx])=>{const g=el(id);g.innerHTML='';
         idx.forEach(i=>g.appendChild(rpItem(i,PS_MAPS[i].name)));});}
     openRoomPick=()=>{fillRp();rp.classList.add('show');}; // repeint à CHAQUE ouverture : les retouches localStorage apparaissent sur les vignettes
-    el('rpLater').onclick=()=>rp.classList.remove('show');
-    rp.addEventListener('pointerdown',ev=>{if(ev.target===rp)rp.classList.remove('show');});})(); // clic à côté du panneau = fermer
+    rp.addEventListener('pointerdown',ev=>{if(ev.target===rp)rp.classList.remove('show');});})(); // clic à côté du panneau = fermer (le bouton « Plus tard » a été retiré : ce clic suffit)
   el('invTag').onclick=()=>{const C=comte();if(!C){toast('Le boss apparaîtra au lancement du combat.');return;}
     C.vulnerable=!C.vulnerable;refreshHUD();toast(C.vulnerable?'🎯 Boss signalé VULNÉRABLE (délock).':'🛡️ Boss signalé invulnérable.');};
   // (bouton « 🔓 DÉLOCK » de secours retiré : le clic sur 🛡️/🎯 juste à côté fait déjà basculer l'état du boss à la main)
@@ -3039,6 +3063,7 @@
       if(tok[0]==='m'){const e=newMobs[+tok.slice(1)];return e?{t:'enemy',e}:null;}return null;}).filter(Boolean); // ordre d'initiative conservé (sans le Comte)
     setActive(Math.min(s.active,state.allies.length-1));refreshTiles();refreshHUD();
     toast('↩️ Retour au placement — compo, monstres et initiative conservés. Réajuste puis relance.');}
+  el('resetMapBtn').onclick=()=>resetMap(); // ♻️ carte à zéro, sans passer par la modale « Abandonner ? » (qui, elle, ne sert qu'au combat lancé)
   el('retreat').onclick=()=>{if(state.phase!=='playing')return;el('retreatBox').classList.add('show');};
   el('retreatCancel').onclick=()=>el('retreatBox').classList.remove('show');
   el('retreatKeep').onclick=()=>{el('retreatBox').classList.remove('show');restoreLaunch();};
