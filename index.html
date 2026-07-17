@@ -382,17 +382,19 @@
     background:rgba(6,14,26,.42);backdrop-filter:blur(10px) saturate(1.1);-webkit-backdrop-filter:blur(10px) saturate(1.1);
     opacity:1;transition:opacity .4s ease}
   #homePick.bye{opacity:0;pointer-events:none}
-  /* L'ARTWORK du Xélor, à droite : son fond NOIR est effacé par le blending « screen » (noir = neutre → seul le perso et son halo restent),
-     un masque en dégradé le fond dans la nuit vers la gauche/le bas, et le filtre le repeint aux teintes glacées du reste du site. */
-  #hpArt{position:absolute;right:0;bottom:-4vh;height:106vh;aspect-ratio:2/3;pointer-events:none; /* right:0 : sa main droite tendue ne doit PAS être coupée par le bord */
+  /* L'ARTWORK du Xélor, à droite. L'image a été convertie en vraie TRANSPARENCE (scratchpad/detoure-art.mjs) :
+     ⚠️ PAS de `mix-blend-mode:screen` — sous #homePick (fond semi-transparent) il n'est pas neutre. Même noir, le
+     pixel montait l'alpha du groupe et masquait le décor derrière : d'où un TRAIT au bord gauche du div (mesuré
+     +9 à x=624, puis −7 partout à droite). Avec de l'alpha, le fond de l'image ne coûte plus rien. */
+  #hpArt{position:absolute;right:0;bottom:-4vh;height:106vh;aspect-ratio:570/900;pointer-events:none; /* right:0 : sa main droite tendue ne doit PAS être coupée par le bord */
     background:url(harebourg-art.webp) right bottom/contain no-repeat;
-    mix-blend-mode:screen;opacity:.62;
-    filter:saturate(.75) hue-rotate(-12deg) brightness(.92) contrast(1.06) drop-shadow(0 0 60px rgba(75,184,240,.35));
+    opacity:.86; /* le « screen » l'éclaircissait ; en alpha il faut remonter opacité et luminosité pour retrouver sa présence */
+    filter:saturate(.8) hue-rotate(-10deg) brightness(1.12) contrast(1.04) drop-shadow(0 0 60px rgba(75,184,240,.35));
     -webkit-mask-image:linear-gradient(100deg,transparent 6%,rgba(0,0,0,.55) 26%,#000 52%),linear-gradient(0deg,transparent 2%,#000 22%);
     mask-image:linear-gradient(100deg,transparent 6%,rgba(0,0,0,.55) 26%,#000 52%),linear-gradient(0deg,transparent 2%,#000 22%);
     -webkit-mask-composite:source-in;mask-composite:intersect;
     animation:hpArtIn 1.1s ease-out both}
-  @keyframes hpArtIn{from{opacity:0;transform:translateX(24px) scale(1.03)}to{opacity:.62;transform:none}}
+  @keyframes hpArtIn{from{opacity:0;transform:translateX(24px) scale(1.03)}to{opacity:.86;transform:none}}
   @media (max-width:1100px){#hpArt{opacity:.3;right:-14vw}} /* écran étroit : il passe derrière les cartes, donc très discret */
   /* L'ŒUF DE CRISTAL, à gauche : contrepoids du Xélor. Le générateur avait PEINT le damier de transparence →
      image DÉTOURÉE en alpha (scratchpad/detoure-egg.mjs), halo blanc écarté (irrécupérable sur fond blanc) et
