@@ -411,20 +411,19 @@
      toujours DERRIÈRE les vignettes (.hp-in est en z-index:1).
      ⚠️ Aucun `filter` ni `mix-blend-mode` ici (parent #homePick en backdrop-filter → ils ré-afficheraient le fond
      flouté dans le rectangle du div, cf. « fond horrible » déjà rencontré). Juste background + animation d'entrée. */
-  /* Le fond NOIR du composite est REMONTÉ à un BLEU NUIT (demande : « trop noir, éclaircis-le comme le bleu nuit du
-     site ») via `background-blend-mode:lighten` sur une couleur bleu-nuit : tout pixel plus SOMBRE que cette teinte
-     (le fond noir + le létterbox du `contain`) devient bleu nuit, tout ce qui est plus CLAIR (Xélor, fuseau, œuf)
-     reste intact. `background-blend-mode` mélange les couches DU div (pas le backdrop) → pas de souci avec le
-     backdrop-filter parent. Le voile radial (lisibilité du titre) reste par-dessus, en `normal`. */
+  /* Fond d'accueil BLEU NUIT (#102542) + la scène (Xélor + fuseau + œuf) DÉTOURÉE du noir (scratchpad/detoure-home.mjs :
+     alpha = max(luminance, colorfulness) → le noir pur devient transparent, le sujet même sombre mais COLORÉ reste
+     opaque, dématté à ses couleurs d'origine). Demande : le bleu ne doit PAS teindre le Comte. Donc PLUS de blend :
+     l'image à alpha laisse voir le bleu nuit là où était le noir, et le Comte garde ses vraies couleurs.
+     Le voile radial (lisibilité du titre) reste posé par-dessus. */
   #hpBg{position:absolute;inset:0;z-index:0;pointer-events:none;
     background-color:#102542;
     background-image:
       radial-gradient(60% 42% at 50% 35%,rgba(2,6,13,.5),rgba(2,6,13,.13) 56%,transparent 78%),
-      url(harebourg-home.webp);
+      url(harebourg-home-cut.webp);
     background-position:center, center center;
     background-size:auto, contain;
     background-repeat:no-repeat, no-repeat;
-    background-blend-mode:normal, lighten;
     animation:hpBgIn 1.2s ease-out both}
   @keyframes hpBgIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
   #homePick .hp-in{text-align:center;transform:translateY(-3vh);position:relative;z-index:1}
@@ -1861,7 +1860,7 @@
     saveSableSoon(); // Bac à sable : le setup (map + placements) s'auto-sauvegarde après chaque action (débouncé, ne fait rien ailleurs)
     if(el('turnNum'))el('turnNum').textContent=state.tour;
     {const pt=el('pivotInfo');if(pt){const piv=comtePivots(),C=comte(); // qui pivote au prochain coup sur le Comte ? DÉDUIT du tour (le Comte pivote 1 tour sur 2 depuis son arrivée)
-      pt.textContent=!C?'🔄 pose le Comte':(piv?'🔄 CE TOUR : le COMTE pivote — délock possible':'🔄 CE TOUR : TOI tu pivotes');
+      pt.textContent=!C?'🔄 pose le Comte':(piv?'🔄 Tu peux délock le Comte ce tour':'🔄 Le Comte se délock au prochain tour');
       pt.classList.toggle('boss',piv&&!!C);}}
     {const ab=el('assistBtn');if(ab)ab.classList.toggle('on',state.showDelock);} // l'état est mémorisé PAR CARTE (saveMapState) : le bouton doit suivre
     renderRoster(); // compteurs du bac à entités (posé / à poser · n sur 7)
@@ -2109,7 +2108,7 @@
     if(pv&&pv.status==='free'){
       const P2=livePos(state.player); // combo complet TESTÉ d'ici : pose de la cawotte (vue clic + arrivée) ET frappe (vue clic + impact) AVEC la cawotte future sur la case orange
       if(canAim(P2.x,P2.y,pv.x,pv.y)&&strikeClick(P2.x,P2.y,C,{x:pv.x,y:pv.y}))
-        return'① <b>Mets une invocation</b> (🥕/💀/🕷️, ou glisse un perso) sur la <b>case ORANGE</b> :'+aimHint(pv.x,pv.y)
+        return'① <b>Occupe la case ORANGE</b> — soit tu <b>glisses un allié</b> dessus, soit tu <b>poses une invocation</b> (🥕/💀/🕷️) et pour ça'+aimHint(pv.x,pv.y)
           +'<br>② <b>Frappe '+nom+'</b> avec <b>'+moi+'</b> :'+hitHint(C,{x:pv.x,y:pv.y})
           +'<br>→ Il ira sur la case orange, échangera de place et deviendra <b>TOUCHABLE</b>.'+closerHint(C);
       // le combo est incomplet d'ici (clic hors map, vue bloquée, ou la cawotte posée couperait la frappe) → case VERTE plutôt qu'un conseil inutile
@@ -2788,7 +2787,8 @@
   function freshMapState(){ // 1re visite d'une carte : perso neuf, aucun monstre hérité, terrain régénéré
     state.allies=[makeAlly(0)];state.active=0;
     state.allies.forEach(a=>{a.obj=buildAllyObj(a.id);syncAlly(a);a.obj.position.copy(a.obj.userData.tp);});
-    state.enemies=[];state.phase='setup';state.tour=1;state.comteTurn=null;state.showDelock=true;state.meleeHits=0;
+    state.enemies.forEach(e=>{if(e.obj)scene.remove(e.obj);});state.enemies=[]; // ⚠️ RETIRER les sprites ennemis de la scène AVANT de vider le tableau (sinon applyAmbiance itère sur un tableau déjà vide → sprites orphelins : non suivis, non déplaçables, et le jeu croit qu'il n'y a plus de Comte → on peut en re-poser un). Bug reset Songe.
+    state.phase='setup';state.tour=1;state.comteTurn=null;state.showDelock=true;state.meleeHits=0;
     state.initiative=[];state.launchSnap=null;
     state.mapW=state.mapH=(state.map==='sable'?21:15); // le Bac à sable démarre GRAND (étirable jusqu'à 25 en tirant sur les bords)
     applyAmbiance();
@@ -2818,7 +2818,7 @@
     el('modeDj').classList.toggle('on',m==='dj');el('modeSonge').classList.toggle('on',m==='songe'||isPorte(m));el('modeSable').classList.toggle('on',m==='sable');
     if(el('songeSubs')){el('songeSubs').classList.toggle('open',m==='songe'||isPorte(m)); // l'onglet Songe déplie ses 2 listes (boss + maps)
       const bi=isPorte(m)?(+m.slice(5)||0):-1,nm=bi>=0?(PS_MAPS[bi]||PS_MAPS[0]).name:null,isBoss=!!(nm&&nm.slice(0,4)==='Boss');
-      if(el('mapsSelTxt'))el('mapsSelTxt').textContent=nm||'Choisis ta map';el('mapsSelBtn').classList.toggle('on',!!nm);} // l'icône « case » (losange SVG) reste, seul le libellé change
+      if(el('mapsSelTxt'))el('mapsSelTxt').textContent=nm?('Map : '+nm):'Choisis ta map';el('mapsSelBtn').classList.toggle('on',!!nm);} // l'icône « case » (losange SVG) reste, seul le libellé change
     toast(isPorte(m)?('🚪 '+(PS_MAPS[+m.slice(5)||0]||PS_MAPS[0]).name+' : map reconstruite de ton screen — corrige-la avec les pinceaux, tout est sauvegardé. Chaque carte est totalement séparée des autres.')
          :({dj:'🏰 Donjon : la vraie salle du Comte — pose tes persos et le boss à la main.',
            songe:'🌙 Songe : choisis la salle à afficher — en attendant, une map d\'attente générique.',
