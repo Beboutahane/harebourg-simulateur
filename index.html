@@ -226,6 +226,7 @@
   .subwrap{position:relative}
   .subbtn{width:100%;padding:6px 10px;background:rgba(8,18,32,.85);color:#9fd4f0;border:1px solid rgba(75,184,240,.4);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;text-align:left} /* contours BLEUS (l'or ne plaisait pas) */
   .subbtn:hover{border-color:var(--ice)}
+  .subbtn .cellico{vertical-align:-1px;margin-right:6px} /* l'icône « case » (losange iso), à la place de l'ancien 🗺️ et de la flèche ▾ */
   .subbtn.on{border-color:var(--ice);background:linear-gradient(120deg,rgba(75,184,240,.2),rgba(8,18,32,.85));box-shadow:0 0 10px rgba(75,184,240,.3)}
   .sublist{display:none;position:absolute;left:0;right:0;bottom:100%;margin-bottom:2px;max-height:230px;overflow-y:auto;background:rgba(8,18,32,.97);border:1px solid rgba(75,184,240,.4);border-radius:8px;z-index:30} /* déplié vers le HAUT : le widget est en bas de l'écran */
   .sublist.open{display:block}
@@ -482,7 +483,7 @@
       <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M16 16C16.4 14.6 18.2 14.2 19.3 15.4C21 16.9 20 19.8 17.4 20.4C13.6 21.2 10.4 18 11 14C11.7 9.2 16.8 6.2 21.6 7.6C27.2 9.2 29.6 15.8 26.8 21.4" fill="none" stroke="#f4c65a" stroke-width="2.6" stroke-linecap="round"/><circle cx="16" cy="16" r="1.5" fill="#ffe9a8"/></svg></span><span class="mtxt"><b>Songe</b><i>les salles &amp; le boss</i></span></button>
     <div id="songeSubs"><!-- s'ouvre avec l'onglet Songe : les maps de BOSS et les maps de tes screens -->
       <!-- (bouton « Maps Finale » supprimé à la demande : Boss 1 est en TÊTE de la liste unique ci-dessous, et dans le panneau « Partie Comte ») -->
-      <div class="subwrap"><button class="subbtn" id="mapsSelBtn" type="button" title="Toutes les maps reconstruites (Boss 1 en tête) — survole une entrée pour l'aperçu, clique pour l'ouvrir">🗺️ Choisis ta map ▾</button>
+      <div class="subwrap"><button class="subbtn" id="mapsSelBtn" type="button" title="Ouvre le choix des salles (maps finales + maps des salles)"><svg class="cellico" viewBox="0 0 20 12" width="16" height="10" aria-hidden="true"><path d="M10 1L18.5 6L10 11L1.5 6Z" fill="rgba(75,184,240,.22)" stroke="#4bb8f0" stroke-width="1.5"/></svg><span id="mapsSelTxt">Choisis ta map</span></button>
         <div class="sublist" id="mapsList"></div></div>
       <canvas id="portePrev" width="176" height="124"></canvas>
     </div>
@@ -2600,7 +2601,7 @@
     el('modeDj').classList.toggle('on',m==='dj');el('modeSonge').classList.toggle('on',m==='songe'||isPorte(m));el('modeSable').classList.toggle('on',m==='sable');
     if(el('songeSubs')){el('songeSubs').classList.toggle('open',m==='songe'||isPorte(m)); // l'onglet Songe déplie ses 2 listes (boss + maps)
       const bi=isPorte(m)?(+m.slice(5)||0):-1,nm=bi>=0?(PS_MAPS[bi]||PS_MAPS[0]).name:null,isBoss=!!(nm&&nm.slice(0,4)==='Boss');
-      el('mapsSelBtn').textContent='🗺️ '+(nm||'Choisis ta map')+' ▾';el('mapsSelBtn').classList.toggle('on',!!nm);}
+      if(el('mapsSelTxt'))el('mapsSelTxt').textContent=nm||'Choisis ta map';el('mapsSelBtn').classList.toggle('on',!!nm);} // l'icône « case » (losange SVG) reste, seul le libellé change
     toast(isPorte(m)?('🚪 '+(PS_MAPS[+m.slice(5)||0]||PS_MAPS[0]).name+' : map reconstruite de ton screen — corrige-la avec les pinceaux, tout est sauvegardé. Chaque carte est totalement séparée des autres.')
          :({dj:'🏰 Donjon : la vraie salle du Comte — pose tes persos et le boss à la main.',
            songe:'🌙 Songe : choisis la salle à afficher — en attendant, une map d\'attente générique.',
