@@ -1010,12 +1010,13 @@
     '......########.X#####...','.......#######..#####...','........###X#########...',
     '........###X########....','........###########.....','.........########.......',
     '.........#######........','..........####..........']},
-   {name:'Boss 3',rows:[
-    '....###.................','...#####................','..########X.............',
-    '.############.....####..','.###X##########XX######.','.#######################',
-    '.#######################','############XX####.#####','###.###X####X####X.####.',
-    '#######X##########.####.','.######################.','..####....#####X#######.',
-    '...##.......##########..','...............######...','..................##....']}];
+   {name:'Boss 3',inv:1,rows:[ // la map DE L'UTILISATEUR (collée depuis « 💾 Copier la map »), gravée telle quelle — padding 22×18 pour que le centrage retombe sur SES coordonnées absolues (offX=4, offY=6) ; inv : damier clair↔sombre inversé
+    '..........####........','......##########......','...######...#####.....',
+    '...###############....','..####X#####XX#####...','.###XX######X###X###..',
+    '####XX###########X##..','#################X###.','############X########.',
+    '####X######X.########.','###.XX#####X.########.','.###.XX##########X###.',
+    '..#######X######XX###.','...############XX###..','.....##############...',
+    '......####..##.####...','........#########.....','..........####........']}];
   const isPorte=m=>typeof m==='string'&&m.slice(0,5)==='porte'; // 'porte0'..'porte17' : une clé de carte PAR map (états et sauvegardes séparés)
   function computeSongeVoids(){const v=new Set(),rw=(state.mapW-1)/2,rh=(state.mapH-1)/2; // Songe : cases hors de la zone jouable mapW×mapH (centrée) = hors-jeu
     for(let x=0;x<N;x++)for(let y=0;y<N;y++)if(Math.abs(x-HALF)>rw||Math.abs(y-HALF)>rh)v.add(key(x,y));return v;}
@@ -1025,7 +1026,8 @@
     pl.color.setHex(a.light);amb.color.setHex(a.amb);
     document.body.style.background=
       'radial-gradient(1100px 600px at 12% -8%, rgba(120,180,255,.16), transparent 60%),linear-gradient(160deg,'+a.bg+',#050a14)';
-    for(let x=0;x<N;x++)for(let y=0;y<N;y++){tiles[x][y].userData.base=(x+y)%2===0?a.tileA:a.tileB;}
+    const inv=isPorte(state.map)&&(PS_MAPS[+state.map.slice(5)||0]||{}).inv?1:0; // maps marquées inv (Boss 3) : damier clair↔sombre inversé
+    for(let x=0;x<N;x++)for(let y=0;y<N;y++){tiles[x][y].userData.base=(x+y+inv)%2===0?a.tileA:a.tileB;}
     decorGroup.clear(); // aucun décor (plots, pics, statues…) : mode tactique pur pour construire ses maps
     buildObstacles();refreshTiles();buildNeonFloor();buildHoleWalls();
     buildEdgeArrows(); // (re)place les flèches d'étirement aux bords de la zone jouable
