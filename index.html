@@ -418,7 +418,7 @@
     background:#04080c url(harebourg-fond.webp) right center/cover no-repeat;
     animation:hpBgIn 1.2s ease-out both}
   @keyframes hpBgIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
-  #homePick .hp-in{text-align:center;transform:translate(-7vw,-3vh);position:relative;z-index:1} /* décalé vers la ZONE VIDE de gauche du fond : le Comte (à droite) reste dégagé */
+  #homePick .hp-in{text-align:center;position:relative;z-index:1} /* positionné PAR JS : le coin haut-droit de la carte Songe se cale sous les DOIGTS du Comte du fond (cover ancré à droite → dépend de l'écran) */
   #homePick h1{font-family:var(--display);font-size:34px;letter-spacing:.12em;color:var(--frost);
     /* ombre SOMBRE d'abord (lisibilité par-dessus les zones claires de l'artwork), puis une pointe de bleu pour le style.
        z-index : le titre passe AU-DESSUS du Comte accoudé (son épaulière recouvrait la fin du titre). */
@@ -3214,7 +3214,18 @@
     el('hpSonge').onclick=()=>{bye(); // → la page Songe : si on vient d'une AUTRE carte (ex. Bac à sable via « Retour au Comte »), on BASCULE d'abord (setMapMode ouvre lui-même le choix de salle) — avant, le clic ne changeait rien et on restait en sable
       if(state.map!=='songe'&&!isPorte(state.map))setMapMode('songe');
       else if(state.map==='songe'&&openRoomPick)openRoomPick();};
-    el('hpSable').onclick=()=>{setMapMode('sable');bye();};})();
+    el('hpSable').onclick=()=>{setMapMode('sable');bye();};
+    // Le Comte du FOND (cover ancré à droite) repose sa main sur la vignette Songe : on cale le coin HAUT-DROIT
+    // de la carte sous ses doigts — point mesuré (1112,545) dans harebourg-fond.webp (1536×1024) — en répliquant
+    // la formule du navigateur pour `cover` + `right center`, à chaque redimensionnement.
+    const placeHome=()=>{const inb=hp.querySelector('.hp-in'),sg=el('hpSonge');if(!inb||!sg)return;
+      const vw=innerWidth,vh=innerHeight,s=Math.max(vw/1536,vh/1024);
+      const ax=1112*s+(vw-1536*s), ay=545*s+(vh-1024*s)/2; // les doigts, à l'écran
+      inb.style.position='absolute';inb.style.transform='none';inb.style.left='0px';inb.style.top='0px';
+      const r=sg.getBoundingClientRect(), rin=inb.getBoundingClientRect();
+      const L=Math.max(10,ax-(r.right-rin.left)), T=Math.max(10,ay-(r.top-rin.top));
+      inb.style.left=L+'px';inb.style.top=T+'px';};
+    placeHome();addEventListener('resize',placeHome);})();
   breedsReady=loadBreeds(); // promesse gardée : une classe posée AVANT la fin du chargement attend au lieu de retomber sur Crâ
   // (plus de chrono de tour : jeu libre)
 })();
