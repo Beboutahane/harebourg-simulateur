@@ -417,12 +417,12 @@
      → elles suivent la taille de l'écran. ⚠️ toujours AUCUN filter ici (parent #homePick en backdrop-filter). */
   #hpBg{position:absolute;inset:0;z-index:0;pointer-events:none;
     background:
-      radial-gradient(90% 80% at 22% 22%,rgba(96,180,196,.06),transparent 70%),
-      radial-gradient(80% 70% at 82% 74%,rgba(80,164,180,.05),transparent 70%),
-      radial-gradient(60% 55% at 46% 88%,rgba(96,176,192,.04),transparent 72%),
-      radial-gradient(55% 60% at 6% 64%,rgba(110,186,200,.045),transparent 72%),
-      radial-gradient(130% 110% at 68% 38%,#0a171b 0%,#071013 56%,#04090b 100%);
-    animation:hpBgIn 1.2s ease-out both} /* teinte SOMBRE bleu/vert (celle du halo de l'artwork) étendue à TOUT le fond — plus de différence visible autour du Comte */
+      radial-gradient(90% 80% at 22% 22%,rgba(96,180,196,.045),transparent 70%),
+      radial-gradient(80% 70% at 82% 74%,rgba(80,164,180,.038),transparent 70%),
+      radial-gradient(60% 55% at 46% 88%,rgba(96,176,192,.03),transparent 72%),
+      radial-gradient(55% 60% at 6% 64%,rgba(110,186,200,.035),transparent 72%),
+      radial-gradient(130% 110% at 68% 38%,#091316 0%,#060d10 56%,#03070a 100%);
+    animation:hpBgIn 1.2s ease-out both} /* teinte calée sur la PLAQUE de l'artwork (noir-teal) : avec le fondu long de la plaque, AUCUNE différence visible autour du Comte */
   #hpBg::before{content:'';position:absolute;left:0;top:0;width:2px;height:2px;border-radius:50%;background:transparent;
     box-shadow:3vw 12vh 0 rgba(205,228,255,.55),9vw 32vh 0 rgba(205,228,255,.4),14vw 7vh 0 rgba(215,235,255,.6),
       18vw 55vh 0 rgba(205,228,255,.38),22vw 84vh 0 rgba(205,228,255,.5),28vw 18vh 0 rgba(205,228,255,.42),
