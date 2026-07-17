@@ -393,7 +393,14 @@
     box-shadow:0 24px 70px rgba(0,0,0,.6),inset 0 1px 0 rgba(143,228,255,.12);text-align:center}
   #roomPick h2{font-family:var(--display);font-size:22px;letter-spacing:.1em;color:var(--frost);margin-bottom:2px;text-shadow:0 2px 14px rgba(75,184,240,.45)}
   #roomPick .rp-sub{color:var(--muted);font-size:12px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:14px}
-  #roomPick h3{font-family:var(--display);font-size:13.5px;letter-spacing:.14em;color:var(--ice);text-transform:uppercase;margin:14px 0 10px;text-align:left}
+  #roomPick h3{font-family:var(--display);font-size:13.5px;letter-spacing:.14em;color:var(--ice);text-transform:uppercase;margin:0 0 10px;text-align:left}
+  #roomPick h4{font-family:var(--display);font-size:11.5px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:12px 0 8px;text-align:left}
+  #roomPick .rp-tag{font-family:var(--font);font-size:10.5px;letter-spacing:.02em;text-transform:none;color:var(--muted);font-weight:400;margin-left:8px}
+  /* les 2 mondes bien SÉPARÉS : Donjon (bleu glace) / Songe (orangé, comme ses listes) */
+  #roomPick .rp-realm{border:1px solid;border-radius:14px;padding:12px 14px 13px;margin:12px 0 0;text-align:left}
+  #roomPick .realm-dj{border-color:rgba(75,184,240,.42);background:rgba(20,42,72,.32)}
+  #roomPick .realm-songe{border-color:rgba(240,151,92,.4);background:rgba(58,34,16,.22)}
+  #roomPick .realm-songe h3{color:#f0b27c}
   #roomPick .rp-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-start}
   .rp-item{width:158px;padding:8px 8px 7px;border-radius:12px;cursor:pointer;font-family:var(--font);
     background:rgba(10,24,44,.85);border:1px solid var(--border);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
@@ -419,12 +426,19 @@
   </div>
 </div></div>
 
-<!-- SONGE : le choix de la salle à afficher (grilles remplies par le script : Maps Finale + Maps des salles) -->
+<!-- PARTIE COMTE : le choix de la salle à afficher — Donjon (réel) ou Songe (grilles remplies par le script) -->
 <div id="roomPick"><div class="rp-in">
-  <h2>🌙 PORTE DE SONGE</h2>
-  <div class="rp-sub">Choisis la salle à afficher</div>
-  <h3>👹 Maps Finale</h3><div class="rp-grid" id="rpBoss"></div>
-  <h3>🗺️ Maps des salles</h3><div class="rp-grid" id="rpRooms"></div>
+  <h2>⚔️ PARTIE COMTE</h2>
+  <div class="rp-sub">Donjon ou Songe — choisis la salle à afficher</div>
+  <div class="rp-realm realm-dj">
+    <h3>🏰 Donjon <span class="rp-tag">la vraie salle du boss</span></h3>
+    <div class="rp-grid" id="rpDj"></div>
+  </div>
+  <div class="rp-realm realm-songe">
+    <h3>🌙 Songe <span class="rp-tag">les salles reconstruites de tes screens</span></h3>
+    <h4>👹 Maps Finale</h4><div class="rp-grid" id="rpBoss"></div>
+    <h4>🗺️ Maps des salles</h4><div class="rp-grid" id="rpRooms"></div>
+  </div>
   <button class="rp-later" id="rpLater" type="button">Plus tard — rester sur la map d'attente</button>
 </div></div>
 
@@ -511,9 +525,13 @@
     <span class="rico"><img src="https://api.dofusdb.fr/img/monsters/993.png" alt=""></span>
     <span class="rtx"><b>Comte Harebourg</b><i class="rs">à poser</i></span>
   </div>
-  <div class="ritem mob" data-k="poutch" title="Jusqu'à 7 sur le terrain (8v8 avec le boss)">
+  <div class="ritem mob" data-k="poutch" title="Jusqu'à 7 mobs sur le terrain, poutchs et osthéos confondus (8v8 avec le boss)">
     <span class="rico"><img src="https://api.dofusdb.fr/img/monsters/278.png" alt=""></span>
     <span class="rtx"><b>Acnoh le poutch</b><i class="rs">0 / 7</i></span>
+  </div>
+  <div class="ritem mob" data-k="ostheo" title="Jusqu'à 7 mobs sur le terrain, poutchs et osthéos confondus (8v8 avec le boss)">
+    <span class="rico"><img src="https://api.dofusdb.fr/img/monsters/1556.png" alt=""></span><!-- 1556 = gfxId du Roquet hargneux (l'id monstre 4933 n'a PAS d'image) -->
+    <span class="rtx"><b>Osthéo le curieux</b><i class="rs">0 / 7</i></span>
   </div>
   </div>
   <div class="rsec" id="rosterClassesHead" style="display:none">🛡️ Classes <b id="rosterClassesCount">0 / 8</b></div>
@@ -564,7 +582,7 @@
 </div>
 <div id="cellCount"></div>
 <div id="ctxMenu"><button id="ctxMulti" style="display:none;color:#c9a6ff">🌀 Multicomte — poser ses illusions</button><button id="ctxComte" style="display:none;color:#8fe4ff">🔷 Transformer en Comte</button><button id="ctxDead">☠ Mort — retirer du terrain</button></div>
-<div id="placeMenu"><button id="pmEnemy">🔴 Poser un ennemi (Acnoh le poutch)</button><button id="pmComte" style="color:#8fe4ff"><img class="pmico" src="https://api.dofusdb.fr/img/items/16362.png" alt="" onerror="this.replaceWith('🔷')">Poser le Comte</button></div>
+<div id="placeMenu"><button id="pmEnemy">🔴 Poser un ennemi (Acnoh le poutch)</button><button id="pmOstheo">🐺 Poser Osthéo le curieux</button><button id="pmComte" style="color:#8fe4ff"><img class="pmico" src="https://api.dofusdb.fr/img/items/16362.png" alt="" onerror="this.replaceWith('🔷')">Poser le Comte</button></div>
 <div id="allyMenu"> <!-- clic droit sur un perso : la vitalité se choisit ICI, directement (plus de pop-up séparé) -->
   <div class="cptitle"><span class="chp">❤</span> Choisis ta vitalité</div>
   <div class="amrow">
@@ -604,7 +622,7 @@
   const DJ_OFF=3; // la salle du Donjon (DJ_MAP, 25×25) reste CENTRÉE sur la grille 31×31 : décalée de (31−25)/2
   const A2D={0:{x:0,y:-1},90:{x:1,y:0},180:{x:0,y:1},270:{x:-1,y:0}};
   const allyColors=[0xbcd0ff,0x8effc4,0xffcf6b,0xff9ad2,0xc9a0ff,0xff8f6b,0x7be0d0,0xe8e06b];
-  const POUTCH_NAME='Acnoh le poutch', POUTCH_MAX=7; // le mob ennemi de base : 7 au plus sur le terrain
+  const POUTCH_NAME='Acnoh le poutch', OSTHEO_NAME='Osthéo le curieux', MOB_MAX=7; // les mobs ennemis (poutchs + osthéos) : 7 au plus sur le terrain, tous types confondus (8v8 avec le boss)
   function makeAlly(i){return{id:i,x:HALF-2+i,y:HALF,hp:4000,hpMax:4000,pa:PA_MAX,pm:PM_MAX,pmPen:0,placed:false,className:'—',classSpells:[],head:null,ring:allyColors[i],obj:null,vitaTier:null};}
   const state={phase:'setup',placeMode:'player',withInvocs:true,map:'songe',obstacles:new Set(),
     mapW:15,mapH:15, // Songe : zone jouable centrée, réglable (9..N) via les boutons +/- de l'outil terrain
@@ -957,7 +975,7 @@
   }
 
   /* ---- tiles ---- */
-  const tiles=[],tileArr=[],tileGeo=new THREE.BoxGeometry(0.92,TILE_H,0.92);
+  const tiles=[],tileArr=[],tileGeo=new THREE.BoxGeometry(1,TILE_H,1); // dalles JOINTIVES comme en jeu (pas de grille TILE=1 inchangé — la grille se lit à l'alternance du damier, plus aux interstices)
   for(let x=0;x<N;x++){tiles[x]=[];for(let y=0;y<N;y++){const dark=(x+y)%2===0;
     const m=new THREE.MeshBasicMaterial({color:dark?0x16324f:0x1b3d5e}); // matériau PLAT et OPAQUE : couleur unie, on ne voit pas à travers (le néon ne passe que par les interstices)
     const mesh=new THREE.Mesh(tileGeo,m);const p=worldPos(x,y);mesh.position.set(p.x,-TILE_H/2,p.z);
@@ -2271,14 +2289,16 @@
       el('pmComte').style.display=(comte()||state.map==='sable')?'none':'';}}); // pas de Comte en Bac à sable
   function putPlayerAt(x,y){ // clic gauche sur une case libre : plus AUCUN ajout de perso ici, sur AUCUNE carte — le GLISSÉ depuis le widget est la seule porte d'entrée
     toast(state.map==='sable'?'🧪 Bac à sable : GLISSE une classe depuis le widget pour poser un perso.':'🐾 GLISSE un perso depuis le widget pour le poser sur la carte.');}
-  function spawnPoutch(){ // clic droit sur une case libre → Poutch (entité ennemie) ; les joueurs, eux, se GLISSENT depuis le widget
+  function spawnPoutch(os){ // clic droit sur une case libre → Poutch, ou Osthéo le curieux (os=true) ; les joueurs, eux, se GLISSENT depuis le widget
     if(!placeCell)return;const{x,y}=placeCell;placeCell=null;el('placeMenu').classList.remove('show');
     if(entityAt(x,y)||blocked(x,y)){toast('Case occupée ou bloquée.');return;}
-    if(poutchCount()>=POUTCH_MAX){toast('Déjà '+POUTCH_MAX+' × '+POUTCH_NAME+' sur le terrain.');return;}
-    spawnMobFrom({name:POUTCH_NAME,kind:'mob',friendly:false,hpMax:500,ring:0xff5b5b,x,y,img:API+'/img/monsters/278.png'}); // Poutch Ingball (DofusDB)
-    refreshTiles();refreshHUD();toast('🔴 '+POUTCH_NAME+' posé en '+x+','+y+' (clic droit dessus pour le retirer).');}
+    if(mobCount()>=MOB_MAX){toast('Déjà '+MOB_MAX+' mobs sur le terrain (poutchs + osthéos).');return;}
+    spawnMobFrom({name:os?OSTHEO_NAME:POUTCH_NAME,kind:'mob',friendly:false,hpMax:500,ring:0xff5b5b,x,y,img:API+'/img/monsters/'+(os?1556:278)+'.png'}); // 278 = Poutch Ingball · 1556 = gfxId du Roquet hargneux
+    refreshTiles();refreshHUD();toast('🔴 '+(os?OSTHEO_NAME:POUTCH_NAME)+' posé en '+x+','+y+' (clic droit dessus pour le retirer).');}
   /* ===== BAC À ENTITÉS (haut-gauche) : on glisse une vignette sur une case ===== */
   const poutchCount=()=>state.enemies.filter(e=>e.alive&&e.name===POUTCH_NAME).length;
+  const ostheoCount=()=>state.enemies.filter(e=>e.alive&&e.name===OSTHEO_NAME).length;
+  const mobCount=()=>poutchCount()+ostheoCount(); // la limite MOB_MAX est PARTAGÉE entre les deux types
   const ALLY_MAX=8; // 8v8 : jusqu'à 8 alliés contre le boss + 7 poutchs
   function renderRoster(){const box=el('roster');if(!box)return;
     const set=(k,plein,txt)=>{const it=box.querySelector('[data-k="'+k+'"]');if(!it)return;
@@ -2286,9 +2306,10 @@
     const na=aliveAllies().length,pleinA=na>=ALLY_MAX,txtA=pleinA?'équipe pleine':'à poser';
     set('a0',pleinA,txtA);set('a1',pleinA,txtA);set('a2',pleinA,txtA);
     set('comte',!!comte(),comte()?'sur le terrain':'à poser');
-    const n=poutchCount();set('poutch',n>=POUTCH_MAX,n+' / '+POUTCH_MAX);
+    const n=poutchCount(),no=ostheoCount(),pleinM=mobCount()>=MOB_MAX; // limite commune : poser l'un consomme la place de l'autre
+    set('poutch',pleinM,n+' / '+MOB_MAX);set('ostheo',pleinM,no+' / '+MOB_MAX);
     if(el('rosterAllies'))el('rosterAllies').textContent=na+' / '+ALLY_MAX;
-    if(el('rosterFoes'))el('rosterFoes').textContent=((comte()?1:0)+n)+' / '+(POUTCH_MAX+1);
+    if(el('rosterFoes'))el('rosterFoes').textContent=((comte()?1:0)+mobCount())+' / '+(MOB_MAX+1);
     box.querySelectorAll('.ritem.cls').forEach(it=>it.classList.toggle('full',pleinA)); // bac à sable : les 19 classes s'éteignent quand l'équipe est pleine
     if(el('rosterClassesCount'))el('rosterClassesCount').textContent=na+' / '+ALLY_MAX;}
   function placeholderIcon(cls){ // pastille ronde colorée + initiale : sert de vignette ET d'image de glissé tant que les vrais visuels ne sont pas fournis
@@ -2315,7 +2336,7 @@
   function canDrop(k,x,y){ // cette vignette peut-elle atterrir ici ? (sert à la case verte/rouge du survol ET au lâcher)
     if(!k||!inGrid(x,y)||!tiles[x]||!tiles[x][y]||!tiles[x][y].visible||blocked(x,y)||entityAt(x,y))return false;
     if(k==='comte')return !comte();
-    if(k==='poutch')return poutchCount()<POUTCH_MAX;
+    if(k==='poutch'||k==='ostheo')return mobCount()<MOB_MAX;
     return aliveAllies().length<ALLY_MAX;}
   function dropEntity(k,x,y){ // lâcher d'une vignette sur une case
     if(!inGrid(x,y)||!tiles[x]||!tiles[x][y].visible||blocked(x,y)){toast('Case bloquée ou hors carte.');return;}
@@ -2323,10 +2344,10 @@
     if(k==='comte'){
       if(comte()){toast('Le Comte est déjà sur le terrain.');return;}
       transformToComte(spawnMobFrom({name:'Comte',kind:'mob',friendly:false,hpMax:3000,ring:0x8fe4ff,x,y}),true);renderRoster();return;}
-    if(k==='poutch'){
-      if(poutchCount()>=POUTCH_MAX){toast('Déjà '+POUTCH_MAX+' × '+POUTCH_NAME+' sur le terrain.');return;}
-      spawnMobFrom({name:POUTCH_NAME,kind:'mob',friendly:false,hpMax:500,ring:0xff5b5b,x,y,img:API+'/img/monsters/278.png'});
-      refreshTiles();refreshHUD();toast('🔴 '+POUTCH_NAME+' posé en '+x+','+y+'.');return;}
+    if(k==='poutch'||k==='ostheo'){const os=k==='ostheo';
+      if(mobCount()>=MOB_MAX){toast('Déjà '+MOB_MAX+' mobs sur le terrain (poutchs + osthéos, 8v8 avec le boss).');return;}
+      spawnMobFrom({name:os?OSTHEO_NAME:POUTCH_NAME,kind:'mob',friendly:false,hpMax:500,ring:0xff5b5b,x,y,img:API+'/img/monsters/'+(os?1556:278)+'.png'}); // Osthéo = Roquet hargneux (1556 = son gfxId : l'id monstre 4933 n'a pas d'image)
+      refreshTiles();refreshHUD();toast('🔴 '+(os?OSTHEO_NAME:POUTCH_NAME)+' posé en '+x+','+y+'.');return;}
     const sk=k[0]==='a'?+k.slice(1):(PERSO_COUNT+ +k.slice(3)); // aN = perso custom · clsN = classe (index après les persos dans SKINS)
     if(k.slice(0,3)==='cls')loadSkinViews(sk); // charge les 4 vues de CETTE classe à sa 1re pose (paresseux)
     if(aliveAllies().length>=ALLY_MAX){toast('Équipe pleine : déjà '+ALLY_MAX+' alliés (8v8).');return;}
@@ -2473,10 +2494,11 @@
   el('backComte').onclick=()=>setMapMode('songe'); // depuis le Bac à sable : retour aux cartes du Comte
   (function(){ // les 2 listes déroulantes de l'onglet Songe (Boss / Maps) : SURVOL = aperçu dessiné de la carte, clic = ouverture
     const prev=el('portePrev'),subs=el('songeSubs');
-    function paintMapCanvas(i,cv){ // mini-rendu iso 2D (les corrections localStorage de CETTE map priment sur le layout gravé)
+    function paintMapCanvas(i,cv){ // mini-rendu iso 2D (les corrections localStorage de CETTE map priment sur le layout gravé) ; i='dj' = la salle du Donjon
       const g2=cv.getContext('2d');g2.clearRect(0,0,cv.width,cv.height);
       let cells=null;
-      try{const sv=JSON.parse(localStorage.getItem('ps_map_custom_v1:porte'+i)||'null');
+      if(i==='dj'){cells=new Map();DJ_MAP.forEach((row,y)=>{for(let x=0;x<row.length;x++)if(row[x]!=='.')cells.set(x+','+y,row[x]);});}
+      else try{const sv=JSON.parse(localStorage.getItem('ps_map_custom_v1:porte'+i)||'null');
         if(sv&&sv.v&&sv.o){cells=new Map();const voids=new Set(sv.v),obs=new Set(sv.o);
           for(let y=0;y<N;y++)for(let x=0;x<N;x++){const k=x+','+y;
             if(!voids.has(k))cells.set(k,obs.has(k)?'X':'#');}}}catch(_){}
@@ -2519,13 +2541,16 @@
     if(state.map==='songe'||isPorte(state.map))subs.classList.add('open'); // au boot, la carte par défaut est Songe → ses listes sont visibles d'entrée
     // ---- panneau central « Choisis ta salle » : ouvert en arrivant sur Songe (mêmes maps que les 2 listes) ----
     const rp=el('roomPick');
-    function fillRp(){[['rpBoss',bossIdx],['rpRooms',mapsIdx]].forEach(([id,idx])=>{const g=el(id);g.innerHTML='';
-      idx.forEach(i=>{const it=document.createElement('button');it.type='button';it.className='rp-item';it.title='Ouvrir « '+PS_MAPS[i].name+' »';
-        const cv=document.createElement('canvas');cv.width=284;cv.height=192; // ×2 : vignette nette (affichée 142×96)
-        const b=document.createElement('b');b.textContent=PS_MAPS[i].name;
-        it.appendChild(cv);it.appendChild(b);paintMapCanvas(i,cv);
-        it.onclick=()=>{rp.classList.remove('show');setMapMode('porte'+i);};
-        g.appendChild(it);});});}
+    function rpItem(i,label){const it=document.createElement('button');it.type='button';it.className='rp-item';it.title='Ouvrir « '+label+' »';
+      const cv=document.createElement('canvas');cv.width=284;cv.height=192; // ×2 : vignette nette (affichée 142×96)
+      const b=document.createElement('b');b.textContent=label;
+      it.appendChild(cv);it.appendChild(b);paintMapCanvas(i,cv);
+      it.onclick=()=>{rp.classList.remove('show');setMapMode(i==='dj'?'dj':'porte'+i);};
+      return it;}
+    function fillRp(){
+      const dj=el('rpDj');dj.innerHTML='';dj.appendChild(rpItem('dj','Salle du Comte')); // le Donjon d'abord : c'est la vraie salle
+      [['rpBoss',bossIdx],['rpRooms',mapsIdx]].forEach(([id,idx])=>{const g=el(id);g.innerHTML='';
+        idx.forEach(i=>g.appendChild(rpItem(i,PS_MAPS[i].name)));});}
     openRoomPick=()=>{fillRp();rp.classList.add('show');}; // repeint à CHAQUE ouverture : les retouches localStorage apparaissent sur les vignettes
     el('rpLater').onclick=()=>rp.classList.remove('show');
     rp.addEventListener('pointerdown',ev=>{if(ev.target===rp)rp.classList.remove('show');});})(); // clic à côté du panneau = fermer
@@ -2681,6 +2706,7 @@
     ctxEnemy=null;el('ctxMenu').classList.remove('show');refreshTiles();refreshHUD();
     toast('🌀 <b>Multicomte</b> : clique la case où le Comte se téléporte — ses illusions se posent autour. (Échap pour annuler)');};
   el('pmEnemy').onclick=()=>spawnPoutch();
+  el('pmOstheo').onclick=()=>spawnPoutch(true);
   el('pmComte').onclick=()=>spawnComteToken();
   // menu du PERSO (clic droit sur un allié) : la vitalité se choisit DANS le menu — pour le contrôler : clic GAUCHE dessus
   el('allyMenu').querySelector('.cpbtns').innerHTML=VITA.map((v,i)=>'<button data-t="'+i+'" style="--vc:'+v.c+'">'+v.l+'</button>').join(''); // les 5 tranches viennent de VITA (source unique)
