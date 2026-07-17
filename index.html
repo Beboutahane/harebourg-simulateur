@@ -407,14 +407,23 @@
      #homePick (backdrop-filter), un filter ré-affiche le fond flouté dans le RECTANGLE du div (« fond horrible »).
      → le flou léger et le halo bleu sont CUITS dans l'image (scratchpad/detoure-dofus.mjs, marge 56 px). Le CSS ne
      garde que background + opacité + masque radial de fondu. Image 566×632 (dofus 454×520 + halo). */
-  #hpEgg{position:absolute;left:3vw;top:53%;height:30vh;aspect-ratio:566/632;pointer-events:none;
+  #hpEgg{position:absolute;left:3vw;top:70%;height:27vh;aspect-ratio:566/632;pointer-events:none; /* rabaissé (bas-gauche, cf. gribouillage de l'user) */
     transform:translateY(-50%) rotate(-8deg);
-    background:url(harebourg-egg.webp) center/contain no-repeat;opacity:.6;
+    background:url(harebourg-egg.webp) center/contain no-repeat;opacity:.62;
     -webkit-mask-image:radial-gradient(125% 125% at 50% 47%,#000 55%,rgba(0,0,0,.4) 80%,transparent 100%);
     mask-image:radial-gradient(125% 125% at 50% 47%,#000 55%,rgba(0,0,0,.4) 80%,transparent 100%);
     animation:hpEggIn 1.2s ease-out both}
-  @keyframes hpEggIn{from{opacity:0;transform:translateY(-50%) rotate(-8deg) scale(.92)}to{opacity:.6;transform:translateY(-50%) rotate(-8deg)}}
+  @keyframes hpEggIn{from{opacity:0;transform:translateY(-50%) rotate(-8deg) scale(.92)}to{opacity:.62;transform:translateY(-50%) rotate(-8deg)}}
   @media (max-width:1100px){#hpEgg{opacity:.24;left:-4vw}} /* écran étroit : il passerait sous les cartes → très discret */
+  /* FUSEAU lumineux : un flux de magie qui relie la MAIN du Comte (droite) au DOFUS des glaces (bas-gauche),
+     DERRIÈRE les cartes. « Fuseau » = ellipse lumineuse allongée (pointue aux 2 bouts) via radial-gradient, tournée
+     le long de l'axe main→dofus. ⚠️ PAS de filter (backdrop-filter parent) : le dégradé est doux par nature. */
+  #hpBeam{position:absolute;left:12%;top:66%;width:54%;height:15vh;pointer-events:none;z-index:0;
+    transform-origin:0 50%;transform:rotate(-15deg);
+    background:radial-gradient(ellipse 50% 42% at 50% 50%,rgba(200,242,255,.8),rgba(120,195,255,.4) 38%,rgba(70,150,255,.14) 60%,transparent 74%);
+    opacity:.85;animation:hpBeamIn 1.4s ease-out both}
+  @keyframes hpBeamIn{from{opacity:0}to{opacity:.85}}
+  @media (max-width:1100px){#hpBeam{display:none}} /* écran étroit : le Comte et le dofus se réorganisent → le fuseau n'a plus de sens */
   #homePick .hp-in{text-align:center;transform:translateY(-3vh);position:relative;z-index:1}
   #homePick h1{font-family:var(--display);font-size:34px;letter-spacing:.12em;color:var(--frost);
     text-shadow:0 2px 18px rgba(75,184,240,.55);margin-bottom:6px}
@@ -458,7 +467,7 @@
 <div id="app"></div>
 <div id="loading">❄️ Chargement de l'arène 3D et des données Dofus…</div>
 
-<div id="homePick"><div id="hpArt"></div><div id="hpEgg"></div><div class="hp-in">
+<div id="homePick"><div id="hpArt"></div><div id="hpBeam"></div><div id="hpEgg"></div><div class="hp-in">
   <h1>❄️ Assistant Comte Harebourg</h1>
   <div class="hp-sub" id="hpSub">Choisis ton mode de jeu</div>
   <div class="hp-cards" id="hpStep1">
