@@ -1861,7 +1861,8 @@
     saveSableSoon(); // Bac à sable : le setup (map + placements) s'auto-sauvegarde après chaque action (débouncé, ne fait rien ailleurs)
     if(el('turnNum'))el('turnNum').textContent=state.tour;
     {const pt=el('pivotInfo');if(pt){const piv=comtePivots(),C=comte(); // qui pivote au prochain coup sur le Comte ? DÉDUIT du tour (le Comte pivote 1 tour sur 2 depuis son arrivée)
-      pt.textContent=!C?'🔄 pose le Comte':(piv?'🔄 Tu peux délock le Comte ce tour':'🔄 Le Comte se délock au prochain tour');
+      const mobsLeft=state.enemies.some(e=>e.alive&&e.kind!=='count'&&!e.friendly); // des monstres ENNEMIS encore en vie (le Comte et les invocations amies ne comptent pas)
+      pt.textContent=!C?'🔄 pose le Comte':(piv?(mobsLeft?'🔄 Tu peux délock le Comte ce tour, mais finissons d\'abord les mobs':'🔄 Tu peux délock le Comte ce tour'):'🔄 Le Comte se délock au prochain tour');
       pt.classList.toggle('boss',piv&&!!C);}}
     {const ab=el('assistBtn');if(ab)ab.classList.toggle('on',state.showDelock);} // l'état est mémorisé PAR CARTE (saveMapState) : le bouton doit suivre
     renderRoster(); // compteurs du bac à entités (posé / à poser · n sur 7)
@@ -3207,7 +3208,9 @@
   (()=>{const hp=el('homePick');if(!hp)return; // ACCUEIL DIRECT : Donjon ou Songe (le Bac à sable est relégué en bas-droite, en bêta)
     const bye=()=>{hp.classList.add('bye');if(typeof refreshHUD==='function')refreshHUD();}; // on GARDE l'accueil caché dans le DOM (ne pas remove) : « Retour au Comte » le ré-affiche. refreshHUD APRÈS masquage → la flèche « glisse un perso » apparaît tout de suite (renderRoster la voit hors-accueil)
     el('hpDj').onclick=()=>{setMapMode('dj');bye();}; // → directement la vraie salle
-    el('hpSonge').onclick=()=>{bye();if(state.map==='songe'&&openRoomPick)openRoomPick();}; // → la page Songe (map d'attente) + son choix de salle
+    el('hpSonge').onclick=()=>{bye(); // → la page Songe : si on vient d'une AUTRE carte (ex. Bac à sable via « Retour au Comte »), on BASCULE d'abord (setMapMode ouvre lui-même le choix de salle) — avant, le clic ne changeait rien et on restait en sable
+      if(state.map!=='songe'&&!isPorte(state.map))setMapMode('songe');
+      else if(state.map==='songe'&&openRoomPick)openRoomPick();};
     el('hpSable').onclick=()=>{setMapMode('sable');bye();};})();
   breedsReady=loadBreeds(); // promesse gardée : une classe posée AVANT la fin du chargement attend au lieu de retomber sur Crâ
   // (plus de chrono de tour : jeu libre)
