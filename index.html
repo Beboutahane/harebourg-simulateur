@@ -38,15 +38,17 @@
   #left{top:12px;left:12px;width:246px;max-height:calc(100vh - 150px);display:flex;flex-direction:column;padding:13px;overflow-y:auto}
   #left h3{font-family:var(--display);font-size:14px;letter-spacing:.4px;color:var(--ice);margin-bottom:8px;display:flex;align-items:center;gap:7px}
   /* Bac à entités (haut-gauche) : on ATTRAPE une vignette et on la LÂCHE sur une case. */
-  #roster{top:12px;left:12px;width:196px;padding:9px 10px;display:flex;flex-direction:column;gap:6px;z-index:7}
-  #roster h3{font-family:var(--display);font-size:11.5px;letter-spacing:.4px;color:var(--ice);display:flex;align-items:center;gap:5px;margin-bottom:2px}
-  .ritem{display:flex;align-items:center;gap:8px;padding:5px 7px;border:1px solid var(--border);border-radius:9px;background:rgba(8,18,32,.55);cursor:grab;user-select:none;transition:.14s}
+  #roster{top:12px;left:12px;width:236px;padding:13px 14px;display:flex;flex-direction:column;gap:8px;z-index:7}
+  #roster h3{font-family:var(--display);font-size:13.5px;letter-spacing:.4px;color:var(--ice);display:flex;align-items:center;gap:7px;margin-bottom:2px}
+  #roster h3 .dico{flex:0 0 auto;color:var(--ice-2)} /* icône glisser-déposer (remplace l'ancien émoji) */
+  #roster h3 .rttx{min-width:0}
+  .ritem{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--border);border-radius:11px;background:rgba(8,18,32,.55);cursor:grab;user-select:none;transition:.14s}
   .ritem:hover{border-color:var(--border-strong);background:rgba(75,184,240,.16);transform:translateX(2px)}
   .ritem:active{cursor:grabbing}
   .ritem.drag{opacity:.45;transform:none}
   .ritem.full{opacity:.4;cursor:not-allowed} /* plus de place sur le terrain : la vignette s'éteint */
   .ritem.full:hover{transform:none;background:rgba(8,18,32,.55);border-color:var(--border)}
-  .rsec{font-family:var(--display);font-size:10.5px;letter-spacing:.5px;color:#9db8dc;margin:4px 0 0;display:flex;align-items:center;justify-content:space-between}
+  .rsec{font-family:var(--display);font-size:12px;letter-spacing:.5px;color:#9db8dc;margin:5px 0 0;display:flex;align-items:center;justify-content:space-between}
   .rsec b{font-weight:600;color:#cfe2f8}
   /* le personnage qu'on tient : suit le curseur pendant tout le glissé, ancré près de ses pieds */
   #dragGhost{position:fixed;width:96px;height:96px;object-fit:contain;pointer-events:none;z-index:99;
@@ -57,11 +59,11 @@
   #dragGhost.snap{transition:left .17s cubic-bezier(.25,.8,.35,1.25),top .17s cubic-bezier(.25,.8,.35,1.25),transform .17s;
     transform:translate(-50%,-88%) scale(.94)}
   #dragGhost.gone{transition:opacity .15s,transform .15s;opacity:0;transform:translate(-50%,-88%) scale(.7)}
-  .rico{width:32px;height:32px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;border-radius:7px;background:rgba(0,0,0,.32);overflow:hidden}
+  .rico{width:38px;height:38px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;border-radius:8px;background:rgba(0,0,0,.32);overflow:hidden}
   .rico img{max-width:100%;max-height:100%;object-fit:contain;pointer-events:none}
   .rtx{min-width:0;display:flex;flex-direction:column;line-height:1.22}
-  .rtx b{font-family:var(--display);font-size:11.5px;color:var(--frost);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .rtx i{font-size:9.5px;color:var(--muted);font-style:normal;white-space:nowrap}
+  .rtx b{font-family:var(--display);font-size:13.5px;color:var(--frost);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rtx i{font-size:11px;color:var(--muted);font-style:normal;white-space:nowrap}
   .ritem.boss .rtx b{color:var(--ice)}
   .ritem.mob .rtx b{color:#ff9a95}
   /* Bac à SABLE : liste scrollable des 19 classes (lignes fines) */
@@ -70,9 +72,9 @@
   #rosterClasses::-webkit-scrollbar-track{background:transparent}
   #rosterClasses::-webkit-scrollbar-thumb{background:rgba(120,160,220,.32);border-radius:4px}
   #rosterClasses::-webkit-scrollbar-thumb:hover{background:rgba(120,160,220,.5)}
-  .ritem.cls{padding:3px 6px;gap:7px;border-radius:8px} /* ligne fine */
-  .ritem.cls .rico{width:32px;height:32px} /* la vignette de la classe (sa vue de face) */
-  .ritem.cls .rtx b{font-size:12px}
+  .ritem.cls{padding:4px 7px;gap:9px;border-radius:9px} /* ligne fine */
+  .ritem.cls .rico{width:36px;height:36px} /* la vignette de la classe (sa vue de face) */
+  .ritem.cls .rtx b{font-size:13px}
   #tips{top:12px;right:12px;width:262px;max-height:calc(100vh - 150px);overflow-y:auto;padding:13px 14px;display:flex;flex-direction:column;gap:8px}
   #tips h3{font-family:var(--display);font-size:13px;letter-spacing:.4px;color:var(--ice);display:flex;align-items:center;gap:6px;margin-bottom:2px}
   .tiplist{list-style:none;display:flex;flex-direction:column;gap:7px;margin:0;padding:0}
@@ -211,17 +213,25 @@
   .allySel option{background:#0d1f38;color:var(--frost);font-weight:600}
   #sablePick{bottom:12px;left:14px;display:flex;padding:8px;pointer-events:auto;z-index:6} /* carte indépendante, sous « Le Comte en » */
   #modeBtns{display:flex;flex-direction:column;gap:7px}
-  .mbtn{display:flex;align-items:center;gap:10px;min-width:170px;padding:9px 13px;border-radius:12px;cursor:pointer;transition:.15s;
-    border:1px solid var(--border);background:rgba(8,18,32,.6);color:var(--frost);font-family:var(--font);text-align:left}
-  .mbtn:hover{transform:translateY(-1px)}
+  /* Boutons de mode : l'INACTIF paraît CLIQUABLE (accent bleu, se soulève au survol, s'enfonce au clic) ;
+     l'ACTIF paraît DÉJÀ CLIQUÉ (enfoncé, ombre INTÉRIEURE, pas de lueur, curseur normal) — on est déjà dessus. */
+  .mbtn{display:flex;align-items:center;gap:10px;min-width:170px;padding:9px 13px;border-radius:12px;cursor:pointer;
+    transition:transform .12s ease,box-shadow .15s ease,border-color .15s ease,background .15s ease;
+    border:1px solid var(--border-strong);background:linear-gradient(120deg,rgba(75,184,240,.1),rgba(8,18,32,.62));color:var(--frost);font-family:var(--font);text-align:left}
+  .mbtn:hover{transform:translateY(-2px);border-color:var(--ice-2);box-shadow:0 7px 18px rgba(0,8,20,.5),0 0 0 1px rgba(75,184,240,.22)}
+  .mbtn:active{transform:translateY(0) scale(.985);transition:.06s} /* animation de clic */
   .mbtn .mico{font-size:24px;line-height:1;width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
   .mbtn .mico img,.mbtn .mico svg{width:30px;height:30px;object-fit:contain;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
   .mbtn .mtxt{display:flex;flex-direction:column;gap:1px}
   .mbtn .mtxt b{font-family:var(--display);font-size:14px;letter-spacing:.3px}
   .mbtn .mtxt i{font-style:normal;font-size:9.5px;color:var(--muted)}
-  #modeDj.on{border-color:#e8a04b;background:linear-gradient(120deg,rgba(232,160,75,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(232,160,75,.35)}
-  #modeSonge.on{border-color:#b98cff;background:linear-gradient(120deg,rgba(185,140,255,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(185,140,255,.35)}
-  #modeSable.on{border-color:#6be3c0;background:linear-gradient(120deg,rgba(107,227,192,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(107,227,192,.35)}
+  /* état ACTIF = enfoncé : ombre intérieure, léger décalage vers le bas, PAS de lift au survol ni de lueur */
+  .mbtn.on{cursor:default;transform:translateY(1px)}
+  .mbtn.on:hover,.mbtn.on:active{transform:translateY(1px)} /* on est déjà dessus : ni lift au survol ni enfoncement au clic (l'ombre intérieure reste, portée par la règle #mode….on) */
+  .mbtn.on .mico img,.mbtn.on .mico svg{opacity:.9}
+  #modeDj.on{border-color:rgba(232,160,75,.5);background:linear-gradient(120deg,rgba(232,160,75,.13),rgba(5,12,22,.9));box-shadow:inset 0 2px 8px rgba(0,0,0,.6),inset 0 0 12px rgba(232,160,75,.14)}
+  #modeSonge.on{border-color:rgba(185,140,255,.5);background:linear-gradient(120deg,rgba(185,140,255,.13),rgba(5,12,22,.9));box-shadow:inset 0 2px 8px rgba(0,0,0,.6),inset 0 0 12px rgba(185,140,255,.14)}
+  #modeSable.on{border-color:rgba(107,227,192,.5);background:linear-gradient(120deg,rgba(107,227,192,.13),rgba(5,12,22,.9));box-shadow:inset 0 2px 8px rgba(0,0,0,.6),inset 0 0 12px rgba(107,227,192,.14)}
   /* « C'EST TON TOUR » : élément HTML net (l'ancien sprite canvas scintillait), style calé sur les cards de l'UI */
   #turnBadge{position:fixed;left:0;top:0;display:none;z-index:8;pointer-events:none;transform:translate(-50%,-100%);
     padding:5px 12px 6px;border-radius:9px;white-space:nowrap;
@@ -560,7 +570,7 @@
 
 <!-- Bac à entités : chaque vignette se GLISSE sur une case. Les compteurs sont tenus par renderRoster(). -->
 <div class="hud card" id="roster">
-  <h3 id="rosterTitle">🎭 Glisse-les sur la map</h3>
+  <h3 id="rosterTitle"><span class="dico" aria-hidden="true"><svg viewBox="0 0 16 16" width="15" height="15"><g fill="currentColor"><circle cx="6" cy="3" r="1.4"/><circle cx="10" cy="3" r="1.4"/><circle cx="6" cy="8" r="1.4"/><circle cx="10" cy="8" r="1.4"/><circle cx="6" cy="13" r="1.4"/><circle cx="10" cy="13" r="1.4"/></g></svg></span><span class="rttx">Glisse-les sur la map</span></h3>
   <div id="rosterNormal">
   <div class="rsec">🔵 Alliés <b id="rosterAllies">0 / 8</b></div>
   <div class="ritem" data-k="a0" title="Glisse-le sur une case libre — jusqu'à 8 alliés au total">
@@ -2600,7 +2610,7 @@
     if(el('rosterFoesBlock'))el('rosterFoesBlock').style.display=state.map==='dj'?'none':''; // en DONJON la compo est AUTO (B4→B8) : rien à poser à la main
     if(el('rosterClasses'))el('rosterClasses').style.display=sable?'flex':'none';
     if(el('rosterClassesHead'))el('rosterClassesHead').style.display=sable?'flex':'none';
-    if(el('rosterTitle'))el('rosterTitle').textContent=sable?'🎭 Glisse une classe sur la map':'🎭 Glisse-les sur la map';}
+    {const tx=el('rosterTitle')&&el('rosterTitle').querySelector('.rttx');if(tx)tx.textContent=sable?'Glisse une classe sur la map':'Glisse-les sur la map';}} // l'icône .dico (glisser-déposer) reste, on ne réécrit que le texte
   function canDrop(k,x,y){ // cette vignette peut-elle atterrir ici ? (sert à la case verte/rouge du survol ET au lâcher)
     if(!k||!inGrid(x,y)||!tiles[x]||!tiles[x][y]||!tiles[x][y].visible||blocked(x,y)||entityAt(x,y))return false;
     if(k==='comte')return !comte();
