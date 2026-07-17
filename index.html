@@ -436,7 +436,7 @@
     <div class="rp-grid" id="rpDj"></div>
   </div>
   <div class="rp-realm realm-songe">
-    <h3>🌙 Songe <span class="rp-tag">les salles reconstruites de tes screens</span></h3>
+    <h3>🌙 Songe</h3>
     <h4>👹 Maps Finale</h4><div class="rp-grid" id="rpBoss"></div>
     <h4>🗺️ Maps des salles</h4><div class="rp-grid" id="rpRooms"></div>
   </div>
@@ -484,9 +484,8 @@
     <button class="mbtn on" id="modeSonge" title="La Porte de Songe : choisis la salle à afficher (maps des salles + map finale du boss)">
       <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M16 16C16.4 14.6 18.2 14.2 19.3 15.4C21 16.9 20 19.8 17.4 20.4C13.6 21.2 10.4 18 11 14C11.7 9.2 16.8 6.2 21.6 7.6C27.2 9.2 29.6 15.8 26.8 21.4" fill="none" stroke="#f4c65a" stroke-width="2.6" stroke-linecap="round"/><circle cx="16" cy="16" r="1.5" fill="#ffe9a8"/></svg></span><span class="mtxt"><b>Songe</b><i>les salles &amp; le boss</i></span></button>
     <div id="songeSubs"><!-- s'ouvre avec l'onglet Songe : les maps de BOSS et les maps de tes screens -->
-      <div class="subwrap"><button class="subbtn" id="bossSelBtn" type="button" title="Les maps finales (salle du boss) reconstruites — survole une entrée pour l'aperçu, clique pour l'ouvrir">👹 Maps Finale ▾</button>
-        <div class="sublist" id="bossList"></div></div>
-      <div class="subwrap"><button class="subbtn" id="mapsSelBtn" type="button" title="Les maps des salles reconstruites de tes screens — survole une entrée pour l'aperçu, clique pour l'ouvrir">🗺️ Choisis ta map ▾</button>
+      <!-- (bouton « Maps Finale » supprimé à la demande : Boss 1 est en TÊTE de la liste unique ci-dessous, et dans le panneau « Partie Comte ») -->
+      <div class="subwrap"><button class="subbtn" id="mapsSelBtn" type="button" title="Toutes les maps reconstruites (Boss 1 en tête) — survole une entrée pour l'aperçu, clique pour l'ouvrir">🗺️ Choisis ta map ▾</button>
         <div class="sublist" id="mapsList"></div></div>
       <canvas id="portePrev" width="176" height="124"></canvas>
     </div>
@@ -2555,8 +2554,7 @@
     el('modeDj').classList.toggle('on',m==='dj');el('modeSonge').classList.toggle('on',m==='songe'||isPorte(m));el('modeSable').classList.toggle('on',m==='sable');
     if(el('songeSubs')){el('songeSubs').classList.toggle('open',m==='songe'||isPorte(m)); // l'onglet Songe déplie ses 2 listes (boss + maps)
       const bi=isPorte(m)?(+m.slice(5)||0):-1,nm=bi>=0?(PS_MAPS[bi]||PS_MAPS[0]).name:null,isBoss=!!(nm&&nm.slice(0,4)==='Boss');
-      el('bossSelBtn').textContent='👹 '+(isBoss?nm:'Maps Finale')+' ▾';el('bossSelBtn').classList.toggle('on',isBoss);
-      el('mapsSelBtn').textContent='🗺️ '+(nm&&!isBoss?nm:'Choisis ta map')+' ▾';el('mapsSelBtn').classList.toggle('on',!!(nm&&!isBoss));}
+      el('mapsSelBtn').textContent='🗺️ '+(nm||'Choisis ta map')+' ▾';el('mapsSelBtn').classList.toggle('on',!!nm);}
     toast(isPorte(m)?('🚪 '+(PS_MAPS[+m.slice(5)||0]||PS_MAPS[0]).name+' : map reconstruite de ton screen — corrige-la avec les pinceaux, tout est sauvegardé. Chaque carte est totalement séparée des autres.')
          :({dj:'🏰 Donjon : la vraie salle du Comte — pose tes persos et le boss à la main.',
            songe:'🌙 Songe : choisis la salle à afficher — en attendant, une map d\'attente générique.',
@@ -2609,8 +2607,7 @@
       btn.onclick=ev=>{ev.stopPropagation();const was=list.classList.contains('open');closeAll();if(!was){list.classList.add('open');sdUpd();}};} // mesurable seulement une fois la liste AFFICHÉE
     const bossIdx=[],mapsIdx=[];
     PS_MAPS.forEach((mp,i)=>(mp.name.slice(0,4)==='Boss'?bossIdx:mapsIdx).push(i)); // « Boss … » = la liste des boss (3 à terme) ; le reste = les maps
-    wire('bossSelBtn','bossList',bossIdx);
-    wire('mapsSelBtn','mapsList',mapsIdx);
+    wire('mapsSelBtn','mapsList',[...bossIdx,...mapsIdx]); // liste UNIQUE : Boss 1 en tête, puis les salles (le bouton « Maps Finale » a été supprimé)
     document.addEventListener('pointerdown',ev=>{if(!ev.target.closest('#songeSubs'))closeAll();});
     if(state.map==='songe'||isPorte(state.map))subs.classList.add('open'); // au boot, la carte par défaut est Songe → ses listes sont visibles d'entrée
     // ---- panneau central « Choisis ta salle » : ouvert en arrivant sur Songe (mêmes maps que les 2 listes) ----
