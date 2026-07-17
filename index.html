@@ -411,10 +411,39 @@
      toujours DERRIÈRE les vignettes (.hp-in est en z-index:1).
      ⚠️ Aucun `filter` ni `mix-blend-mode` ici (parent #homePick en backdrop-filter → ils ré-afficheraient le fond
      flouté dans le rectangle du div, cf. « fond horrible » déjà rencontré). Juste background + animation d'entrée. */
-  /* Fond d'accueil : BLEU NUIT uni (#102542). L'ancien composite plein écran (Xélor + fuseau + œuf) est REMPLACÉ
-     par l'artwork « Comte accoudé » ancré sur la vignette Songe (voir #hpSonge .hpComteArt plus bas). */
-  #hpBg{position:absolute;inset:0;z-index:0;pointer-events:none;background:#102542;
+  /* Fond d'accueil : NUIT ÉTOILÉE sombre — le fond noir de l'artwork du Comte est ÉTENDU à tout l'écran (demande),
+     avec de légères ÉCLAIRCIES bleutées (radial-gradients doux) ; la plaque sombre de l'artwork s'y fond sans couture.
+     Les étoiles sont posées par ::before (petites) et ::after (brillantes, scintillement lent) en box-shadow vw/vh
+     → elles suivent la taille de l'écran. ⚠️ toujours AUCUN filter ici (parent #homePick en backdrop-filter). */
+  #hpBg{position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(90% 80% at 22% 22%,rgba(96,148,224,.085),transparent 70%),
+      radial-gradient(80% 70% at 82% 74%,rgba(72,124,206,.07),transparent 70%),
+      radial-gradient(60% 55% at 46% 88%,rgba(104,156,232,.055),transparent 72%),
+      radial-gradient(55% 60% at 6% 64%,rgba(120,170,240,.06),transparent 72%),
+      radial-gradient(130% 110% at 68% 38%,#0c1626 0%,#070d18 56%,#04080f 100%);
     animation:hpBgIn 1.2s ease-out both}
+  #hpBg::before{content:'';position:absolute;left:0;top:0;width:2px;height:2px;border-radius:50%;background:transparent;
+    box-shadow:3vw 12vh 0 rgba(205,228,255,.55),9vw 32vh 0 rgba(205,228,255,.4),14vw 7vh 0 rgba(215,235,255,.6),
+      18vw 55vh 0 rgba(205,228,255,.38),22vw 84vh 0 rgba(205,228,255,.5),28vw 18vh 0 rgba(205,228,255,.42),
+      33vw 64vh 0 rgba(205,228,255,.32),38vw 9vh 0 rgba(215,235,255,.55),43vw 40vh 0 rgba(205,228,255,.38),
+      47vw 78vh 0 rgba(205,228,255,.48),52vw 15vh 0 rgba(205,228,255,.4),57vw 58vh 0 rgba(205,228,255,.3),
+      62vw 88vh 0 rgba(205,228,255,.46),67vw 25vh 0 rgba(215,235,255,.55),72vw 68vh 0 rgba(205,228,255,.4),
+      77vw 8vh 0 rgba(205,228,255,.48),82vw 45vh 0 rgba(205,228,255,.4),87vw 80vh 0 rgba(215,235,255,.55),
+      91vw 20vh 0 rgba(205,228,255,.5),95vw 60vh 0 rgba(205,228,255,.4),6vw 45vh 0 rgba(205,228,255,.3),
+      12vw 70vh 0 rgba(205,228,255,.4),25vw 38vh 0 rgba(205,228,255,.3),31vw 90vh 0 rgba(205,228,255,.42),
+      41vw 60vh 0 rgba(205,228,255,.28),55vw 35vh 0 rgba(205,228,255,.32),60vw 5vh 0 rgba(205,228,255,.42),
+      70vw 50vh 0 rgba(205,228,255,.32),80vw 30vh 0 rgba(205,228,255,.4),85vw 65vh 0 rgba(205,228,255,.32),
+      93vw 38vh 0 rgba(215,235,255,.5),97vw 85vh 0 rgba(205,228,255,.42),17vw 25vh 0 rgba(205,228,255,.36),
+      35vw 30vh 0 rgba(205,228,255,.3),49vw 92vh 0 rgba(205,228,255,.4),64vw 75vh 0 rgba(205,228,255,.34)}
+  #hpBg::after{content:'';position:absolute;left:0;top:0;width:2.5px;height:2.5px;border-radius:50%;background:transparent;
+    box-shadow:7vw 20vh 0 rgba(225,240,255,.85),16vw 78vh 0 rgba(215,235,255,.7),27vw 50vh 0 rgba(225,240,255,.75),
+      36vw 15vh 0 rgba(225,240,255,.8),46vw 68vh 0 rgba(215,235,255,.7),58vw 82vh 0 rgba(225,240,255,.75),
+      66vw 10vh 0 rgba(225,240,255,.8),74vw 38vh 0 rgba(215,235,255,.7),84vw 88vh 0 rgba(225,240,255,.78),
+      90vw 55vh 0 rgba(225,240,255,.72),96vw 15vh 0 rgba(225,240,255,.8),12vw 55vh 0 rgba(215,235,255,.66),
+      52vw 45vh 0 rgba(215,235,255,.6),88vw 8vh 0 rgba(225,240,255,.75);
+    animation:hpStars 4.5s ease-in-out infinite alternate}
+  @keyframes hpStars{from{opacity:.55}to{opacity:1}}
   @keyframes hpBgIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
   #homePick .hp-in{text-align:center;transform:translateY(-3vh);position:relative;z-index:1}
   #homePick h1{font-family:var(--display);font-size:34px;letter-spacing:.12em;color:var(--frost);
