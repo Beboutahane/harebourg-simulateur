@@ -411,42 +411,14 @@
      toujours DERRIÈRE les vignettes (.hp-in est en z-index:1).
      ⚠️ Aucun `filter` ni `mix-blend-mode` ici (parent #homePick en backdrop-filter → ils ré-afficheraient le fond
      flouté dans le rectangle du div, cf. « fond horrible » déjà rencontré). Juste background + animation d'entrée. */
-  /* Fond d'accueil : NUIT ÉTOILÉE sombre — le fond noir de l'artwork du Comte est ÉTENDU à tout l'écran (demande),
-     avec de légères ÉCLAIRCIES bleutées (radial-gradients doux) ; la plaque sombre de l'artwork s'y fond sans couture.
-     Les étoiles sont posées par ::before (petites) et ::after (brillantes, scintillement lent) en box-shadow vw/vh
-     → elles suivent la taille de l'écran. ⚠️ toujours AUCUN filter ici (parent #homePick en backdrop-filter). */
+  /* Fond d'accueil : L'ARTWORK COMPLET fourni par l'user (Comte + nuit + sol dallé, harebourg-fond.webp 1536×1024)
+     posé TEL QUEL en cover, ancré à DROITE (le Comte reste toujours entier ; c'est le vide de gauche qui se rogne
+     sur les écrans étroits). Plus AUCUN détourage, calque, grain ni étoile CSS : l'image fait tout. */
   #hpBg{position:absolute;inset:0;z-index:0;pointer-events:none;
-    background:
-      url(noise-fond.png) repeat, /* GRAIN doux (tuile sans raccord) : le motif du fond de l'artwork étendu à TOUT le fond */
-      radial-gradient(90% 80% at 22% 22%,rgba(96,180,196,.045),transparent 70%),
-      radial-gradient(80% 70% at 82% 74%,rgba(80,164,180,.038),transparent 70%),
-      radial-gradient(60% 55% at 46% 88%,rgba(96,176,192,.03),transparent 72%),
-      radial-gradient(55% 60% at 6% 64%,rgba(110,186,200,.035),transparent 72%),
-      radial-gradient(130% 110% at 68% 38%,#091316 0%,#060d10 56%,#03070a 100%);
-    animation:hpBgIn 1.2s ease-out both} /* teinte calée sur la PLAQUE de l'artwork (noir-teal) : avec le fondu long de la plaque, AUCUNE différence visible autour du Comte */
-  #hpBg::before{content:'';position:absolute;left:0;top:0;width:2px;height:2px;border-radius:50%;background:transparent;
-    box-shadow:3vw 12vh 0 rgba(205,228,255,.55),9vw 32vh 0 rgba(205,228,255,.4),14vw 7vh 0 rgba(215,235,255,.6),
-      18vw 55vh 0 rgba(205,228,255,.38),22vw 84vh 0 rgba(205,228,255,.5),28vw 18vh 0 rgba(205,228,255,.42),
-      33vw 64vh 0 rgba(205,228,255,.32),38vw 9vh 0 rgba(215,235,255,.55),43vw 40vh 0 rgba(205,228,255,.38),
-      47vw 78vh 0 rgba(205,228,255,.48),52vw 15vh 0 rgba(205,228,255,.4),57vw 58vh 0 rgba(205,228,255,.3),
-      62vw 88vh 0 rgba(205,228,255,.46),67vw 25vh 0 rgba(215,235,255,.55),72vw 68vh 0 rgba(205,228,255,.4),
-      77vw 8vh 0 rgba(205,228,255,.48),82vw 45vh 0 rgba(205,228,255,.4),87vw 80vh 0 rgba(215,235,255,.55),
-      91vw 20vh 0 rgba(205,228,255,.5),95vw 60vh 0 rgba(205,228,255,.4),6vw 45vh 0 rgba(205,228,255,.3),
-      12vw 70vh 0 rgba(205,228,255,.4),25vw 38vh 0 rgba(205,228,255,.3),31vw 90vh 0 rgba(205,228,255,.42),
-      41vw 60vh 0 rgba(205,228,255,.28),55vw 35vh 0 rgba(205,228,255,.32),60vw 5vh 0 rgba(205,228,255,.42),
-      70vw 50vh 0 rgba(205,228,255,.32),80vw 30vh 0 rgba(205,228,255,.4),85vw 65vh 0 rgba(205,228,255,.32),
-      93vw 38vh 0 rgba(215,235,255,.5),97vw 85vh 0 rgba(205,228,255,.42),17vw 25vh 0 rgba(205,228,255,.36),
-      35vw 30vh 0 rgba(205,228,255,.3),49vw 92vh 0 rgba(205,228,255,.4),64vw 75vh 0 rgba(205,228,255,.34)}
-  #hpBg::after{content:'';position:absolute;left:0;top:0;width:2.5px;height:2.5px;border-radius:50%;background:transparent;
-    box-shadow:7vw 20vh 0 rgba(225,240,255,.85),16vw 78vh 0 rgba(215,235,255,.7),27vw 50vh 0 rgba(225,240,255,.75),
-      36vw 15vh 0 rgba(225,240,255,.8),46vw 68vh 0 rgba(215,235,255,.7),58vw 82vh 0 rgba(225,240,255,.75),
-      66vw 10vh 0 rgba(225,240,255,.8),74vw 38vh 0 rgba(215,235,255,.7),84vw 88vh 0 rgba(225,240,255,.78),
-      90vw 55vh 0 rgba(225,240,255,.72),96vw 15vh 0 rgba(225,240,255,.8),12vw 55vh 0 rgba(215,235,255,.66),
-      52vw 45vh 0 rgba(215,235,255,.6),88vw 8vh 0 rgba(225,240,255,.75);
-    animation:hpStars 4.5s ease-in-out infinite alternate}
-  @keyframes hpStars{from{opacity:.55}to{opacity:1}}
+    background:#04080c url(harebourg-fond.webp) right center/cover no-repeat;
+    animation:hpBgIn 1.2s ease-out both}
   @keyframes hpBgIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
-  #homePick .hp-in{text-align:center;transform:translateY(-3vh);position:relative;z-index:1}
+  #homePick .hp-in{text-align:center;transform:translate(-7vw,-3vh);position:relative;z-index:1} /* décalé vers la ZONE VIDE de gauche du fond : le Comte (à droite) reste dégagé */
   #homePick h1{font-family:var(--display);font-size:34px;letter-spacing:.12em;color:var(--frost);
     /* ombre SOMBRE d'abord (lisibilité par-dessus les zones claires de l'artwork), puis une pointe de bleu pour le style.
        z-index : le titre passe AU-DESSUS du Comte accoudé (son épaulière recouvrait la fin du titre). */
@@ -486,11 +458,7 @@
      pile sur le coin haut-droit de la vraie vignette → le coude se pose dessus à toutes les tailles d'écran.
      ⚠️ AUCUN filter/blend ici (parent #homePick en backdrop-filter, cf. v4.69). pointer-events:none : le clic passe
      au bouton, et le hover du bouton soulève carte + Comte ensemble. */
-  /* L'artwork est dans un WRAPPER autour du bouton (pas DANS le bouton) : au survol, la carte se soulève SEULE —
-     le Comte ne bouge pas (demande : « trop associé au bouton »). Le wrapper épouse exactement le bouton. */
-  .hpSongeWrap{position:relative;display:flex}
-  .hpSongeWrap .hpComteArt{position:absolute;right:-345px;top:-385px;width:565px;pointer-events:none;display:block} /* remonté de 10 px (à 30 il était « trop haut ») : l'avant-bras s'appuie sur le bord de la vignette */
-  @media (max-width:1100px){.hpSongeWrap .hpComteArt{display:none}} /* écran étroit : pas la place pour l'artwork */
+  /* (plus de calque .hpComteArt : le Comte fait partie du fond harebourg-fond.webp) */
   .hp-card b{display:block;font-family:var(--display);font-size:18px;letter-spacing:.06em;color:var(--frost);margin-bottom:7px}
   .hp-card span{display:block;font-size:12px;line-height:1.45;color:var(--muted)}
   /* ===== SONGE : choix de la salle à afficher (par-dessus la map d'attente floutée) ===== */
@@ -525,7 +493,7 @@
   <h1>❄️ Assistant Comte Harebourg</h1>
   <div class="hp-cards" id="hpStep1"><!-- ACCUEIL DIRECT : Donjon ou Songe (le Bac à sable est relégué en bas-droite, en bêta) -->
     <button class="hp-card" id="hpDj" type="button"><span class="hp-ic"><img src="donjon-icon.png" alt=""></span><b>Donjon</b><span>Affrontes le Comte dans son donjon</span></button>
-    <div class="hpSongeWrap"><button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button><img class="hpComteArt" src="harebourg-comte-songe.webp" alt="" aria-hidden="true"></div><!-- l'img APRÈS le bouton : le Comte passe DEVANT la vignette et s'y appuie (pointer-events:none → le clic traverse) -->
+    <button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button><!-- (le Comte fait partie du FOND harebourg-fond.webp : plus aucun calque rapporté) -->
   </div>
 </div>
   <div id="hpSandbox"><!-- vignette secondaire, coin bas-droite -->
