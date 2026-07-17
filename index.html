@@ -1203,11 +1203,16 @@
       _badgeV.set(p.x,top+0.14,p.z).project(activeCam);
       if(_badgeV.z<1){turnBadgeEl.style.display='block';
         const bx=(_badgeV.x*0.5+0.5)*innerWidth;let by=(-_badgeV.y*0.5+0.5)*innerHeight;
-        // ANTI-SUPERPOSITION : si une étiquette de l'assistant (① cyan / ② violette / « Va ici » verte) tombe sous le badge, il monte au-dessus d'elle
-        [[state.aimCell,1.55],[state.hitCell,0.85],[state.showDelock?state.adviceCell:null,0.85]].forEach(([c,hy])=>{if(!c)return;
-          const w=worldPos(c.x,c.y);_tagV.set(w.x,hy,w.z).project(activeCam);if(_tagV.z>=1)return;
-          const tx=(_tagV.x*0.5+0.5)*innerWidth,ty=(-_tagV.y*0.5+0.5)*innerHeight;
-          if(Math.abs(bx-tx)<96&&by-ty>-34&&by-ty<30)by=ty-34;}); // le badge est ancré par le bas (translate -100%)
+        // ANTI-SUPERPOSITION : le badge (ancré par le bas, ~30px haut, ~132px large) ne doit RIEN cacher des cases de
+        // conseil. Pour chacune (cyan ①, violette ②, verte « Va ici »), on évite SON LOSANGE (y~0.15) ET son étiquette.
+        // Le badge remonte au-dessus du point le plus HAUT (plus petit y écran) qui tombe dans sa colonne.
+        let up=Infinity;
+        const scr=(wx,wy,wz)=>{_tagV.set(wx,wy,wz).project(activeCam);return _tagV.z<1?[(_tagV.x*.5+.5)*innerWidth,(-_tagV.y*.5+.5)*innerHeight]:null;};
+        [[state.aimCell,1.75],[state.hitCell,1.0],[state.showDelock?state.adviceCell:null,0.9]].forEach(([c,labY])=>{if(!c)return;
+          const w=worldPos(c.x,c.y);
+          [[0.15,20],[labY,14]].forEach(([wy,rad])=>{const s=scr(w.x,wy,w.z);if(!s)return; // losange (rad 20) puis étiquette (rad 14)
+            if(Math.abs(bx-s[0])<100&&s[1]>by-40&&s[1]<by+12)up=Math.min(up,s[1]-rad-8);});});
+        if(up<Infinity)by=up; // remonte le badge juste au-dessus de l'élément le plus haut qu'il chevauchait
         turnBadgeEl.style.left=bx+'px';turnBadgeEl.style.top=by+'px';}
       else turnBadgeEl.style.display='none';}}
   function tokenTex(label,color){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
@@ -1603,10 +1608,8 @@
     const p=worldPos(a.x,a.y),g=new THREE.Group();
     const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:cawTex,transparent:true,opacity:.72,depthTest:false,fog:false}));
     spr.scale.set(1.15,1.15,1);spr.position.set(p.x,0.72,p.z);g.add(spr); // la cawotte en transparence, À SA PLACE (même si quelqu'un occupe la case)
-    // Étiquette COURTE : le bandeau de l'assistant dit déjà tout (« ① Mets une invocation… : clique la case CYAN »).
-    // Les phrases entières sur le terrain se chevauchaient entre elles et avec « C'EST TON TOUR ».
-    const tag=tagSprite(occ?('① sur '+entLabel(occ)):'①','47,224,255');
-    tag.scale.multiplyScalar(occ?1:1.35);tag.position.set(p.x,occ?2.05:1.55,p.z);g.add(tag);
+    const tag=tagSprite(occ?('① Clique sur '+entLabel(occ)):'① Place-y une invocation ou un allié','47,224,255');
+    tag.scale.multiplyScalar(.55);tag.position.set(p.x,occ?2.15:1.7,p.z);g.add(tag); // texte long → échelle réduite pour ne pas barrer la map
     if(occ){ // flèche ↓ plantée au-dessus de sa tête : c'est LUI qu'il faut cliquer
       const cone=new THREE.Mesh(new THREE.ConeGeometry(0.13,0.32,12),new THREE.MeshBasicMaterial({color:0x2fe0ff,transparent:true,opacity:.95,depthTest:false}));
       cone.rotation.x=Math.PI;cone.position.set(p.x,1.55,p.z);g.add(cone);
@@ -1620,9 +1623,9 @@
     if(hitGhost){scene.remove(hitGhost);hitGhost=null;}
     if(!h)return;
     const p=worldPos(h.x,h.y),g=new THREE.Group();
-    const tag=tagSprite(deux?'②':'Tape ici','196,77,255'); // COURT : le bandeau nomme déjà la cible (« Frappe le Comte : clique la case VIOLETTE »)
-    if(deux)tag.scale.multiplyScalar(1.35);
-    tag.position.set(p.x,0.85,p.z);g.add(tag);
+    const lab=(h&&h.label)||'Tape ici'; // h.label = « Tape le Comte ici » / « Tape Granduk ici » → l'utilisateur voit QUI il tape
+    const tag=tagSprite(deux?('② '+lab):lab,'196,77,255');
+    tag.scale.multiplyScalar(.68);tag.position.set(p.x,0.95,p.z);g.add(tag);
     g.userData.ghost=true;scene.add(g);hitGhost=g;}
   function updateMoveGhost(m){ // ③ case VERTE : la case où il faut ALLER (aucun délock possible d'où le perso est)
     const k=m?(m.x+','+m.y+'@'+(m.who||'')):'';
@@ -2022,6 +2025,17 @@
     if(mv){state.adviceCell={x:mv.x,y:mv.y,who:skinOf(p).name};
       return'🧭 <b>D\'ici tu ne peux pas taper '+nom+'</b> (portée ou vue bloquée). Va sur la <b>case VERTE</b>'+distTxt(mv.d)+' : de là le coup passera'+(state.confusion?' — une fois arrivé, l\'assistant te montrera la case à cliquer':'')+'.';}
     return'🔒 <b>'+nom+' est hors d\'atteinte.</b> Rapproche-toi encore, ou dégage l\'obstacle qui bloque la vue.';}
+  function moveToRing(C,lo,hi){ // case la plus proche du perso dont la distance au Comte est dans [lo,hi] (anneau de sécurité contre la glyphe) — LdV vers le boss préférée
+    const a=state.player;if(!a||!a.placed||a.hp<=0)return null;
+    const P=livePos(a),dist=fullReachFrom(P.x,P.y);let best=null;
+    for(let x=0;x<N;x++)for(let y=0;y<N;y++){
+      if(!cellOk(x,y))continue;
+      const oc=occupant(x,y);if(oc&&!(oc.t==='ally'&&oc.a===a))continue;
+      const dC=manh({x,y},C);if(dC<lo||dC>hi)continue; // dans l'anneau voulu autour du boss
+      const d=dist.get(key(x,y));if(!d)continue; // atteignable (sa case actuelle exclue)
+      const los=hasLoS(x,y,C.x,C.y)?0:1; // une case AVEC vue sur le boss = prête à taper au prochain tour
+      if(!best||los<best.los||(los===best.los&&d<best.d))best={x,y,d,los};}
+    return best;}
   function delockAdvice(){ // le texte de l'assistant, en langage SIMPLE : que cliquer, dans quel ordre (+ state.adviceCell = la case verte)
     state.adviceCell=null;state.aimCell=null;state.hitCell=null; // recalculées à chaque conseil par aimHint/hitHint
     const mob=nearestMob();if(mob)return attackAdvice(mob); // des mobs en vie → on les tape D'ABORD (le délock du Comte attend)
@@ -2045,7 +2059,15 @@
             return'🧭 <b>'+nom+' est TOUCHABLE mais d\'ici ton coup ne part pas</b> (portée, ou un mur / une entité bloque la vue). Va sur la <b>case VERTE</b>'+distTxt(mv.d)+' et frappe-le de là.';}
           return'🔒 <b>'+nom+' est touchable mais aucune case ne permet de le frapper.</b> Dégage ce qui bloque la vue autour de lui.';}}
       return'② 🎯 <b>C\'est bon, '+nom+' est TOUCHABLE !</b> Frappe-le vite :'+hitHint(C)+closerHint(C);} // il a bougé → hitHint recalcule la case à cliquer depuis sa NOUVELLE position ; ② = la suite de l'étape ① (l'invocation)
-    if(!comtePivots())return'🔒 <b>Rien à faire ce tour-ci.</b> Passe au <b>tour '+(state.tour+1)+'</b> (bouton <b>+</b> en haut) : c\'est là que ça marchera.'+closerHint(C); // tour « perdu » = le bon moment pour se rapprocher
+    if(!comtePivots()){ // tour d'ATTENTE : le Comte est INVULNÉRABLE et ne pivote pas → placer l'allié à bonne distance (6-7 cases, hors de sa glyphe en croix)
+      const p=state.player;
+      if(p&&p.placed){const dC=manh(livePos(p),C);
+        if(dC>=6&&dC<=7)return'🛡️ <b>Le Comte est INVULNÉRABLE ce tour</b> et tu es <b>bien placé</b> ('+dC+' cases). Tiens-toi prêt : au <b>tour '+(state.tour+1)+'</b> tu pourras le délock.';
+        const mv=moveToRing(C,6,7);
+        if(mv){state.adviceCell={x:mv.x,y:mv.y,who:skinOf(p).name};
+          return'🛡️ <b>Le Comte est INVULNÉRABLE ce tour</b> — reste à l\'écart de sa glyphe. <b>'+(dC>7?'Rapproche-toi':'Écarte-toi')+'</b> pour te tenir à <b>6-7 cases</b> du boss : va sur la <b>case VERTE</b>'+distTxt(mv.d)+' (glisse <b>'+skinOf(p).name+'</b>).';}
+        return'🛡️ <b>Le Comte est INVULNÉRABLE ce tour.</b> Tiens-toi à <b>6-7 cases</b> du boss (hors de sa glyphe) et attends le <b>tour '+(state.tour+1)+'</b> pour le délock.';}
+      return'🔒 <b>Rien à faire ce tour-ci.</b> Passe au <b>tour '+(state.tour+1)+'</b> (bouton <b>+</b> en haut) : c\'est là que ça marchera.';}
     // ⚠️ Le délock EXIGE de FRAPPER le Comte (le coup déclenche la rotation). Si d'ici on ne peut QU'invoquer une cawotte SANS toucher le Comte,
     //    le placement est mauvais → on envoie directement sur la case VERTE (rapprochement), au lieu de conseiller une invocation inutile.
     if(state.player&&state.player.placed){const P=livePos(state.player);
@@ -2720,8 +2742,9 @@
     down=null;edgeDrag=null;dragEnt=null;dragLive=null;paintStroke=null;});
   renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();radius=Math.max(8,Math.min(60,radius+Math.sign(e.deltaY)*2));updateCam();},{passive:false});
 
-  const TIPS_DJ=['✅ Tuer les mobs avant le Comte.','✅ Focus le Cycloïde en premier.','✅ Finir rapidement le Granduk une fois entamé.','✅ Au début de son tour, le Comte pose une grande glyphe en croix 3 de PO : si tu commences dessus, tu meurs.','✅ Plus le Comte est bas en vie, plus il devient menaçant.'];
-  const TIPS_SONGE=['✅ Tuer les mobs avant le Comte.','✅ Au début de son tour, le Comte pose une grande glyphe en croix 3 de PO : si tu commences dessus, tu meurs.','✅ Plus le Comte est bas en vie, plus il devient menaçant.'];
+  const TIP_WIPE='⚠️ En frappant le Comte, sa rotation vous téléporte (lui OU toi) : si l\'un finit HORS MAP ou dans un MUR, c\'est la MORT. Vérifie la case d\'arrivée avant de taper.';
+  const TIPS_DJ=['✅ Tuer les mobs avant le Comte.','✅ Focus le Cycloïde en premier.','✅ Finir rapidement le Granduk une fois entamé.','✅ Au début de son tour, le Comte pose une grande glyphe en croix 3 de PO : si tu commences dessus, tu meurs.',TIP_WIPE,'✅ Plus le Comte est bas en vie, plus il devient menaçant.'];
+  const TIPS_SONGE=['✅ Tuer les mobs avant le Comte.','✅ Au début de son tour, le Comte pose une grande glyphe en croix 3 de PO : si tu commences dessus, tu meurs.',TIP_WIPE,'✅ Plus le Comte est bas en vie, plus il devient menaçant.'];
   function renderTips(){const t=el('tips');if(!t)return;const dj=state.map==='dj';
     t.innerHTML='<h3>📜 Pense-bête</h3><ul class="tiplist">'+(dj?TIPS_DJ:TIPS_SONGE).map(i=>'<li>'+i+'</li>').join('')+'</ul>';}
   // ===== Donjon / Songe / Bac à sable = 3 cartes TOTALEMENT séparées : terrain, persos, monstres, phase. Rien de ce qu'on fait sur l'une ne touche les autres =====
