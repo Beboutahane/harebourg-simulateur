@@ -227,7 +227,7 @@
   .subbtn{width:100%;padding:6px 10px;background:rgba(8,18,32,.85);color:#f0b98c;border:1px solid rgba(240,151,92,.45);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;text-align:left}
   .subbtn:hover{border-color:#f0975c}
   .subbtn.on{border-color:#f0975c;background:linear-gradient(120deg,rgba(240,151,92,.22),rgba(8,18,32,.85));box-shadow:0 0 10px rgba(240,151,92,.3)}
-  .sublist{display:none;position:absolute;left:0;right:0;top:100%;margin-top:2px;max-height:230px;overflow-y:auto;background:rgba(8,18,32,.97);border:1px solid rgba(240,151,92,.45);border-radius:8px;z-index:30}
+  .sublist{display:none;position:absolute;left:0;right:0;bottom:100%;margin-bottom:2px;max-height:230px;overflow-y:auto;background:rgba(8,18,32,.97);border:1px solid rgba(240,151,92,.45);border-radius:8px;z-index:30} /* déplié vers le HAUT : le widget est en bas de l'écran */
   .sublist.open{display:block}
   .sublist .pitem{padding:6px 9px;font-size:12px;font-weight:700;color:#e8d9c8;cursor:pointer;white-space:nowrap}
   .sublist .pitem:hover{background:rgba(240,151,92,.18);color:#ffd9b0}
@@ -346,12 +346,41 @@
   #hoverHp .hhbar::after{content:'';position:absolute;inset:0;pointer-events:none; /* graduations par QUART : 25 / 50 / 75 % */
     background:linear-gradient(90deg,transparent calc(25% - 1px),rgba(6,18,31,.85) calc(25% - 1px),rgba(6,18,31,.85) calc(25% + 1px),transparent calc(25% + 1px),transparent calc(50% - 1px),rgba(6,18,31,.85) calc(50% - 1px),rgba(6,18,31,.85) calc(50% + 1px),transparent calc(50% + 1px),transparent calc(75% - 1px),rgba(6,18,31,.85) calc(75% - 1px),rgba(6,18,31,.85) calc(75% + 1px),transparent calc(75% + 1px))}
   #hoverHp .hhv{font-size:10.5px;color:var(--frost);margin-top:3px;font-family:var(--display);font-weight:700} /* le % de vita, dessous, plus petit */
+  /* ===== ACCUEIL : choix de la partie, par-dessus l'arène FLOUTÉE ===== */
+  #homePick{position:fixed;inset:0;z-index:140;display:flex;align-items:center;justify-content:center;
+    background:rgba(6,14,26,.42);backdrop-filter:blur(10px) saturate(1.1);-webkit-backdrop-filter:blur(10px) saturate(1.1);
+    opacity:1;transition:opacity .4s ease}
+  #homePick.bye{opacity:0;pointer-events:none}
+  #homePick .hp-in{text-align:center;transform:translateY(-3vh)}
+  #homePick h1{font-family:var(--display);font-size:34px;letter-spacing:.12em;color:var(--frost);
+    text-shadow:0 2px 18px rgba(75,184,240,.55);margin-bottom:6px}
+  #homePick .hp-sub{color:var(--muted);font-size:13px;letter-spacing:.28em;text-transform:uppercase;margin-bottom:34px}
+  #homePick .hp-cards{display:flex;gap:22px;justify-content:center;flex-wrap:wrap}
+  .hp-card{width:250px;padding:26px 20px 22px;border-radius:16px;cursor:pointer;font-family:var(--font);
+    background:linear-gradient(165deg,rgba(20,42,72,.92),rgba(10,22,40,.94));
+    border:1px solid var(--border-strong);color:var(--txt);
+    box-shadow:0 14px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(143,228,255,.14);
+    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+  .hp-card:hover{transform:translateY(-5px) scale(1.02);border-color:var(--ice-2);
+    box-shadow:0 20px 52px rgba(0,0,0,.55),0 0 0 1px rgba(75,184,240,.35),0 0 34px rgba(75,184,240,.22)}
+  .hp-card .hp-ic{font-size:38px;display:block;margin-bottom:12px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
+  .hp-card b{display:block;font-family:var(--display);font-size:18px;letter-spacing:.06em;color:var(--frost);margin-bottom:7px}
+  .hp-card span{display:block;font-size:12px;line-height:1.45;color:var(--muted)}
 </style>
 </head>
 <body>
 <div id="bgdecor" aria-hidden="true"></div>
 <div id="app"></div>
 <div id="loading">❄️ Chargement de l'arène 3D et des données Dofus…</div>
+
+<div id="homePick"><div class="hp-in">
+  <h1>❄️ HAREBOURG TACTIQUE</h1>
+  <div class="hp-sub">Choisis ta partie</div>
+  <div class="hp-cards">
+    <button class="hp-card" id="hpComte" type="button"><span class="hp-ic">👑</span><b>Comte Harebourg</b><span>Donjon &amp; Songe — le combat, l'assistant et le délock.</span></button>
+    <button class="hp-card" id="hpSable" type="button"><span class="hp-ic">🧪</span><b>Bac à sable</b><span>Grande carte libre — classes, sorts et monstres sans règles.</span></button>
+  </div>
+</div></div>
 
 <div class="hud" id="topbar"><div class="card">
   <span id="turnBox" title="Le tour où tu te situes — le Comte pivote un tour sur deux depuis son arrivée, donc le délock se calcule tout seul">
@@ -741,13 +770,12 @@
   // du dossier Desktop\MAPS (grille détectée par les liserés des cases de départ, hw≈21.6 ; doublons écartés :
   // capture 10 = capture 7, capture 19 = capture 18). Chaque map est CENTRÉE sur la grille 31×31 au rendu. =====
   const PS_MAPS=[
-   {name:'Boss 1',rows:[ // la Porte de Songe CORRIGÉE par l'utilisateur (relue depuis sa capture du simulateur — homographie sur le damier, sa sauvegarde locale ayant été perdue)
-    '.......###..............','......###...............','......##................',
-    '.....###................','....######..............','...########.#...........',
-    '.###########X##....###..','#######X#######..X.####.','.###.############X######',
-    '.##..###################','....##########XX########','....######X###X###X####.',
-    '....######X############.','.....#####..###########.','......###.....###X#####.',
-    '..................####..','..................###...']},
+   {name:'Boss 1',rows:[ // la Porte de Songe CORRIGÉE par l'utilisateur — relue depuis sa capture (v4.38 : homographie recalée par les pointes des caisses, chaque case validée par mesure)
+    '....###.................','...#####................','..########X.............',
+    '.############.....####..','.###X##########XX######.','.#######################',
+    '.#######################','############XX##########','###.###X####X####X#####.',
+    '#######X##########.####.','.######################.','..####....#####X#######.',
+    '...##.......##########..','...............######...','..................##....']},
    {name:'map songe 1',rows:[
     '.......#####X.......','...#########X####...','...##############X..','.X####X##########X..',
     '.X###########X###XXX','.X#########..X#####X','XXXX....############','X###################',
@@ -1257,13 +1285,15 @@
   // Glissé depuis le bac à entités (déclarés ICI, avant refreshTiles qui les lit) :
   let dragKind=null;  // la vignette qu'on tient (dataTransfer n'est PAS lisible pendant dragover)
   let dropCell=null;  // {x,y,ok} : la case où ça atterrira si on lâche
-  function hasLoS(x0,y0,x1,y1){ // ligne de vue : aucun OBSTACLE strictement entre les deux cases (les trous ne bloquent pas la vue)
+  function hasLoS(x0,y0,x1,y1,extra){ // ligne de vue : aucun OBSTACLE ni ENTITÉ (cawotte, allié, ennemi, mur) strictement entre les deux — comme les sorts en jeu (les trous ne bloquent pas la vue)
     let dx=Math.abs(x1-x0),dy=Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1,err=dx-dy,x=x0,y=y0;
     while(!(x===x1&&y===y1)){const e2=2*err;
       if(e2>-dy){err-=dy;x+=sx;}
       if(e2<dx){err+=dx;y+=sy;}
       if(x===x1&&y===y1)break;
-      if(state.obstacles.has(key(x,y)))return false;}
+      if(state.obstacles.has(key(x,y)))return false;
+      const o=occupant(x,y);if(o&&!(o.t==='ally'&&o.a===state.player))return false; // une entité coupe la vue — sauf le perso actif (la case testée est celle où IL va se tenir)
+      if(extra&&extra.x===x&&extra.y===y)return false;} // case virtuellement occupée (ex. la cawotte qui SERA posée sur la case miroir)
     return true;}
   function spellZone(){const z=new Set();state.noLoS=new Set();if(!state.spell)return z;const sp=state.spell;
     const origins=[{x:state.player.x,y:state.player.y}]; // Eliotrope : les attaques passent aussi par les portails
@@ -1627,7 +1657,7 @@
       if(!cellOk(mx,my))continue;
       const om=occupant(mx,my);if(om&&om.t==='enemy'&&!om.e.friendly)continue; // un ennemi y est : inutilisable
       const kC=state.confusion?undeflectFrom(x,y,C.x,C.y):{x:C.x,y:C.y}; // ⚠️ la case à CLIQUER pour frapper : le sort se lance sur ELLE — portée et ligne de vue comptent vers elle, pas vers le Comte
-      if(!cellOk(kC.x,kC.y)||!canHitFrom(x,y,kC.x,kC.y))continue;
+      if(!cellOk(kC.x,kC.y)||!canHitFrom(x,y,kC.x,kC.y,{x:mx,y:my}))continue; // la cawotte SERA sur la case miroir : elle ne doit pas couper la vue de la frappe
       if(state.confusion){const kA=undeflectFrom(x,y,mx,my); // et la case à CLIQUER pour poser la cawotte doit exister aussi
         if(!cellOk(kA.x,kA.y))continue;}
       const d=manh(P,{x,y});if(!d)continue;
@@ -1677,11 +1707,11 @@
     state.enemies.forEach(e=>{if(!e.alive||e.friendly||e.kind==='count'||e.kind==='illusion')return;
       const d=manh(livePos(p),e);if(best===null||d<best.d)best={e,d};});
     return best?best.e:null;}
-  function canHitFrom(fx,fy,tx,ty){ // un sort dispo peut-il toucher (tx,ty) depuis (fx,fy) ? portée + ligne/diagonale + ligne de vue
+  function canHitFrom(fx,fy,tx,ty,extra){ // un sort dispo peut-il toucher (tx,ty) depuis (fx,fy) ? portée + ligne/diagonale + ligne de vue (extra : case virtuellement occupée)
     const dx=tx-fx,dy=ty-fy,d=Math.abs(dx)+Math.abs(dy);
     return spellsAvail().some(s=>d>=Math.max(1,s.minRange)&&d<=s.range
       &&(!s.line||dx===0||dy===0)&&(!(s.diag&&!s.line)||Math.abs(dx)===Math.abs(dy))
-      &&hasLoS(fx,fy,tx,ty));}
+      &&hasLoS(fx,fy,tx,ty,extra));}
   function moveForAttack(M){ // la case la plus proche du perso d'où il touche M (le rapprochement à faire)
     const p=state.player;if(!p||!p.placed)return null;
     let best=null;
@@ -2417,7 +2447,7 @@
         it.className='pitem';it.textContent=PS_MAPS[i].name;
         it.onmouseenter=()=>{drawPrev(i);prev.style.display='block';
           const r=it.getBoundingClientRect(),R=subs.getBoundingClientRect();
-          prev.style.top=Math.max(0,r.top-R.top-40)+'px';};
+          prev.style.top=(r.top-R.top-40)+'px';}; // suit l'item même au-dessus du widget (listes dépliées vers le haut)
         it.onmouseleave=()=>{prev.style.display='none';};
         it.onclick=ev=>{ev.stopPropagation();closeAll();setMapMode('porte'+i);};
         list.appendChild(it);});
@@ -2687,6 +2717,10 @@
     bg.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">'+s+'</svg>';})();
   /* ===== INIT ===== */
   applyAmbiance();applyRosterMode();refreshTiles();refreshHUD();rebuildSpellBar(state.classSpells||[]);renderTips();animate();loadEl.style.display='none';
+  (()=>{const hp=el('homePick');if(!hp)return; // ACCUEIL : deux choix par-dessus l'arène floutée
+    const bye=()=>{hp.classList.add('bye');setTimeout(()=>hp.remove(),450);};
+    el('hpComte').onclick=bye; // Donjon/Songe : l'état par défaut est déjà le bon
+    el('hpSable').onclick=()=>{setMapMode('sable');bye();};})();
   breedsReady=loadBreeds(); // promesse gardée : une classe posée AVANT la fin du chargement attend au lieu de retomber sur Crâ
   // (plus de chrono de tour : jeu libre)
 })();
