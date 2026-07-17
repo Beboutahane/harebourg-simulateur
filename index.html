@@ -488,7 +488,7 @@
   /* L'artwork est dans un WRAPPER autour du bouton (pas DANS le bouton) : au survol, la carte se soulève SEULE —
      le Comte ne bouge pas (demande : « trop associé au bouton »). Le wrapper épouse exactement le bouton. */
   .hpSongeWrap{position:relative;display:flex}
-  .hpSongeWrap .hpComteArt{position:absolute;right:-345px;top:-375px;width:565px;pointer-events:none;display:block}
+  .hpSongeWrap .hpComteArt{position:absolute;right:-345px;top:-405px;width:565px;pointer-events:none;display:block} /* remonté de 30 px : l'avant-bras se POSE sur le bord de la vignette, la main retombe devant */
   @media (max-width:1100px){.hpSongeWrap .hpComteArt{display:none}} /* écran étroit : pas la place pour l'artwork */
   .hp-card b{display:block;font-family:var(--display);font-size:18px;letter-spacing:.06em;color:var(--frost);margin-bottom:7px}
   .hp-card span{display:block;font-size:12px;line-height:1.45;color:var(--muted)}
