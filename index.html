@@ -2856,14 +2856,14 @@
     if(!e.img&&e.search)fetchMobImg(e);return e;}
   /* ===== DONJON : la COMPO RÉELLE suit le nombre d'alliés, comme en jeu =====
      B4 (1 à 4 alliés) : Comte + Granduk + Cycloïde + Nocturlabe · B5 : +Strigide · B6 : +Sinistrofu · B7 : +2e Nocturlabe · B8 : +2e Granduk */
-  const DJ_COMP=[ // n = palier d'alliés qui fait ENTRER ce mob (0 = base, toujours posé) ; (x,y) = point de pose préféré (case libre la plus proche) — répartis autour du boss, pas entassés
-    {n:0,name:'Granduk',img:987,x:11,y:7},
-    {n:0,name:'Cycloïde',img:989,x:19,y:7},
-    {n:0,name:'Nocturlabe',img:992,x:15,y:13},
-    {n:5,name:'Strigide',img:988,x:11,y:12},
-    {n:6,name:'Sinistrofu',img:991,x:19,y:12},
+  const DJ_COMP=[ // n = palier d'alliés qui fait ENTRER ce mob (0 = base, toujours posé) ; (x,y) = pose préférée — le B4 est LE PLACEMENT DE L'UTILISATEUR (relevé de sa capture, calibré caisses + damier)
+    {n:0,name:'Granduk',img:987,x:8,y:20},
+    {n:0,name:'Cycloïde',img:989,x:10,y:22},
+    {n:0,name:'Nocturlabe',img:992,x:10,y:9},
+    {n:5,name:'Strigide',img:988,x:12,y:12},
+    {n:6,name:'Sinistrofu',img:991,x:16,y:14},
     {n:7,name:'Nocturlabe',img:992,x:12,y:10},
-    {n:8,name:'Granduk',img:987,x:18,y:10}];
+    {n:8,name:'Granduk',img:987,x:10,y:19}];
   function freeSpotNear(cx,cy){ // la case libre la plus proche (couronnes croissantes) — la compo se pose sans écraser personne
     for(let r=0;r<12;r++)for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++){
       if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;
@@ -2873,9 +2873,9 @@
   function djSpawn(m,i){const p=freeSpotNear(m.x,m.y);if(!p)return;
     const e=spawnMobFrom({name:m.name,kind:'mob',friendly:false,hpMax:500,ring:0xff5b5b,x:p.x,y:p.y,img:API+'/img/monsters/'+m.img+'.png'});
     e.djSlot=i;} // le slot marque QUEL mob de la compo il est (pour le retirer si un allié repart)
-  function djPackInit(){ // carte Donjon NEUVE : le Comte et les 3 mobs de base arrivent déjà placés (B4)
+  function djPackInit(){ // carte Donjon NEUVE : le Comte et les 3 mobs de base arrivent déjà placés (B4 — placement de l'utilisateur)
     state._djAllies=4;
-    const c=freeSpotNear(15,9);
+    const c=freeSpotNear(8,11);
     if(c&&!comte())transformToComte(spawnMobFrom({name:'Comte',kind:'mob',friendly:false,hpMax:3000,ring:0x8fe4ff,x:c.x,y:c.y}),true);
     DJ_COMP.forEach((m,i)=>{if(!m.n)djSpawn(m,i);});}
   let _djSync=false;
