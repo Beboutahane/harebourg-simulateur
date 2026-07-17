@@ -486,7 +486,7 @@
     <div id="songeSubs"><!-- s'ouvre avec l'onglet Songe : les maps de BOSS et les maps de tes screens -->
       <div class="subwrap"><button class="subbtn" id="bossSelBtn" type="button" title="Les maps finales (salle du boss) reconstruites — survole une entrée pour l'aperçu, clique pour l'ouvrir">👹 Maps Finale ▾</button>
         <div class="sublist" id="bossList"></div></div>
-      <div class="subwrap"><button class="subbtn" id="mapsSelBtn" type="button" title="Les maps des salles reconstruites de tes screens — survole une entrée pour l'aperçu, clique pour l'ouvrir">🗺️ Maps des salles ▾</button>
+      <div class="subwrap"><button class="subbtn" id="mapsSelBtn" type="button" title="Les maps des salles reconstruites de tes screens — survole une entrée pour l'aperçu, clique pour l'ouvrir">🗺️ Choisis ta map ▾</button>
         <div class="sublist" id="mapsList"></div></div>
       <canvas id="portePrev" width="176" height="124"></canvas>
     </div>
@@ -2556,7 +2556,7 @@
     if(el('songeSubs')){el('songeSubs').classList.toggle('open',m==='songe'||isPorte(m)); // l'onglet Songe déplie ses 2 listes (boss + maps)
       const bi=isPorte(m)?(+m.slice(5)||0):-1,nm=bi>=0?(PS_MAPS[bi]||PS_MAPS[0]).name:null,isBoss=!!(nm&&nm.slice(0,4)==='Boss');
       el('bossSelBtn').textContent='👹 '+(isBoss?nm:'Maps Finale')+' ▾';el('bossSelBtn').classList.toggle('on',isBoss);
-      el('mapsSelBtn').textContent='🗺️ '+(nm&&!isBoss?nm:'Maps des salles')+' ▾';el('mapsSelBtn').classList.toggle('on',!!(nm&&!isBoss));}
+      el('mapsSelBtn').textContent='🗺️ '+(nm&&!isBoss?nm:'Choisis ta map')+' ▾';el('mapsSelBtn').classList.toggle('on',!!(nm&&!isBoss));}
     toast(isPorte(m)?('🚪 '+(PS_MAPS[+m.slice(5)||0]||PS_MAPS[0]).name+' : map reconstruite de ton screen — corrige-la avec les pinceaux, tout est sauvegardé. Chaque carte est totalement séparée des autres.')
          :({dj:'🏰 Donjon : la vraie salle du Comte — pose tes persos et le boss à la main.',
            songe:'🌙 Songe : choisis la salle à afficher — en attendant, une map d\'attente générique.',
