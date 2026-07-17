@@ -229,8 +229,20 @@
   .subbtn.on{border-color:#f0975c;background:linear-gradient(120deg,rgba(240,151,92,.22),rgba(8,18,32,.85));box-shadow:0 0 10px rgba(240,151,92,.3)}
   .sublist{display:none;position:absolute;left:0;right:0;bottom:100%;margin-bottom:2px;max-height:230px;overflow-y:auto;background:rgba(8,18,32,.97);border:1px solid rgba(240,151,92,.45);border-radius:8px;z-index:30} /* déplié vers le HAUT : le widget est en bas de l'écran */
   .sublist.open{display:block}
+  .sublist{scrollbar-width:thin;scrollbar-color:rgba(240,151,92,.55) transparent} /* la scrollbar système était énorme et blanche */
+  .sublist::-webkit-scrollbar{width:6px}
+  .sublist::-webkit-scrollbar-track{background:transparent}
+  .sublist::-webkit-scrollbar-thumb{background:rgba(240,151,92,.45);border-radius:99px}
+  .sublist::-webkit-scrollbar-thumb:hover{background:rgba(240,151,92,.8)}
   .sublist .pitem{padding:6px 9px;font-size:12px;font-weight:700;color:#e8d9c8;cursor:pointer;white-space:nowrap}
   .sublist .pitem:hover{background:rgba(240,151,92,.18);color:#ffd9b0}
+  /* indice « il y a plus bas » : fondu + chevron collés au bas de la liste, éteints une fois tout vu */
+  .sublist .sdown{position:sticky;bottom:0;pointer-events:none;text-align:center;padding:16px 0 3px;margin-top:-16px;
+    background:linear-gradient(180deg,rgba(8,18,32,0),rgba(8,18,32,.97) 62%);color:#f0975c;font-size:10px;font-weight:700;letter-spacing:.08em;
+    opacity:1;transition:opacity .18s}
+  .sublist .sdown .chev{display:block;font-size:13px;line-height:.8;animation:sdBounce 1.2s ease-in-out infinite}
+  @keyframes sdBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+  .sublist.atEnd .sdown{opacity:0}
   #portePrev{display:none;position:absolute;left:calc(100% + 8px);top:0;background:rgba(6,14,26,.97);border:1px solid rgba(240,151,92,.5);border-radius:8px;z-index:31;pointer-events:none}
   #ctxMenu,#placeMenu,#allyMenu{position:absolute;z-index:12;display:none;background:var(--panel);border:1px solid var(--border-strong);border-radius:9px;padding:4px;pointer-events:auto;box-shadow:0 10px 24px rgba(0,8,20,.6)}
   #ctxMenu.show,#placeMenu.show,#allyMenu.show{display:block}
@@ -814,92 +826,92 @@
     '.#######################','############XX####.#####','###.###X####X####X.####.',
     '#######X##########.####.','.######################.','..####....#####X#######.',
     '...##.......##########..','...............######...','..................##....']},
-   {name:'map songe 1',rows:[
+   {name:'Map Songe infini 1',rows:[
     '.......#####X.......','...#########X####...','...##############X..','.X####X##########X..',
     '.X###########X###XXX','.X#########..X#####X','XXXX....############','X###################',
     'X####XX###X###....##','X#######.###########','X#################X#','X#################X.',
     '...#X...##..X######.','....################','....###############.','....##############..']},
-   {name:'map songe 2',rows:[
+   {name:'Map Songe infini 2',rows:[
     '..........X.......','........####.#....','...############...','...############X..',
     '.X.######XX######.','#########XX######.','#################.','#####.#######X###.',
     '####.############X','X###.###XX########','.#######XX.#######','..#######..######.',
     '...##############.','.....############.','......X##########.','........########..','..........##......']},
-   {name:'map songe 3',rows:[
+   {name:'Map Songe infini 3',rows:[
     '.....#######.........','...#############.....','...#####X########....','.#################...',
     '.#############X####..','.###X###############.','.########...########.','#######......#######.',
     '#######.......#######','######...XXXXX###X###','###X##...XXX...######','#######XXXXX...######',
     '.######........######','.#######......######.','.#########..########.','..###X##########X###.',
     '...#################.','....#######X#######..','.....############....','........#######......']},
-   {name:'map songe 4',rows:[
+   {name:'Map Songe infini 4',rows:[
     '..##########.....','#############....','######.X#####....','##X.###XXX#####..',
     '##.#####.#######X','################X','X####X###########','X.###X.##########',
     'XX###X.##########','.X###############','.################','.##X.X###########',
     '.########.######X','.###############X','..#############XX','..XX###########X.','...X###..XX####..']},
-   {name:'map songe 5',rows:[
+   {name:'Map Songe infini 5',rows:[
     '############XXX#####...','##.#################...','##.###.XX############..','#######################',
     '###############XX######','######.#########.######','######.####.###########','###########X###########',
     '######.################','.#####################.']},
-   {name:'map songe 6',rows:[
+   {name:'Map Songe infini 6',rows:[
     '...##..####....','.X#########....','############X..','######XX####XX.',
     '##.###########.','###############','##########..###','####X#####X.###',
     '##########..##.','#########..###.','..#######..###.','....X.#######..',
     '....X.######...','.....######....','.....#####.....','.....##........']},
-   {name:'map songe 7',rows:[
+   {name:'Map Songe infini 7',rows:[
     '....#####XX.......','...######XX.......','XXX########.......','X##########.XX....',
     'X###########XX....','X############X###.','X..####XXX###.####','XXX.###XXX########',
     'XXX#####X#########','X################.','#################.','###X#############.',
     '.##X.############.','.#########XX####..','.##########X####..','..##########XXXX..',
     '...#########......','......###.........']},
-   {name:'map songe 8',rows:[
+   {name:'Map Songe infini 8',rows:[
     '.######.............','########............','########............','####.###............',
     '###...##............','####.####...........','##########...####...','.#X###X###########..',
     '.XXX###.#####XX###..','....#########XX.###.','.....#########.#####','......###X.#########',
     '......###X.#########','.......###.#########','.......#############','........###########.',
     '...........#####....']},
-   {name:'map songe 9',rows:[
+   {name:'Map Songe infini 9',rows:[
     '......#####........','....#######........','...##########......','..###..########....',
     '..#######XX####X...','XXX.######X.###X...','##X#######..#.##...','#######.###########',
     '############X######','#####.##.####..####','##.##.##..#########','#########.########.',
     '.###X#############.','.##XX.##X#####XX...','..####.#X######X...','..#############X...',
     '....##########.....','....#X#######......','.....XX######......']},
-   {name:'map songe 10',rows:[
+   {name:'Map Songe infini 10',rows:[
     '...#######X##########....','##########X###X########..','##############X###.######','#######X#################',
     '#######.X################','.############..##XX######','...#######X######X#######','...#######X##############',
     '.....###################.','.....########XX#########.']},
-   {name:'map songe 11',rows:[
+   {name:'Map Songe infini 11',rows:[
     '..##X###....####.......','.##XX######X######.....','.##################....','######...############..',
     '######....###X..#####..','#####....X###....#####.','#####....####....######','######...####....X#####',
     '.#####X..####...XX#####','.############....X####.','..############..######.','...###################.',
     '....######..########...','.....####....#######...']},
-   {name:'map songe 12',rows:[
+   {name:'Map Songe infini 12',rows:[
     '........##X...........','.......####XX.........','......#########.......','......#########.......',
     '......#########.......','......X######.........','......X######.........','......X#####..........',
     '......XX####...######.','####..X######..#######','####..################','####XX################',
     '######.###############','.###########.##.######','.##########X.##..####.','....#######.##........',
     '........######........','........#######.......','.........######.......','.........######.......',
     '..........#####.......','..........####........']},
-   {name:'map songe 13',rows:[
+   {name:'Map Songe infini 13',rows:[
     '....#######.......','...#########......','##X##########.##..','##X###...########.',
     '######.X##########','##########X#######','###########..#####','#######.####X.####',
     '..X###..##########','...###############','....##############','....##XX###X######',
     '....#######X######','....###########...','.....##########...','......#########...']},
-   {name:'map songe 14',rows:[
+   {name:'Map Songe infini 14',rows:[
     '##############','##############','########XX####','########XXX.##',
     '########XXX.##','###XX####XX.##','##XXX.########','##XXX.########',
     '##XXX.###..###','##XX.####.####','#############.','#############.',
     '######.######.','##########....']},
-   {name:'map songe 15',rows:[
+   {name:'Map Songe infini 15',rows:[
     '.....#####......','...#########....','..X##########...','.###X#########..',
     '.##XX.########..','####X.##X..###..','########X.####..','########X#####..',
     '###.#XXXX######.','################','.###############','.##########XX###',
     '..########.X####','...#############','........#######.','.........#####..']},
-   {name:'map songe 16',rows:[
+   {name:'Map Songe infini 16',rows:[
     '..........##......','.......#..##......','......######......','......######......',
     '......##..##......','......###.##......','......######......','......######......',
     '.....X##..##X.....','.....###.####.....','.##.##########.##.','###X##########X###',
     '######XX##XX######','##################','##################','######..##..#X####',
     '###X###....###.##.','.##.##########.##.','.....######X#.....','.....X######......']},
-   {name:'map songe 17',rows:[
+   {name:'Map Songe infini 17',rows:[
     '..#####........','.#######.......','########.......','###XX###.......',
     '##XX#####......','##########.....','############...','######.#######.',
     'X####.#########','..###X###X.####','..########.###.','...###########.',
@@ -2495,7 +2507,10 @@
         it.onmouseleave=()=>{prev.style.display='none';};
         it.onclick=ev=>{ev.stopPropagation();closeAll();setMapMode('porte'+i);};
         list.appendChild(it);});
-      btn.onclick=ev=>{ev.stopPropagation();const was=list.classList.contains('open');closeAll();if(!was)list.classList.add('open');};}
+      const sd=document.createElement('div');sd.className='sdown';sd.innerHTML='<span class="chev">⌄</span>fais défiler';list.appendChild(sd); // indice de scroll (fondu + chevron)
+      const sdUpd=()=>list.classList.toggle('atEnd',list.scrollTop+list.clientHeight>=list.scrollHeight-6); // tout est vu → l'indice s'éteint (couvre aussi les listes courtes, ex. 1 seul boss)
+      list.addEventListener('scroll',sdUpd);
+      btn.onclick=ev=>{ev.stopPropagation();const was=list.classList.contains('open');closeAll();if(!was){list.classList.add('open');sdUpd();}};} // mesurable seulement une fois la liste AFFICHÉE
     const bossIdx=[],mapsIdx=[];
     PS_MAPS.forEach((mp,i)=>(mp.name.slice(0,4)==='Boss'?bossIdx:mapsIdx).push(i)); // « Boss … » = la liste des boss (3 à terme) ; le reste = les maps
     wire('bossSelBtn','bossList',bossIdx);
