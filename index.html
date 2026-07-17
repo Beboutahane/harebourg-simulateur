@@ -681,6 +681,30 @@
   const dl=new THREE.DirectionalLight(0xffffff,0.9);dl.position.set(6,13,4);scene.add(dl);
   const pl=new THREE.PointLight(0x66d0ff,0.8,44);pl.position.set(0,7,0);scene.add(pl);
   function worldPos(gx,gy){return new THREE.Vector3((gx-HALF)*TILE,0,(gy-HALF)*TILE);}
+  function fitCamToMap(){ // cadre la caméra SUR la map : zoom au maximum tel que TOUT le plateau reste visible ENTRE les panneaux d'interface
+    let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9,any=false;
+    for(let x=0;x<N;x++)for(let y=0;y<N;y++){if(state.voids&&state.voids.has(key(x,y)))continue;any=true;
+      const p=worldPos(x,y);x0=Math.min(x0,p.x-0.5);x1=Math.max(x1,p.x+0.5);z0=Math.min(z0,p.z-0.5);z1=Math.max(z1,p.z+0.5);}
+    if(!any)return;
+    targetV.set((x0+x1)/2,0,(z0+z1)/2); // ① viser le centre de la map
+    const R0=30;radius=R0;updateCam();activeCam.updateMatrixWorld();
+    const pts=[];[[x0,z0],[x0,z1],[x1,z0],[x1,z1]].forEach(([X,Z])=>[0,1.8].forEach(Y=>pts.push(new THREE.Vector3(X,Y,Z)))); // coins au sol + hauteur persos/caisses
+    let nx=0,ny=0;pts.forEach(v=>{const q=v.clone().project(activeCam);nx=Math.max(nx,Math.abs(q.x));ny=Math.max(ny,Math.abs(q.y));});
+    const W=innerWidth,H=innerHeight; // ② la zone LIBRE de l'écran = ce qui reste entre les panneaux visibles
+    let L=0,Rr=W,T=0,B=H;
+    const rect=id=>{const e=el(id);if(!e||getComputedStyle(e).display==='none')return null;const r=e.getBoundingClientRect();return r.width>4?r:null;};
+    const rl=rect('roster');if(rl)L=Math.max(L,rl.right);
+    const rt=rect('tips');if(rt)Rr=Math.min(Rr,rt.left);
+    [rect('topbar'),rect('setup')].forEach(r=>{if(r)T=Math.max(T,r.bottom);});
+    const rb=rect('bottombar');if(rb)B=Math.min(B,rb.top);
+    L+=16;Rr-=16;T+=16;B-=16;
+    if(Rr-L<200){L=W*0.2;Rr=W*0.8;}if(B-T<160){T=H*0.2;B=H*0.8;} // garde-fou (panneaux anormalement larges)
+    const need=R0*Math.max(nx*(W/2)/((Rr-L)/2),ny*(H/2)/((B-T)/2)); // ③ ortho : taille écran ∝ 1/radius → le radius juste assez grand
+    radius=Math.max(8,Math.min(60,need));
+    const m=activeCam.matrixWorld.elements,wpp=radius/H; // ④ recentrer la map au centre de la ZONE LIBRE (les panneaux sont asymétriques)
+    const camR=new THREE.Vector3(m[0],m[1],m[2]),camU=new THREE.Vector3(m[4],m[5],m[6]);
+    targetV.addScaledVector(camR,-((L+Rr)/2-W/2)*wpp).addScaledVector(camU,-(H/2-(T+B)/2)*wpp);
+    updateCam();}
 
   /* ---- decor / ambiances ---- */
   const AMBI={
@@ -1472,6 +1496,8 @@
     spr.scale.set(1.15,1.15,1);spr.position.set(p.x,0.72,p.z);g.add(spr); // la cawotte en transparence, À SA PLACE (même si quelqu'un occupe la case)
     const tag=tagSprite(occ?('1. Invoque une cawotte sur '+entLabel(occ)):'1. Invoque une cawotte ici','47,224,255');
     tag.position.set(p.x,occ?2.05:1.55,p.z);g.add(tag);
+    const tag2=tagSprite('(ou place-y un allié)','47,224,255'); // l'invocation n'est pas la seule option : un perso sur la case marche aussi
+    tag2.scale.multiplyScalar(0.72);tag2.position.set(p.x,(occ?2.05:1.55)-0.36,p.z);g.add(tag2);
     if(occ){ // flèche ↓ plantée au-dessus de sa tête : c'est LUI qu'il faut cliquer
       const cone=new THREE.Mesh(new THREE.ConeGeometry(0.13,0.32,12),new THREE.MeshBasicMaterial({color:0x2fe0ff,transparent:true,opacity:.95,depthTest:false}));
       cone.rotation.x=Math.PI;cone.position.set(p.x,1.55,p.z);g.add(cone);
@@ -2553,6 +2579,7 @@
     if(loadMapState(m))renderMap();else freshMapState(); // carte déjà visitée → retrouvée INTACTE ; sinon → carte neuve
     applyRosterMode(); // bac à sable → widget des 19 classes ; sinon → persos + Comte + poutchs
     updateSetupBtns();updateMapSizeLabels();setActive(state.active);refreshTiles();refreshHUD();renderTips();
+    fitCamToMap(); // chaque carte ouverte arrive CADRÉE : zoom maxi, tout le plateau visible entre les panneaux
     el('modeDj').classList.toggle('on',m==='dj');el('modeSonge').classList.toggle('on',m==='songe'||isPorte(m));el('modeSable').classList.toggle('on',m==='sable');
     if(el('songeSubs')){el('songeSubs').classList.toggle('open',m==='songe'||isPorte(m)); // l'onglet Songe déplie ses 2 listes (boss + maps)
       const bi=isPorte(m)?(+m.slice(5)||0):-1,nm=bi>=0?(PS_MAPS[bi]||PS_MAPS[0]).name:null,isBoss=!!(nm&&nm.slice(0,4)==='Boss');
@@ -2927,7 +2954,7 @@
     s+=ridge(H*0.78,150,'#101f36',0.9)+ridge(H*0.88,120,'#0b1626',0.95);
     bg.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">'+s+'</svg>';})();
   /* ===== INIT ===== */
-  applyAmbiance();applyRosterMode();refreshTiles();refreshHUD();rebuildSpellBar(state.classSpells||[]);renderTips();animate();loadEl.style.display='none';
+  applyAmbiance();applyRosterMode();refreshTiles();refreshHUD();rebuildSpellBar(state.classSpells||[]);renderTips();fitCamToMap();animate();loadEl.style.display='none';
   (()=>{const hp=el('homePick');if(!hp)return; // ACCUEIL en 2 étapes : ① Comte / Bac à sable → ② Donjon / Songe (direction directe)
     const bye=()=>{hp.classList.add('bye');setTimeout(()=>hp.remove(),450);};
     el('hpComte').onclick=()=>{el('hpStep1').style.display='none';el('hpStep2').style.display='block';el('hpSub').textContent='En Donjon ou en Songe ?';};
