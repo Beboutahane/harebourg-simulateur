@@ -1444,14 +1444,21 @@
   let dragKind=null;  // la vignette qu'on tient (dataTransfer n'est PAS lisible pendant dragover)
   let dropCell=null;  // {x,y,ok} : la case où ça atterrira si on lâche
   function hasLoS(x0,y0,x1,y1,extra){ // ligne de vue : aucun OBSTACLE ni ENTITÉ (cawotte, allié, ennemi, mur) strictement entre les deux — comme les sorts en jeu (les trous ne bloquent pas la vue)
-    let dx=Math.abs(x1-x0),dy=Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1,err=dx-dy,x=x0,y=y0;
-    while(!(x===x1&&y===y1)){const e2=2*err;
-      if(e2>-dy){err-=dy;x+=sx;}
-      if(e2<dx){err+=dx;y+=sy;}
-      if(x===x1&&y===y1)break;
-      if(state.obstacles.has(key(x,y)))return false;
-      const o=occupant(x,y);if(o&&!(o.t==='ally'&&o.a===state.player))return false; // une entité coupe la vue — sauf le perso actif (la case testée est celle où IL va se tenir)
-      if(extra&&extra.x===x&&extra.y===y)return false;} // case virtuellement occupée (ex. la cawotte qui SERA posée sur la case miroir)
+    // SUPERCOVER, pas Bresenham : TOUTES les cases que le segment centre→centre traverse comptent (Bresenham n'en retient
+    // qu'une par pas et « voyait » à travers les coins de murs — un tir proposé partait dans le décor en vrai).
+    // Passage PILE par un coin : bloque seulement si les DEUX cases latérales qui partagent ce coin bloquent.
+    const cut=(x,y)=>{if(x===x1&&y===y1)return false; // la cible ne se bloque pas elle-même
+      if(state.obstacles.has(key(x,y)))return true;
+      const o=occupant(x,y);if(o&&!(o.t==='ally'&&o.a===state.player))return true; // une entité coupe la vue — sauf le perso actif (la case testée est celle où IL va se tenir)
+      return !!(extra&&extra.x===x&&extra.y===y);}; // case virtuellement occupée (ex. la cawotte qui SERA posée sur la case miroir)
+    const nx=Math.abs(x1-x0),ny=Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1;
+    let x=x0,y=y0,ix=0,iy=0;
+    while(ix<nx||iy<ny){
+      const dec=(1+2*ix)*ny-(1+2*iy)*nx; // de quel côté du prochain coin le segment passe-t-il ?
+      if(dec===0){if(cut(x+sx,y)&&cut(x,y+sy))return false;x+=sx;y+=sy;ix++;iy++;} // pile le coin → pas diagonal
+      else if(dec<0){x+=sx;ix++;}
+      else{y+=sy;iy++;}
+      if(!(x===x1&&y===y1)&&cut(x,y))return false;}
     return true;}
   function spellZone(){const z=new Set();state.noLoS=new Set();if(!state.spell)return z;const sp=state.spell;
     const origins=[{x:state.player.x,y:state.player.y}]; // Eliotrope : les attaques passent aussi par les portails
@@ -1613,6 +1620,16 @@
     toast('🌀 MULTICOMTE : le vrai en <b>'+plan.center.x+','+plan.center.y+'</b> + <b>'+n+' illusion'+(n>1?'s':'')+'</b>'+(n<MULTI_MAX?' (des cases étaient prises)':'')+'.');}
   const _mixA=new THREE.Color(),_mixB=new THREE.Color();
   function mixHex(a,b,t){_mixA.setHex(a);_mixB.setHex(b);return _mixA.lerp(_mixB,t).getHex();}
+  // ARÊTES lumineuses sur les cases d'ACTION (verte/cyan/violette/orange/rouges) : un liseré clair sur les 4 bords
+  // du dessus de la dalle — l'aplat de couleur seul se fondait dans le damier (demande : « un trait sur les arêtes »)
+  const hlEdgeGroup=new THREE.Group();scene.add(hlEdgeGroup);
+  const hlEdgeGeoH=new THREE.PlaneGeometry(1,0.09),hlEdgeGeoV=new THREE.PlaneGeometry(0.09,1),hlEdgeMats={};
+  function hlEdge(x,y,color){
+    if(!inGrid(x,y)||!tiles[x][y].visible)return;
+    const m=hlEdgeMats[color]||(hlEdgeMats[color]=new THREE.MeshBasicMaterial({color:mixHex(color,0xffffff,0.55)}));
+    const p=worldPos(x,y);
+    [[0,-0.455,hlEdgeGeoH],[0,0.455,hlEdgeGeoH],[-0.455,0,hlEdgeGeoV],[0.455,0,hlEdgeGeoV]].forEach(([ox,oz,g])=>{
+      const q=new THREE.Mesh(g,m);q.rotation.x=-Math.PI/2;q.position.set(p.x+ox,0.025,p.z+oz);hlEdgeGroup.add(q);});}
   function refreshTiles(){ // rendu À PLAT : chaque case = UNE couleur unie (bi-couleur, zéro effet de lumière)
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){const t=tiles[x][y],m=t.material;let c=t.userData.base;
       if(blocked(x,y))c=0x0b1a28; // obstacle / trou
@@ -1681,6 +1698,12 @@
     // ⚠️ TOUT À LA FIN : un glissé en cours prime sur le reste — sinon le bleu de survol (plus bas dans cette fonction) l'écrasait.
     if(dropCell){const t=tiles[dropCell.x]&&tiles[dropCell.x][dropCell.y]; // la case d'ATTERRISSAGE : vert = il se posera là · rouge = impossible
       if(t&&t.visible)t.material.color.setHex(dropCell.ok?0x35c46a:0xc0392b);}
+    hlEdgeGroup.clear(); // liserés d'arêtes des cases d'action (mêmes cases que les aplats posés plus haut)
+    if(delockView)delockCells().forEach(dc=>hlEdge(dc.x,dc.y,dc.ready?0xe03535:0x7a2222));
+    if(delockView){const pv=pivotCell();if(pv&&pv.status==='free')hlEdge(pv.x,pv.y,0xf29a3c);}
+    if(state.showDelock&&state.adviceCell)hlEdge(state.adviceCell.x,state.adviceCell.y,0x35c46a);
+    if(state.aimCell)hlEdge(state.aimCell.x,state.aimCell.y,0x2fe0ff);
+    if(state.hitCell)hlEdge(state.hitCell.x,state.hitCell.y,0xc44dff);
     updateAllyFacing();} // les persos se tournent vers le Comte — appelé ICI aussi (pas que dans animate) : l'orientation suit l'ACTION, sans dépendre du rendu
 
   /* ===== HUD ===== */
@@ -1824,6 +1847,7 @@
     const P=livePos(a),dist=fullReachFrom(P.x,P.y);let best=null; // dist = CHEMIN réel (contourne trous/murs/entités), sans limite de PM : on vise la destination FINALE
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){
       if(!cellOk(x,y))continue;
+      if(C.kind==='count'&&manh({x,y},C)<=1)continue; // jamais envoyer un allié sur une case COLLÉE au Comte
       const oc=occupant(x,y);if(oc&&!(oc.t==='ally'&&oc.a===a))continue; // case libre (ou déjà la sienne)
       const mx=2*x-C.x,my=2*y-C.y; // sa future case de délock (la cawotte ira LÀ)
       if(!cellOk(mx,my))continue;
@@ -1841,6 +1865,7 @@
     const P=livePos(a),dist=fullReachFrom(P.x,P.y);let best=null;
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){
       if(!cellOk(x,y))continue;
+      if(C.kind==='count'&&manh({x,y},C)<=1)continue; // jamais envoyer un allié sur une case COLLÉE au Comte
       const oc=occupant(x,y);if(oc&&!(oc.t==='ally'&&oc.a===a))continue;
       const kC=state.confusion?undeflectFrom(x,y,C.x,C.y):{x:C.x,y:C.y};
       if(!cellOk(kC.x,kC.y)||!canHitFrom(x,y,kC.x,kC.y)||!hasLoS(x,y,C.x,C.y))continue; // vue exigée vers le clic ET l'impact réel
@@ -1866,6 +1891,7 @@
     const P=livePos(p),dist=fullReachFrom(P.x,P.y);let best=null;
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){
       if(!cellOk(x,y))continue;
+      if(C.kind==='count'&&manh({x,y},C)<=1)continue; // jamais envoyer un allié sur une case COLLÉE au Comte
       const oc=occupant(x,y);if(oc&&!(oc.t==='ally'&&oc.a===p))continue; // case libre (ou la sienne)
       const kC=state.confusion?undeflectFrom(x,y,C.x,C.y):{x:C.x,y:C.y}; // la case à CLIQUER : portée et vue comptent vers ELLE (le sort s'y lance, la confusion dévie ensuite)
       if(!cellOk(kC.x,kC.y)||!canHitFrom(x,y,kC.x,kC.y)||!hasLoS(x,y,C.x,C.y))continue; // vue exigée vers le clic ET l'impact réel
@@ -1899,6 +1925,7 @@
     const P=livePos(p),dist=fullReachFrom(P.x,P.y);let best=null;
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){
       if(!cellOk(x,y))continue;
+      if(M.kind==='count'&&manh({x,y},M)<=1)continue; // jamais envoyer un allié sur une case COLLÉE au Comte
       const oc=occupant(x,y);if(oc&&!(oc.t==='ally'&&oc.a===p))continue; // libre ou sa propre case
       const kM=state.confusion?undeflectFrom(x,y,M.x,M.y):{x:M.x,y:M.y}; // depuis LÀ-BAS, la case à cliquer (déviée) doit exister et être visible…
       if(!cellOk(kM.x,kM.y)||!canHitFrom(x,y,kM.x,kM.y)||!hasLoS(x,y,M.x,M.y))continue; // …et l'impact réel (le mob) aussi
@@ -1937,7 +1964,7 @@
           if(mv){state.adviceCell={x:mv.x,y:mv.y,who:skinOf(state.player).name};
             return'🧭 <b>'+nom+' est TOUCHABLE mais d\'ici ton coup ne part pas</b> (portée, ou un mur / une entité bloque la vue). Va sur la <b>case VERTE</b>'+distTxt(mv.d)+' et frappe-le de là.';}
           return'🔒 <b>'+nom+' est touchable mais aucune case ne permet de le frapper.</b> Dégage ce qui bloque la vue autour de lui.';}}
-      return'🎯 <b>C\'est bon, '+nom+' est TOUCHABLE !</b> Frappe-le vite :'+hitHint(C)+closerHint(C);} // il a bougé → hitHint recalcule la case à cliquer depuis sa NOUVELLE position
+      return'② 🎯 <b>C\'est bon, '+nom+' est TOUCHABLE !</b> Frappe-le vite :'+hitHint(C)+closerHint(C);} // il a bougé → hitHint recalcule la case à cliquer depuis sa NOUVELLE position ; ② = la suite de l'étape ① (l'invocation)
     if(!comtePivots())return'🔒 <b>Rien à faire ce tour-ci.</b> Passe au <b>tour '+(state.tour+1)+'</b> (bouton <b>+</b> en haut) : c\'est là que ça marchera.'+closerHint(C); // tour « perdu » = le bon moment pour se rapprocher
     // ⚠️ Le délock EXIGE de FRAPPER le Comte (le coup déclenche la rotation). Si d'ici on ne peut QU'invoquer une cawotte SANS toucher le Comte,
     //    le placement est mauvais → on envoie directement sur la case VERTE (rapprochement), au lieu de conseiller une invocation inutile.
