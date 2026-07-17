@@ -411,12 +411,12 @@
      toujours DERRIÈRE les vignettes (.hp-in est en z-index:1).
      ⚠️ Aucun `filter` ni `mix-blend-mode` ici (parent #homePick en backdrop-filter → ils ré-afficheraient le fond
      flouté dans le rectangle du div, cf. « fond horrible » déjà rencontré). Juste background + animation d'entrée. */
-  /* Fond d'accueil : la PARTIE GAUCHE (nuit + sol dallé embrumé, SANS le Comte peint à droite) de harebourg-fond.webp,
-     cadrée `left center` avec une taille qui pousse le Comte intégré HORS ÉCRAN (il commence à x≈900/1536 → largeur
-     ≥ 170.7vw ; et ≥150vh pour couvrir en hauteur). Le Comte AFFICHÉ est le calque détouré ancré sur la vignette
-     Songe (.hpComteArt) : l'INTERFACE reste centrée et immobile, c'est le DÉCOR qui se cale sur elle. */
+  /* Fond d'accueil : l'ARTWORK COMPLET (harebourg-fond.webp — Comte + nuit + sol dallé) posé TEL QUEL en cover,
+     ancré à DROITE (le Comte reste entier). ZÉRO détourage/calque : la cape sombre du Comte est indistinguable
+     du fond sombre → aucun découpage ne les sépare proprement (chaque essai rongeait/délavait le perso). L'image
+     brute = zéro artefact et les VRAIES couleurs. L'interface reste centrée (immobile). */
   #hpBg{position:absolute;inset:0;z-index:0;pointer-events:none;
-    background:#04080c url(harebourg-fond.webp) left center/max(170.7vw,150vh) no-repeat;
+    background:#04080c url(harebourg-fond.webp) right center/cover no-repeat;
     animation:hpBgIn 1.2s ease-out both}
   @keyframes hpBgIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
   #homePick .hp-in{text-align:center;transform:translateY(-3vh);position:relative;z-index:1} /* vignettes CENTRÉES et immobiles (règle : l'interface ne bouge pas, c'est le décor qui s'adapte) */
@@ -499,7 +499,7 @@
   <h1>❄️ Assistant Comte Harebourg</h1>
   <div class="hp-cards" id="hpStep1"><!-- ACCUEIL DIRECT : Donjon ou Songe (le Bac à sable est relégué en bas-droite, en bêta) -->
     <button class="hp-card" id="hpDj" type="button"><span class="hp-ic"><img src="donjon-icon.png" alt=""></span><b>Donjon</b><span>Affrontes le Comte dans son donjon</span></button>
-    <div class="hpSongeWrap"><button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button><img class="hpComteArt" src="harebourg-comte-songe.webp" alt="" aria-hidden="true"></div><!-- le Comte = calque de DÉCOR ancré à la vignette, dessiné DEVANT elle (le clic traverse) -->
+    <button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button><!-- (le Comte fait partie du fond harebourg-fond.webp : plus aucun calque) -->
   </div>
 </div>
   <div id="hpSandbox"><!-- vignette secondaire, coin bas-droite -->
