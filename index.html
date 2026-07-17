@@ -224,26 +224,26 @@
   #songeSubs{display:none;position:relative;width:100%;flex-direction:column;gap:4px;margin-top:2px}
   #songeSubs.open{display:flex}
   .subwrap{position:relative}
-  .subbtn{width:100%;padding:6px 10px;background:rgba(8,18,32,.85);color:#f0b98c;border:1px solid rgba(240,151,92,.45);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;text-align:left}
-  .subbtn:hover{border-color:#f0975c}
-  .subbtn.on{border-color:#f0975c;background:linear-gradient(120deg,rgba(240,151,92,.22),rgba(8,18,32,.85));box-shadow:0 0 10px rgba(240,151,92,.3)}
-  .sublist{display:none;position:absolute;left:0;right:0;bottom:100%;margin-bottom:2px;max-height:230px;overflow-y:auto;background:rgba(8,18,32,.97);border:1px solid rgba(240,151,92,.45);border-radius:8px;z-index:30} /* déplié vers le HAUT : le widget est en bas de l'écran */
+  .subbtn{width:100%;padding:6px 10px;background:rgba(8,18,32,.85);color:#9fd4f0;border:1px solid rgba(75,184,240,.4);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;text-align:left} /* contours BLEUS (l'or ne plaisait pas) */
+  .subbtn:hover{border-color:var(--ice)}
+  .subbtn.on{border-color:var(--ice);background:linear-gradient(120deg,rgba(75,184,240,.2),rgba(8,18,32,.85));box-shadow:0 0 10px rgba(75,184,240,.3)}
+  .sublist{display:none;position:absolute;left:0;right:0;bottom:100%;margin-bottom:2px;max-height:230px;overflow-y:auto;background:rgba(8,18,32,.97);border:1px solid rgba(75,184,240,.4);border-radius:8px;z-index:30} /* déplié vers le HAUT : le widget est en bas de l'écran */
   .sublist.open{display:block}
-  .sublist{scrollbar-width:thin;scrollbar-color:rgba(240,151,92,.55) transparent} /* la scrollbar système était énorme et blanche */
+  .sublist{scrollbar-width:thin;scrollbar-color:rgba(75,184,240,.55) transparent} /* la scrollbar système était énorme et blanche */
   .sublist::-webkit-scrollbar{width:6px}
   .sublist::-webkit-scrollbar-track{background:transparent}
-  .sublist::-webkit-scrollbar-thumb{background:rgba(240,151,92,.45);border-radius:99px}
-  .sublist::-webkit-scrollbar-thumb:hover{background:rgba(240,151,92,.8)}
-  .sublist .pitem{padding:6px 9px;font-size:12px;font-weight:700;color:#e8d9c8;cursor:pointer;white-space:nowrap}
-  .sublist .pitem:hover{background:rgba(240,151,92,.18);color:#ffd9b0}
+  .sublist::-webkit-scrollbar-thumb{background:rgba(75,184,240,.45);border-radius:99px}
+  .sublist::-webkit-scrollbar-thumb:hover{background:rgba(75,184,240,.8)}
+  .sublist .pitem{padding:6px 9px;font-size:12px;font-weight:700;color:#d7e8f5;cursor:pointer;white-space:nowrap}
+  .sublist .pitem:hover{background:rgba(75,184,240,.16);color:#bfe4ff}
   /* indice « il y a plus bas » : fondu + chevron collés au bas de la liste, éteints une fois tout vu */
   .sublist .sdown{position:sticky;bottom:0;pointer-events:none;text-align:center;padding:16px 0 3px;margin-top:-16px;
-    background:linear-gradient(180deg,rgba(8,18,32,0),rgba(8,18,32,.97) 62%);color:#f0975c;font-size:10px;font-weight:700;letter-spacing:.08em;
+    background:linear-gradient(180deg,rgba(8,18,32,0),rgba(8,18,32,.97) 62%);color:var(--ice);font-size:10px;font-weight:700;letter-spacing:.08em;
     opacity:1;transition:opacity .18s}
   .sublist .sdown .chev{display:block;font-size:13px;line-height:.8;animation:sdBounce 1.2s ease-in-out infinite}
   @keyframes sdBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
   .sublist.atEnd .sdown{opacity:0}
-  #portePrev{display:none;position:absolute;left:calc(100% + 8px);top:0;background:rgba(6,14,26,.97);border:1px solid rgba(240,151,92,.5);border-radius:8px;z-index:31;pointer-events:none}
+  #portePrev{display:none;position:absolute;left:calc(100% + 8px);top:0;background:rgba(6,14,26,.97);border:1px solid rgba(75,184,240,.5);border-radius:8px;z-index:31;pointer-events:none}
   #ctxMenu,#placeMenu,#allyMenu{position:absolute;z-index:12;display:none;background:var(--panel);border:1px solid var(--border-strong);border-radius:9px;padding:4px;pointer-events:auto;box-shadow:0 10px 24px rgba(0,8,20,.6)}
   #ctxMenu.show,#placeMenu.show,#allyMenu.show{display:block}
   #ctxMenu button,#placeMenu button{display:block;width:100%;border:0;background:transparent;color:var(--danger);font-family:var(--font);font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:7px;cursor:pointer;text-align:left;white-space:nowrap}
@@ -399,8 +399,8 @@
   /* les 2 mondes bien SÉPARÉS : Donjon (bleu glace) / Songe (orangé, comme ses listes) */
   #roomPick .rp-realm{border:1px solid;border-radius:14px;padding:12px 14px 13px;margin:12px 0 0;text-align:left}
   #roomPick .realm-dj{border-color:rgba(75,184,240,.42);background:rgba(20,42,72,.32)}
-  #roomPick .realm-songe{border-color:rgba(240,151,92,.4);background:rgba(58,34,16,.22)}
-  #roomPick .realm-songe h3{color:#f0b27c}
+  #roomPick .realm-songe{border-color:rgba(185,140,255,.4);background:rgba(40,24,64,.24)} /* Songe = violet nuit (plus d'or), toujours bien distinct du Donjon bleu */
+  #roomPick .realm-songe h3{color:#c9a8ff}
   #roomPick .rp-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-start}
   .rp-item{width:158px;padding:8px 8px 7px;border-radius:12px;cursor:pointer;font-family:var(--font);
     background:rgba(10,24,44,.85);border:1px solid var(--border);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
@@ -1701,18 +1701,28 @@
   /* ---- L'assistant parle SIMPLE : il donne le clic à faire, sans jamais expliquer la confusion ni la symétrie.
      C'est undeflect() qui fait le calcul ; l'utilisateur n'a qu'à cliquer la case de couleur annoncée. ---- */
   // (aucune coordonnée dans les conseils : la case est peinte sur le terrain avec son étiquette, le chiffre n'apporte rien)
-  function aimHint(mx,my){ // → « clique la case CYAN » + peint cette case sur le terrain
+  function canAim(px,py,mx,my){ // une invocation visant (mx,my) est-elle lançable depuis (px,py) ? vue vers le CLIC (dévié) ET vers la case d'ARRIVÉE — même règle que le placement réel
+    const v=state.confusion?undeflectFrom(px,py,mx,my):{x:mx,y:my};
+    if(!inGrid(v.x,v.y)||blocked(v.x,v.y))return null;
+    if(!hasLoS(px,py,v.x,v.y)||!hasLoS(px,py,mx,my))return null;
+    return v;}
+  function strikeClick(px,py,t,extra){ // la case à CLIQUER pour toucher t depuis (px,py) — null si le coup ne partirait PAS : portée + vue vers le CLIC **et** vers l'IMPACT réel (mêmes refus que castCell)
+    const v=state.confusion?undeflectFrom(px,py,t.x,t.y):{x:t.x,y:t.y};
+    if(!cellOk(v.x,v.y)||!canHitFrom(px,py,v.x,v.y,extra))return null;
+    if(!hasLoS(px,py,t.x,t.y,extra))return null;
+    return v;}
+  function aimHint(mx,my){ // → « clique la case CYAN » + peint cette case sur le terrain (SEULEMENT si la pose passerait vraiment : vue vers le clic et l'arrivée)
+    const P=livePos(state.player),v=canAim(P.x,P.y,mx,my);
+    if(!v)return' mais d\'ici c\'est impossible (vue bloquée ou clic hors map) : <b>déplace ton perso</b> d\'abord.';
     if(!state.confusion)return' clique-la <b>directement</b>.';
-    const v=undeflect(mx,my);
-    if(!inGrid(v.x,v.y)||blocked(v.x,v.y))return' mais d\'ici c\'est impossible : <b>déplace ton perso</b> d\'abord.';
     state.aimCell={x:v.x,y:v.y}; // ① case CYAN : le clic à faire, montré sur la carte
     const occ=occupant(v.x,v.y); // la case à cliquer peut être OCCUPÉE : on clique alors l'entité elle-même (ça marche : seule la case d'arrivée doit être libre)
     return occ?(' clique <b>sur '+entLabel(occ)+'</b> (la <b>case CYAN</b>).')
               :(' clique la <b>case CYAN</b>.');}
-  function hitHint(t){ // → « clique la case VIOLETTE » + peint cette case sur le terrain
+  function hitHint(t,extra){ // → « clique la case VIOLETTE » + peint cette case sur le terrain (SEULEMENT si le coup partirait vraiment — extra : la cawotte qui SERA posée)
+    const P=livePos(state.player),v=strikeClick(P.x,P.y,t,extra);
+    if(!v)return' mais d\'ici le coup ne partirait pas (portée ou vue bloquée) : <b>déplace ton perso</b>.';
     if(!state.confusion)return' clique-le <b>directement</b>.';
-    const v=undeflect(t.x,t.y);
-    if(!inGrid(v.x,v.y)||blocked(v.x,v.y))return' mais d\'ici, aucun angle ne le touche : <b>déplace ton perso</b>.';
     const cible=t.kind==='count'?'le Comte':(t.name||'le monstre'); // l'étiquette de la case violette s'adapte à la cible
     state.hitCell={x:v.x,y:v.y,label:'Tape '+cible+' ici'}; // ② case VIOLETTE : le clic à faire pour que le sort dévie sur lui
     return' clique la <b>case VIOLETTE</b>.';}
@@ -1720,7 +1730,7 @@
     // La case verte garantit le COMBO COMPLET : ① poser la cawotte (clic dévié valide, case miroir libre) ET ② frapper le Comte (clic dévié valide + portée + vue).
     const C=delockTarget();if(!C||!C.alive)return null;
     const a=state.player;if(!a||!a.placed||a.hp<=0)return null;
-    const P=livePos(a);let best=null; // livePos : en plein drag, la proposition suit la case survolée
+    const P=livePos(a),dist=fullReachFrom(P.x,P.y);let best=null; // dist = CHEMIN réel (contourne trous/murs/entités), sans limite de PM : on vise la destination FINALE
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){
       if(!cellOk(x,y))continue;
       const oc=occupant(x,y);if(oc&&!(oc.t==='ally'&&oc.a===a))continue; // case libre (ou déjà la sienne)
@@ -1729,37 +1739,47 @@
       const om=occupant(mx,my);if(om&&om.t==='enemy'&&!om.e.friendly)continue; // un ennemi y est : inutilisable
       const kC=state.confusion?undeflectFrom(x,y,C.x,C.y):{x:C.x,y:C.y}; // ⚠️ la case à CLIQUER pour frapper : le sort se lance sur ELLE — portée et ligne de vue comptent vers elle, pas vers le Comte
       if(!cellOk(kC.x,kC.y)||!canHitFrom(x,y,kC.x,kC.y,{x:mx,y:my}))continue; // la cawotte SERA sur la case miroir : elle ne doit pas couper la vue de la frappe
-      if(state.confusion){const kA=undeflectFrom(x,y,mx,my); // et la case à CLIQUER pour poser la cawotte doit exister aussi
-        if(!cellOk(kA.x,kA.y))continue;}
-      const d=manh(P,{x,y});if(!d)continue;
+      if(!hasLoS(x,y,C.x,C.y,{x:mx,y:my}))continue; // et l'IMPACT réel (le Comte) doit être en vue aussi — même règle que le tir
+      if(!canAim(x,y,mx,my))continue; // la POSE de la cawotte doit passer d'ici : clic dévié posable + vue vers le clic et vers la case miroir
+      const d=dist.get(key(x,y));if(!d)continue; // case injoignable à pied (enclavée) ou déjà la sienne
       const dC=manh({x,y},C); // le MOINS de déplacement possible : la case la plus proche du perso — la proximité de la cible ne fait que départager
       if(!best||d<best.d||(d===best.d&&dC<best.dC))best={a,x,y,mx,my,d,dC};}
     return best;}
   function moveForHitOnly(C){ // repli quand AUCUNE case n'offre le combo complet : la case la plus proche d'où on peut AU MOINS frapper le Comte
     const a=state.player;if(!a||!a.placed||a.hp<=0)return null;
-    const P=livePos(a);let best=null;
+    const P=livePos(a),dist=fullReachFrom(P.x,P.y);let best=null;
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){
       if(!cellOk(x,y))continue;
       const oc=occupant(x,y);if(oc&&!(oc.t==='ally'&&oc.a===a))continue;
       const kC=state.confusion?undeflectFrom(x,y,C.x,C.y):{x:C.x,y:C.y};
-      if(!cellOk(kC.x,kC.y)||!canHitFrom(x,y,kC.x,kC.y))continue;
-      const d=manh(P,{x,y});if(!d)continue;
+      if(!cellOk(kC.x,kC.y)||!canHitFrom(x,y,kC.x,kC.y)||!hasLoS(x,y,C.x,C.y))continue; // vue exigée vers le clic ET l'impact réel
+      const d=dist.get(key(x,y));if(!d)continue; // distance de CHEMIN réelle (destination finale, même à plusieurs tours)
       const dC=manh({x,y},C);
       if(!best||d<best.d||(d===best.d&&dC<best.dC))best={x,y,d,dC};}
     return best;}
   function hitRotationDest(px,py,C){ // la rotation que DÉCLENCHE un coup sur le Comte depuis (px,py) : qui bouge, et vers où (cf. hitComte)
     return comtePivots()?{x:2*px-C.x,y:2*py-C.y,mover:'count'}:{x:2*C.x-px,y:2*C.y-py,mover:'you'};}
   const cellOk=(x,y)=>inGrid(x,y)&&!blocked(x,y)&&tiles[x]&&tiles[x][y]&&tiles[x][y].visible; // une case qui EXISTE sur la map (une entité peut y atterrir)
+  function fullReachFrom(px,py){ // distances de CHEMIN réelles depuis (px,py), SANS limite de PM : contourne trous, murs et entités.
+    // Sert à viser la DESTINATION FINALE (la case verte), même si elle demande plusieurs tours — fini le « case par case ».
+    const r=new Map();r.set(key(px,py),0);let fr=[{x:px,y:py}];
+    while(fr.length){const nx=[];fr.forEach(c=>{const dc=r.get(key(c.x,c.y));
+      [[0,-1],[0,1],[-1,0],[1,0]].forEach(([dx,dy])=>{const a=c.x+dx,b=c.y+dy;
+        if(!inGrid(a,b)||r.has(key(a,b))||occupant(a,b)||blocked(a,b))return;
+        r.set(key(a,b),dc+1);nx.push({x:a,y:b});});});fr=nx;}
+    return r;}
+  const distTxt=d=>{const pm=(state.player&&state.player.pm)||PM_MAX; // la case verte est-elle atteignable CE tour (PM restants) ?
+    return' (à <b>'+d+' case'+(d>1?'s':'')+'</b>'+(d>pm?' — avance vers elle, il te faudra plus d\'un tour':'')+')';};
   function moveForSafeHit(C){ // Comte touchable mais frapper d'ici = wipe → la case la plus proche de MOI d'où la frappe est possible ET sans danger
     const p=state.player;if(!p||!p.placed)return null;
-    const P=livePos(p);let best=null;
+    const P=livePos(p),dist=fullReachFrom(P.x,P.y);let best=null;
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){
       if(!cellOk(x,y))continue;
       const oc=occupant(x,y);if(oc&&!(oc.t==='ally'&&oc.a===p))continue; // case libre (ou la sienne)
       const kC=state.confusion?undeflectFrom(x,y,C.x,C.y):{x:C.x,y:C.y}; // la case à CLIQUER : portée et vue comptent vers ELLE (le sort s'y lance, la confusion dévie ensuite)
-      if(!cellOk(kC.x,kC.y)||!canHitFrom(x,y,kC.x,kC.y))continue;
+      if(!cellOk(kC.x,kC.y)||!canHitFrom(x,y,kC.x,kC.y)||!hasLoS(x,y,C.x,C.y))continue; // vue exigée vers le clic ET l'impact réel
       const rd=hitRotationDest(x,y,C);if(!cellOk(rd.x,rd.y))continue; // ⚠️ le coup déclenche une rotation : elle doit atterrir SUR la map
-      const d=manh(P,{x,y});if(!d)continue;
+      const d=dist.get(key(x,y));if(!d)continue; // distance de CHEMIN réelle
       const dC=manh({x,y},C); // au plus près de moi ; la proximité du Comte ne fait que départager
       if(!best||d<best.d||(d===best.d&&dC<best.dC))best={x,y,d,dC};}
     return best;}
@@ -1785,23 +1805,24 @@
       &&hasLoS(fx,fy,tx,ty,extra));}
   function moveForAttack(M){ // la case la plus proche du perso d'où il touche M (le rapprochement à faire)
     const p=state.player;if(!p||!p.placed)return null;
-    let best=null;
+    const P=livePos(p),dist=fullReachFrom(P.x,P.y);let best=null;
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){
-      if(!tiles[x]||!tiles[x][y]||!tiles[x][y].visible||blocked(x,y))continue;
+      if(!cellOk(x,y))continue;
       const oc=occupant(x,y);if(oc&&!(oc.t==='ally'&&oc.a===p))continue; // libre ou sa propre case
-      if(!canHitFrom(x,y,M.x,M.y))continue;
-      const d=manh(p,{x,y});if(!d)continue;
+      const kM=state.confusion?undeflectFrom(x,y,M.x,M.y):{x:M.x,y:M.y}; // depuis LÀ-BAS, la case à cliquer (déviée) doit exister et être visible…
+      if(!cellOk(kM.x,kM.y)||!canHitFrom(x,y,kM.x,kM.y)||!hasLoS(x,y,M.x,M.y))continue; // …et l'impact réel (le mob) aussi
+      const d=dist.get(key(x,y));if(!d)continue; // distance de CHEMIN réelle (destination finale, même à plusieurs tours)
       if(best===null||d<best.d)best={x,y,d};}
     return best;}
   function attackAdvice(M){ // comment aller taper le mob M : (se rapprocher si besoin) puis OÙ cliquer (confusion gérée)
     const p=state.player,nom=(M.name||'le monstre');
     if(!p||!p.placed)return'🔵 <b>Pose un perso</b> : l\'assistant te dira comment taper '+nom+'.';
-    const P=livePos(p),click=state.confusion?undeflect(M.x,M.y):{x:M.x,y:M.y}; // la case à CLIQUER (déviée par la confusion) doit être atteignable
-    if(inGrid(click.x,click.y)&&!blocked(click.x,click.y)&&canHitFrom(P.x,P.y,click.x,click.y))
-      return'🎯 <b>Tape '+nom+'</b> :'+hitHint(M); // à portée + vue : hitHint pose la case VIOLETTE (ou « clique-le » sans confusion)
+    const P=livePos(p);
+    if(strikeClick(P.x,P.y,M)) // le coup part vraiment d'ici : portée + vue vers le clic ET vers le mob
+      return'🎯 <b>Tape '+nom+'</b> :'+hitHint(M); // hitHint pose la case VIOLETTE (ou « clique-le » sans confusion)
     const mv=moveForAttack(M);
     if(mv){state.adviceCell={x:mv.x,y:mv.y,who:skinOf(p).name};
-      return'🧭 <b>Rapproche-toi de '+nom+'.</b> Va sur la <b>case VERTE</b> (glisse ton perso) : de là tu pourras le taper'+(state.confusion?' — une fois arrivé, l\'assistant te montrera la case à cliquer':'')+'.';}
+      return'🧭 <b>D\'ici tu ne peux pas taper '+nom+'</b> (portée ou vue bloquée). Va sur la <b>case VERTE</b>'+distTxt(mv.d)+' : de là le coup passera'+(state.confusion?' — une fois arrivé, l\'assistant te montrera la case à cliquer':'')+'.';}
     return'🔒 <b>'+nom+' est hors d\'atteinte.</b> Rapproche-toi encore, ou dégage l\'obstacle qui bloque la vue.';}
   function delockAdvice(){ // le texte de l'assistant, en langage SIMPLE : que cliquer, dans quel ordre (+ state.adviceCell = la case verte)
     state.adviceCell=null;state.aimCell=null;state.hitCell=null; // recalculées à chaque conseil par aimHint/hitHint
@@ -1817,48 +1838,60 @@
           const ou=(inGrid(rd.x,rd.y)&&state.obstacles.has(key(rd.x,rd.y)))?'dans un MUR':'HORS MAP';
           const qui=rd.mover==='count'?'le Comte partirait':'TU partirais',mv=moveForSafeHit(C);
           if(mv){state.adviceCell={x:mv.x,y:mv.y,who:skinOf(state.player).name};
-            return'⛔ <b>NE LE FRAPPE PAS d\'ici !</b> Le coup déclenche une rotation : '+qui+' <b>'+ou+'</b> → <b>wipe</b>. <b>Va sur la case VERTE</b> (glisse ton perso) : de là, frapper est sans danger.';}
+            return'⛔ <b>NE LE FRAPPE PAS d\'ici !</b> Le coup déclenche une rotation : '+qui+' <b>'+ou+'</b> → <b>wipe</b>. <b>Va sur la case VERTE</b>'+distTxt(mv.d)+' (glisse ton perso) : de là, frapper est sans danger.';}
           return'⛔ <b>NE LE FRAPPE PAS !</b> Le coup déclenche une rotation : '+qui+' <b>'+ou+'</b> → <b>wipe</b>. Rapproche-toi du <b>centre de la map</b> avant de taper.';}}
+      if(state.player&&state.player.placed){const P=livePos(state.player); // touchable, rotation sûre — mais le COUP part-il vraiment d'ici (portée + vue vers le clic ET l'impact) ?
+        if(!strikeClick(P.x,P.y,C)){
+          const mv=(C.kind==='count'?moveForSafeHit(C):null)||moveForHitOnly(C)||moveForAttack(C);
+          if(mv){state.adviceCell={x:mv.x,y:mv.y,who:skinOf(state.player).name};
+            return'🧭 <b>'+nom+' est TOUCHABLE mais d\'ici ton coup ne part pas</b> (portée, ou un mur / une entité bloque la vue). Va sur la <b>case VERTE</b>'+distTxt(mv.d)+' et frappe-le de là.';}
+          return'🔒 <b>'+nom+' est touchable mais aucune case ne permet de le frapper.</b> Dégage ce qui bloque la vue autour de lui.';}}
       return'🎯 <b>C\'est bon, '+nom+' est TOUCHABLE !</b> Frappe-le vite :'+hitHint(C)+closerHint(C);} // il a bougé → hitHint recalcule la case à cliquer depuis sa NOUVELLE position
     if(!comtePivots())return'🔒 <b>Rien à faire ce tour-ci.</b> Passe au <b>tour '+(state.tour+1)+'</b> (bouton <b>+</b> en haut) : c\'est là que ça marchera.'+closerHint(C); // tour « perdu » = le bon moment pour se rapprocher
     // ⚠️ Le délock EXIGE de FRAPPER le Comte (le coup déclenche la rotation). Si d'ici on ne peut QU'invoquer une cawotte SANS toucher le Comte,
     //    le placement est mauvais → on envoie directement sur la case VERTE (rapprochement), au lieu de conseiller une invocation inutile.
-    if(state.player&&state.player.placed){const P=livePos(state.player),clickC=state.confusion?undeflect(C.x,C.y):{x:C.x,y:C.y};
-      const bossTouchable=inGrid(clickC.x,clickC.y)&&!blocked(clickC.x,clickC.y)&&canHitFrom(P.x,P.y,clickC.x,clickC.y);
+    if(state.player&&state.player.placed){const P=livePos(state.player);
+      const bossTouchable=!!strikeClick(P.x,P.y,C); // le COUP part-il vraiment d'ici : portée + vue vers la case à cliquer ET vers le Comte lui-même
       if(!bossTouchable){const mv=moveForDelock();
         if(mv){state.adviceCell={x:mv.x,y:mv.y,who:skinOf(mv.a).name};
-          return'🧭 <b>D\'ici tu ne peux pas TOUCHER le Comte</b> — juste poser une cawotte ne suffit pas, il faut le FRAPPER pour le délock. Va sur la <b>case VERTE</b> avec <b>'+skinOf(mv.a).name+'</b> : de là tu pourras poser la cawotte ET le taper.'+closerHint(C);}
+          return'🧭 <b>D\'ici tu ne peux pas TOUCHER le Comte</b> (portée ou vue bloquée) — juste poser une cawotte ne suffit pas, il faut le FRAPPER pour le délock. Va sur la <b>case VERTE</b>'+distTxt(mv.d)+' avec <b>'+skinOf(mv.a).name+'</b> : de là tu pourras poser la cawotte ET le taper.'+closerHint(C);}
         const mv2=moveForHitOnly(C); // aucune case n'offre le combo complet → au moins une case d'où le FRAPPER
         if(mv2){state.adviceCell={x:mv2.x,y:mv2.y,who:skinOf(state.player).name};
-          return'🧭 <b>D\'ici tu ne peux pas TOUCHER le Comte.</b> Va sur la <b>case VERTE</b> : de là tu pourras au moins le <b>FRAPPER</b> (le délock demandera en plus une entité sur sa case miroir).'+closerHint(C);}
+          return'🧭 <b>D\'ici tu ne peux pas TOUCHER le Comte.</b> Va sur la <b>case VERTE</b>'+distTxt(mv2.d)+' : de là tu pourras au moins le <b>FRAPPER</b> (le délock demandera en plus une entité sur sa case miroir).'+closerHint(C);}
         return'🔒 <b>Tu ne peux pas encore toucher le Comte.</b> Rapproche-toi (ou dégage l\'obstacle qui bloque la vue) : une cawotte seule ne le délock pas.'+closerHint(C);}}
     // Priorité au perso que tu CONTRÔLES : sa case miroir est la case ORANGE affichée sur le terrain
     const pv=pivotCell(),moi='le personnage sélectionné'; // on ne le nomme pas : c'est celui qui porte le marqueur sur le terrain
-    if(pv&&pv.status==='occupied')
-      return'✅ <b>Tout est prêt !</b> Frappe '+nom+' avec <b>'+moi+'</b> :'+hitHint(C)
-        +'<br>→ Il ira sur la <b>case orange</b>, échangera de place avec '+(pv.who||'ton entité')+' et deviendra <b>TOUCHABLE</b>.'+closerHint(C);
+    if(pv&&pv.status==='occupied'){
+      const P4=livePos(state.player);
+      if(strikeClick(P4.x,P4.y,C)) // l'entité posée sur le pivot peut elle-même couper la ligne du clic dévié : on vérifie que le coup PART vraiment
+        return'✅ <b>Tout est prêt !</b> Frappe '+nom+' avec <b>'+moi+'</b> :'+hitHint(C)
+          +'<br>→ Il ira sur la <b>case orange</b>, échangera de place avec '+(pv.who||'ton entité')+' et deviendra <b>TOUCHABLE</b>.'+closerHint(C);
+      const mvO=moveForDelock()||moveForHitOnly(C);
+      if(mvO){state.adviceCell={x:mvO.x,y:mvO.y,who:skinOf(state.player).name};
+        return'🧭 <b>Le délock est prêt mais d\'ici ton coup ne part pas</b> (une entité ou un mur bloque la vue vers la case à cliquer). Va sur la <b>case VERTE</b>'+distTxt(mvO.d)+' pour frapper.'+closerHint(C);}
+      return'🔒 <b>Le délock est prêt mais aucun angle ne permet de frapper.</b> Déplace-toi ou dégage la vue autour de '+nom+'.';}
     if(pv&&pv.status==='free'){
-      const P2=livePos(state.player),kA=state.confusion?undeflectFrom(P2.x,P2.y,pv.x,pv.y):{x:pv.x,y:pv.y}; // le clic (dévié) qui pose la cawotte sur la case orange
-      if(cellOk(kA.x,kA.y))
+      const P2=livePos(state.player); // combo complet TESTÉ d'ici : pose de la cawotte (vue clic + arrivée) ET frappe (vue clic + impact) AVEC la cawotte future sur la case orange
+      if(canAim(P2.x,P2.y,pv.x,pv.y)&&strikeClick(P2.x,P2.y,C,{x:pv.x,y:pv.y}))
         return'① <b>Mets une invocation</b> (🥕/💀/🕷️, ou glisse un perso) sur la <b>case ORANGE</b> :'+aimHint(pv.x,pv.y)
-          +'<br>② <b>Frappe '+nom+'</b> avec <b>'+moi+'</b> :'+hitHint(C)
+          +'<br>② <b>Frappe '+nom+'</b> avec <b>'+moi+'</b> :'+hitHint(C,{x:pv.x,y:pv.y})
           +'<br>→ Il ira sur la case orange, échangera de place et deviendra <b>TOUCHABLE</b>.'+closerHint(C);
-      // la cawotte n\'est PAS posable d\'ici (le clic dévié sort de la map) : le combo est incomplet → case VERTE plutôt qu\'un conseil inutile
+      // le combo est incomplet d'ici (clic hors map, vue bloquée, ou la cawotte posée couperait la frappe) → case VERTE plutôt qu'un conseil inutile
       const mv=moveForDelock();
       if(mv){state.adviceCell={x:mv.x,y:mv.y,who:skinOf(mv.a).name};
-        return'🧭 <b>D\'ici tu peux frapper '+nom+' mais PAS poser la cawotte</b> (le clic dévié sort de la map). Va sur la <b>case VERTE</b> avec <b>'+skinOf(mv.a).name+'</b> : de là, les DEUX seront possibles.'+closerHint(C);}}
+        return'🧭 <b>D\'ici le combo ne passe pas</b> (pose de la cawotte ou frappe bloquée). Va sur la <b>case VERTE</b>'+distTxt(mv.d)+' avec <b>'+skinOf(mv.a).name+'</b> : de là, les DEUX seront possibles.'+closerHint(C);}}
     const cells=delockCells(),ready=cells.find(c=>c.ready);
     if(ready)return'✅ <b>Tout est prêt !</b> Frappe '+nom+' avec <b>'+ready.via+'</b> → il échangera de place avec '+(ready.who||'ton entité')+' et deviendra <b>TOUCHABLE</b>.'+closerHint(C);
-    if(cells.length){const P3=livePos(state.player); // ne proposer qu'une case ROUGE dont le clic (dévié) d'invocation EXISTE — sinon le conseil est injouable
-      const c=cells.find(cc=>{if(!state.confusion)return true;const k=undeflectFrom(P3.x,P3.y,cc.x,cc.y);return cellOk(k.x,k.y);});
+    if(cells.length){const P3=livePos(state.player); // ne proposer qu'une case ROUGE où la POSE passe vraiment d'ici (clic dévié posable + vue vers le clic ET l'arrivée)
+      const c=cells.find(cc=>canAim(P3.x,P3.y,cc.x,cc.y));
       if(c)return'① <b>Mets une invocation</b> sur la <b>case ROUGE</b> :'+aimHint(c.x,c.y)
         +'<br>② <b>Frappe '+nom+'</b> avec <b>'+c.via+'</b> → il échangera de place et deviendra <b>TOUCHABLE</b>.'+closerHint(C);}
     const mv=moveForDelock();
     if(mv){state.adviceCell={x:mv.x,y:mv.y,who:skinOf(mv.a).name}; // `who` : repris tel quel par l'étiquette « Va ici avec … »
-      return'🧭 <b>D\'ici, c\'est impossible.</b> Va sur la <b>case VERTE</b> avec <b>'+skinOf(mv.a).name+'</b> (glisse-le) : c\'est la case la plus proche <b>de toi</b> d\'où le délock marche (cawotte posable ET frappe possible).';}
+      return'🧭 <b>D\'ici, c\'est impossible.</b> Va sur la <b>case VERTE</b>'+distTxt(mv.d)+' avec <b>'+skinOf(mv.a).name+'</b> (glisse-le) : c\'est la case la plus proche <b>de toi</b> d\'où le délock marche (cawotte posable ET frappe possible).';}
     const mv2=moveForHitOnly(C); // pas de combo complet nulle part → au moins une case d'où FRAPPER
     if(mv2){state.adviceCell={x:mv2.x,y:mv2.y,who:skinOf(state.player).name};
-      return'🧭 <b>Aucune case ne permet le délock complet.</b> Va sur la <b>case VERTE</b> : de là tu pourras au moins <b>FRAPPER '+nom+'</b> (le délock demandera une entité sur sa case miroir).';}
+      return'🧭 <b>Aucune case ne permet le délock complet.</b> Va sur la <b>case VERTE</b>'+distTxt(mv2.d)+' : de là tu pourras au moins <b>FRAPPER '+nom+'</b> (le délock demandera une entité sur sa case miroir).';}
     return'🔒 <b>Impossible pour l\'instant.</b> Rapproche tes persos '+(C.kind==='count'?'du Comte':'de la cible')+', ou fais de la place autour de lui.';}
   /* Le bouton 🧭 coupe TOUT l'assistant d'un coup : sans lui, `delockAdvice()` n'est plus appelé, donc
      aimCell/hitCell/adviceCell restent nuls → les cases cyan/violette/verte et leurs étiquettes s'éteignent d'elles-mêmes. */
@@ -2222,8 +2255,13 @@
     if(state.multi){castMulti(u.x,u.y);return;} // Multicomte armé : le clic pose la croix, rien d'autre
     if(state.edit){editAt(u.x,u.y);return;} // édition de la map : possible aussi une fois le combat lancé (les outils ne s'affichent que tant que le Comte n'est pas là)
     if(state.toPlace){let tx=u.x,ty=u.y;
-      if(state.toPlace.kind==='invoc'&&state.phase==='playing'&&state.confusion){const d=deflect(u.x,u.y); // la CONFUSION dévie aussi le placement des invocations
-        if(d.x!==u.x||d.y!==u.y){tx=d.x;ty=d.y;toast('⤳ Confusion '+cmap[state.confusion]+' : l\'invocation dévie en '+tx+','+ty+' !');}}
+      if(state.toPlace.kind==='invoc'&&state.phase==='playing'){ // une INVOCATION se LANCE : ligne de vue exigée vers la case CLIQUÉE… (comme un sort)
+        if(!hasLoS(state.player.x,state.player.y,u.x,u.y)){toast('🚫 Pas de ligne de vue vers la case visée : un mur ou une entité bloque — l\'invocation ne part pas d\'ici.');return;}
+        if(state.confusion){const d=deflect(u.x,u.y); // la CONFUSION dévie aussi le placement des invocations
+          if(d.x!==u.x||d.y!==u.y){tx=d.x;ty=d.y;
+            if(inGrid(tx,ty)&&!hasLoS(state.player.x,state.player.y,tx,ty)){ // …ET vers la case d'ARRIVÉE réelle (déviée)
+              toast('🚫 Pas de ligne de vue : la confusion dévie l\'invocation en '+tx+','+ty+', derrière un obstacle — impossible d\'ici.');return;}
+            toast('⤳ Confusion '+cmap[state.confusion]+' : l\'invocation dévie en '+tx+','+ty+' !');}}}
       if(!inGrid(tx,ty)||entityAt(tx,ty)||blocked(tx,ty)){toast('Case '+(tx!==u.x||ty!==u.y?'DÉVIÉE ('+tx+','+ty+') ':'')+'occupée ou bloquée.');return;}
       placeMob(tx,ty);return;}
     if(state.phase==='setup'){pickMove(u.x,u.y);return;}
