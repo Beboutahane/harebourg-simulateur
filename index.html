@@ -257,6 +257,7 @@
   /* Dofus-style bottom spell bar */
   #bottombar{bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:flex-end;z-index:6;max-width:97vw}
   #spellbar{display:flex;align-items:center;gap:8px;padding:7px 9px;max-width:62vw}
+  #spellbar.wide{max-width:none;flex-shrink:0} /* Bac à sable : le fond de la barre englobe TOUS les sorts (dimensionné sur leur nombre) */
   #heartHp{position:relative;width:79px;height:73px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;cursor:default;user-select:none} /* simple affichage : ni clic ni molette */
   #heartVal{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%);font-family:var(--display);font-weight:800;font-size:16px;color:#fff;text-shadow:0 1px 2px #000,0 0 3px #000;pointer-events:none;white-space:nowrap}
   #heartVal.small{font-size:10.5px}
@@ -335,10 +336,14 @@
   /* Un PERSO n'affiche pas sa vitalité ici : elle se lit sur son cœur et se règle au clic droit. Les monstres, eux, gardent leur barre. */
   #hoverHp.joueur .hhbar,#hoverHp.joueur .hhv{display:none}
   #hoverHp.joueur .hhtop{margin-bottom:0}
-  #cellCount{position:absolute;z-index:8;display:none;transform:translate(-50%,-100%);pointer-events:none;background:rgba(10,26,44,.95);border:1px solid var(--ice);border-radius:8px;padding:3px 9px;text-align:center;box-shadow:0 6px 16px rgba(0,8,20,.55)}
+  #cellCount{position:absolute;z-index:8;display:none;transform:translate(-50%,-100%);pointer-events:none;background:rgba(10,26,44,.96);border:1px solid var(--ice);border-radius:10px;padding:6px 12px;text-align:center;box-shadow:0 6px 16px rgba(0,8,20,.55)}
   #cellCount.show{display:block}
-  #cellCount b{font-family:var(--display);font-size:13.5px;color:#fff;white-space:nowrap}
-  #cellCount span{display:block;font-size:12px;color:var(--ice);font-weight:800;margin-top:1px;white-space:nowrap;letter-spacing:1px}
+  #cellCount b{font-family:var(--display);font-size:16px;color:#fff;white-space:nowrap}
+  #cellCount .dirs{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px} /* le chemin décomposé par direction : « 4 ↘ + 3 ↗ » en jetons */
+  #cellCount .dirs i{font-style:normal;font-family:var(--display);font-weight:800;font-size:13.5px;color:#fff;background:rgba(75,184,240,.18);border:1px solid rgba(75,184,240,.45);border-radius:7px;padding:2px 8px;white-space:nowrap}
+  #cellCount .dirs .ar{display:inline;color:var(--ice);margin-left:4px} /* inline : ne pas hériter du display:block de « #cellCount span » */
+  #cellCount .dirs em{font-style:normal;color:var(--muted);font-weight:700}
+  #cellCount span{display:block;font-size:12px;color:var(--ice);font-weight:800;margin-top:3px;white-space:nowrap;letter-spacing:1px}
   #cellCount span.mort{color:#ff5566;letter-spacing:.3px} /* rotation impossible = mort : le message doit sauter aux yeux */
   #cellCount.danger{border-color:#ff5566;background:rgba(52,10,16,.96);box-shadow:0 0 14px rgba(255,85,102,.5)}
   #hoverHp .hhbar{position:relative;height:8px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
@@ -366,6 +371,26 @@
   .hp-card .hp-ic{font-size:38px;display:block;margin-bottom:12px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
   .hp-card b{display:block;font-family:var(--display);font-size:18px;letter-spacing:.06em;color:var(--frost);margin-bottom:7px}
   .hp-card span{display:block;font-size:12px;line-height:1.45;color:var(--muted)}
+  /* ===== SONGE : choix de la salle à afficher (par-dessus la map d'attente floutée) ===== */
+  #roomPick{position:fixed;inset:0;z-index:130;display:none;align-items:center;justify-content:center;
+    background:rgba(6,14,26,.42);backdrop-filter:blur(9px) saturate(1.1);-webkit-backdrop-filter:blur(9px) saturate(1.1)}
+  #roomPick.show{display:flex;animation:rpin .22s ease-out}
+  @keyframes rpin{from{opacity:0}to{opacity:1}}
+  #roomPick .rp-in{max-width:min(92vw,880px);max-height:86vh;overflow:auto;padding:26px 30px 24px;border-radius:18px;
+    background:linear-gradient(165deg,rgba(16,34,58,.96),rgba(8,18,34,.97));border:1px solid var(--border-strong);
+    box-shadow:0 24px 70px rgba(0,0,0,.6),inset 0 1px 0 rgba(143,228,255,.12);text-align:center}
+  #roomPick h2{font-family:var(--display);font-size:22px;letter-spacing:.1em;color:var(--frost);margin-bottom:2px;text-shadow:0 2px 14px rgba(75,184,240,.45)}
+  #roomPick .rp-sub{color:var(--muted);font-size:12px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:14px}
+  #roomPick h3{font-family:var(--display);font-size:13.5px;letter-spacing:.14em;color:var(--ice);text-transform:uppercase;margin:14px 0 10px;text-align:left}
+  #roomPick .rp-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-start}
+  .rp-item{width:158px;padding:8px 8px 7px;border-radius:12px;cursor:pointer;font-family:var(--font);
+    background:rgba(10,24,44,.85);border:1px solid var(--border);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+  .rp-item:hover{transform:translateY(-3px);border-color:var(--ice-2);box-shadow:0 10px 26px rgba(0,0,0,.45),0 0 22px rgba(75,184,240,.2)}
+  .rp-item canvas{width:142px;height:96px;display:block;border-radius:8px;background:rgba(5,12,24,.8)}
+  .rp-item b{display:block;font-size:11.5px;color:var(--frost);margin-top:6px;font-family:var(--display);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #roomPick .rp-later{margin-top:16px;background:transparent;border:1px solid var(--border);color:var(--muted);
+    font-family:var(--font);font-size:12px;padding:8px 18px;border-radius:10px;cursor:pointer}
+  #roomPick .rp-later:hover{color:var(--frost);border-color:var(--border-strong)}
 </style>
 </head>
 <body>
@@ -380,6 +405,15 @@
     <button class="hp-card" id="hpComte" type="button"><span class="hp-ic">👑</span><b>Comte Harebourg</b><span>Donjon &amp; Songe — le combat, l'assistant et le délock.</span></button>
     <button class="hp-card" id="hpSable" type="button"><span class="hp-ic">🧪</span><b>Bac à sable</b><span>Grande carte libre — classes, sorts et monstres sans règles.</span></button>
   </div>
+</div></div>
+
+<!-- SONGE : le choix de la salle à afficher (grilles remplies par le script : Maps Finale + Maps des salles) -->
+<div id="roomPick"><div class="rp-in">
+  <h2>🌙 PORTE DE SONGE</h2>
+  <div class="rp-sub">Choisis la salle à afficher</div>
+  <h3>👹 Maps Finale</h3><div class="rp-grid" id="rpBoss"></div>
+  <h3>🗺️ Maps des salles</h3><div class="rp-grid" id="rpRooms"></div>
+  <button class="rp-later" id="rpLater" type="button">Plus tard — rester sur la map d'attente</button>
 </div></div>
 
 <div class="hud" id="topbar"><div class="card">
@@ -420,12 +454,12 @@
   <div id="modeBtns">
     <button class="mbtn" id="modeDj" title="Recrée la salle du boss : obstacles, trous ET monstres présents en donjon">
       <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M7 12C2.5 9.5 1.5 3.5 3.8 2.4C6.6 4.2 8.4 7.6 9.2 10.8Z" fill="#4bb8f0"/><path d="M25 12C29.5 9.5 30.5 3.5 28.2 2.4C25.4 4.2 23.6 7.6 22.8 10.8Z" fill="#4bb8f0"/><path d="M16 5C9.4 5 6 9.7 6 14.6C6 18.2 8.4 20 8.4 22V25C8.4 26.1 9.3 27 10.4 27H12V24.4H14V27H18V24.4H20V27H21.6C22.7 27 23.6 26.1 23.6 25V22C23.6 20 26 18.2 26 14.6C26 9.7 22.6 5 16 5Z" fill="#eef5ff"/><ellipse cx="12" cy="15.5" rx="2.7" ry="3.1" fill="#0c2740"/><ellipse cx="20" cy="15.5" rx="2.7" ry="3.1" fill="#0c2740"/><circle cx="12" cy="15.3" r="1.1" fill="#39d0ff"/><circle cx="20" cy="15.3" r="1.1" fill="#39d0ff"/><path d="M16 18.2L14.4 21.4H17.6Z" fill="#0c2740"/></svg></span><span class="mtxt"><b>Donjon</b><i>la vraie salle du boss</i></span></button>
-    <button class="mbtn on" id="modeSonge" title="Grande map vide : construis la tienne avec ✏️ Obstacles">
-      <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M16 16C16.4 14.6 18.2 14.2 19.3 15.4C21 16.9 20 19.8 17.4 20.4C13.6 21.2 10.4 18 11 14C11.7 9.2 16.8 6.2 21.6 7.6C27.2 9.2 29.6 15.8 26.8 21.4" fill="none" stroke="#f4c65a" stroke-width="2.6" stroke-linecap="round"/><circle cx="16" cy="16" r="1.5" fill="#ffe9a8"/></svg></span><span class="mtxt"><b>Songe</b><i>grande map à construire</i></span></button>
+    <button class="mbtn on" id="modeSonge" title="La Porte de Songe : choisis la salle à afficher (maps des salles + map finale du boss)">
+      <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M16 16C16.4 14.6 18.2 14.2 19.3 15.4C21 16.9 20 19.8 17.4 20.4C13.6 21.2 10.4 18 11 14C11.7 9.2 16.8 6.2 21.6 7.6C27.2 9.2 29.6 15.8 26.8 21.4" fill="none" stroke="#f4c65a" stroke-width="2.6" stroke-linecap="round"/><circle cx="16" cy="16" r="1.5" fill="#ffe9a8"/></svg></span><span class="mtxt"><b>Songe</b><i>les salles &amp; le boss</i></span></button>
     <div id="songeSubs"><!-- s'ouvre avec l'onglet Songe : les maps de BOSS et les maps de tes screens -->
-      <div class="subwrap"><button class="subbtn" id="bossSelBtn" type="button" title="Les maps de boss reconstruites — survole une entrée pour l'aperçu, clique pour l'ouvrir">👹 Boss ▾</button>
+      <div class="subwrap"><button class="subbtn" id="bossSelBtn" type="button" title="Les maps finales (salle du boss) reconstruites — survole une entrée pour l'aperçu, clique pour l'ouvrir">👹 Maps Finale ▾</button>
         <div class="sublist" id="bossList"></div></div>
-      <div class="subwrap"><button class="subbtn" id="mapsSelBtn" type="button" title="Les maps de tes screens — survole une entrée pour l'aperçu, clique pour l'ouvrir">🗺️ Maps ▾</button>
+      <div class="subwrap"><button class="subbtn" id="mapsSelBtn" type="button" title="Les maps des salles reconstruites de tes screens — survole une entrée pour l'aperçu, clique pour l'ouvrir">🗺️ Maps des salles ▾</button>
         <div class="sublist" id="mapsList"></div></div>
       <canvas id="portePrev" width="176" height="124"></canvas>
     </div>
@@ -497,7 +531,7 @@
     <div id="spellSlots" class="slotwrap"></div>
   </div>
   <div class="card" id="turnbox">
-    <div class="turnBtns"><button id="retreat" title="Abandonner le combat">🏳️ Abandonner</button></div>
+    <div class="turnBtns"><button id="retreat" title="Réinitialiser le combat (revenir au placement ou tout vider)">♻️ Réinitialiser</button></div>
   </div>
 </div>
 
@@ -637,22 +671,26 @@
   };
   const TILE_H=0.4; // épaisseur des cases (dalles) — le dessus reste à y=0
   const islandGroup=new THREE.Group();scene.add(islandGroup);
-  // plaque de NÉON bleue sous le plateau, reconstruite pour ÉPOUSER les cases (octogone du DJ, trous…)
-  const neonFloor=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:0x2f9df0,transparent:true,opacity:.92,side:THREE.DoubleSide,depthWrite:false}));
-  neonFloor.position.y=-(TILE_H+0.025);islandGroup.add(neonFloor);
-  const neonCore=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:0x8fd6ff,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false}));
-  neonCore.position.y=-TILE_H;islandGroup.add(neonCore);
-  function quadsGeo(cells,half){const pos=new Float32Array(cells.length*12),idx=[];
-    cells.forEach((p,i)=>{const b=i*4;pos.set([p.x-half,0,p.z-half, p.x+half,0,p.z-half, p.x+half,0,p.z+half, p.x-half,0,p.z+half],b*3);
-      idx.push(b,b+2,b+1, b,b+3,b+2);});
-    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setIndex(idx);return g;}
-  function buildNeonFloor(){const cells=[];let maxR=1;
-    for(let x=0;x<N;x++)for(let y=0;y<N;y++){if(state.voids&&state.voids.has(key(x,y)))continue; // trou / hors-arène = pas de néon
-      cells.push(worldPos(x,y));maxR=Math.max(maxR,Math.abs(x-HALF),Math.abs(y-HALF));}
-    neonFloor.geometry.dispose();neonFloor.geometry=quadsGeo(cells,TILE*0.72); // léger débord => liseré néon qui suit la forme de la map
-    neonCore.geometry.dispose();neonCore.geometry=quadsGeo(cells,TILE*0.5);    // cœur plus clair (fuite par les interstices)
+  // LUMIÈRE NÉON sous le plateau : la silhouette de la map est peinte sur un canvas puis FLOUTÉE (2 passes),
+  // et plaquée en blending ADDITIF → un halo diffus qui épouse la forme (octogone, trous…) sans AUCUN bord net.
+  // (remplace l'ancienne « plaque » à quads par case : plate, carrée, contours visibles)
+  const NEON_S=512,neonCv=document.createElement('canvas');neonCv.width=neonCv.height=NEON_S;
+  const neonTex=new THREE.CanvasTexture(neonCv);
+  const NEON_SPAN=N*TILE*1.25; // le plane déborde de 25% : la lumière peut fuir au-delà du bord des cases
+  const neonFloor=new THREE.Mesh(new THREE.PlaneGeometry(NEON_SPAN,NEON_SPAN),
+    new THREE.MeshBasicMaterial({map:neonTex,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+  neonFloor.rotation.x=-Math.PI/2;neonFloor.position.y=-(TILE_H+0.03);islandGroup.add(neonFloor);
+  function buildNeonFloor(){
+    const S=NEON_S,sc=S/(NEON_SPAN/TILE),off=(S-N*sc)/2; // px par case ; grille centrée sur le plane
+    const raw=document.createElement('canvas');raw.width=raw.height=S;const r2=raw.getContext('2d');
+    for(let x=0;x<N;x++)for(let y=0;y<N;y++){if(state.voids&&state.voids.has(key(x,y)))continue; // trou / hors-arène = pas de lumière
+      r2.fillRect(off+x*sc,off+y*sc,sc+0.5,sc+0.5);} // +0.5 : pas de coutures entre cases voisines
+    const tint=c=>{r2.globalCompositeOperation='source-in';r2.fillStyle=c;r2.fillRect(0,0,S,S);r2.globalCompositeOperation='source-over';};
+    const c2=neonCv.getContext('2d');c2.clearRect(0,0,S,S);
+    tint('#2f9df0');c2.filter='blur('+(sc*1.6)+'px)';c2.globalAlpha=.9;c2.drawImage(raw,0,0);   // halo bleu, large et doux
+    tint('#c8ecff');c2.filter='blur('+(sc*0.55)+'px)';c2.globalAlpha=.75;c2.drawImage(raw,0,0); // cœur presque blanc (additif → centre lumineux)
+    c2.filter='none';c2.globalAlpha=1;neonTex.needsUpdate=true;
   }
-  // (gros halo lumineux retiré à la demande — on garde seulement la plaque néon sous les cases)
   const decorGroup=new THREE.Group();scene.add(decorGroup);
   const obstacleGroup=new THREE.Group();scene.add(obstacleGroup);
   const portalGroup=new THREE.Group();scene.add(portalGroup);   // portails Eliotrope
@@ -883,7 +921,7 @@
   function applyAmbiance(){ // GÉNÈRE le terrain de la carte courante (1re visite / remise à zéro) puis le dessine
     state.enemies.forEach(e=>{if(e.obj)scene.remove(e.obj);});state.enemies=[]; // (re)construire la map = repartir sur les monstres par défaut
     state.voids=new Set();
-    if(state.map==='dj'){ // DJ = la vraie salle, lue case par case dans DJ_MAP ; Songe / Bac à sable = grande map à construire
+    if(state.map==='dj'){ // DJ = la vraie salle, lue case par case dans DJ_MAP ; Songe = map d'ATTENTE générique ; Bac à sable = grande map à construire
       state.obstacles=new Set();
       for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=(DJ_MAP[y-DJ_OFF]||'')[x-DJ_OFF]||'.'; // DJ_OFF : la salle 25×25 reste centrée sur la grille 31×31
         if(c==='.')state.voids.add(key(x,y)); // vide / trou
@@ -897,7 +935,9 @@
         for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=(def.rows[y-offY]||'')[x-offX]||'.';
           if(c==='.')state.voids.add(key(x,y));
           else if(c==='X')state.obstacles.add(key(x,y));}}
-    }else{state.obstacles=new Set();state.voids=computeSongeVoids();} // Songe & Bac à sable : zone jouable réglable mapW×mapH
+    }else if(state.map==='songe'){state.obstacles=new Set();state.voids=new Set(); // SONGE = map GÉNÉRIQUE d'attente (grand losange nu, fixe) le temps de choisir une salle dans « Maps Finale » / « Maps des salles »
+      for(let x=0;x<N;x++)for(let y=0;y<N;y++)if(Math.abs(x-HALF)+Math.abs(y-HALF)>9)state.voids.add(key(x,y));
+    }else{state.obstacles=new Set();state.voids=computeSongeVoids();} // Bac à sable : zone jouable réglable mapW×mapH
     // (plus de « cases bleues » de départ : dans toutes les cartes, les persos se posent sur n'importe quelle case libre)
     state._baseVoids=new Set(state.voids);
     state._countPlaced=false;if(state._ghost)state._ghost.visible=false; // plus de Comte pré-posé : il apparaît en TRANSFORMANT un Poutch (clic droit)
@@ -1591,7 +1631,8 @@
     el('paNum').textContent=state.player.pa;el('pmNum').textContent=state.player.pm;
     const playing=state.phase==='playing';
     el('topbar').style.display=(playing&&state.map!=='sable')?'':'none'; // bandeau Tour/parité/vulnérabilité : en combat, mais PAS en Bac à sable (pas de Comte à y gérer)
-    if(el('retreat'))el('retreat').style.display=playing?'':'none'; // « Abandonner » : seulement en combat
+    const showReset=playing&&state.enemies.some(e=>e.alive)&&state.allies.some(a=>a.placed&&a.hp>0); // « Réinitialiser » : seulement quand au moins un ennemi ET un allié sont sur le terrain
+    if(el('retreat'))el('retreat').style.display=showReset?'':'none';
     {const sable2=state.map==='sable'; // en sable, la grande card « LE COMTE EN » laisse place à un simple bouton de retour
      el('mapPick').style.display=sable2?'none':'flex';
      if(el('backComte'))el('backComte').style.display=sable2?'':'none';}
@@ -1600,17 +1641,17 @@
      el('setup').style.display=showSetup?'flex':'none';
      if(!showSetup&&state.edit){state.edit=false;updateSetupBtns();} // le Comte arrive, les outils disparaissent → on sort de l'édition pour ne pas creuser en cliquant
      if(el('tips'))el('tips').style.display=sable?'none':''; // Pense-bête : pas en Bac à sable (terrain d'essai libre)
-     el('setupTitle').textContent=sable?'🧪 Bac à sable':(porte?'🚪 Corrige la map':'🏖️ Construis ta map');
-     el('mapHint').style.display=porte?'none':''; // pas d'étirement sur la Porte (le pinceau ➕ Case suffit pour ajuster le contour)
+     el('setupTitle').textContent=sable?'🧪 Bac à sable':(porte?'🚪 Corrige la map':'🖌️ Retouche la map');
+     el('mapHint').style.display=sable?'':'none'; // l'étirement par les bords n'existe plus qu'en Bac à sable
      el('mobAdd').style.display=sable?'':'none'; // ajout de monstre : Bac à sable seulement
-     el('brushFloor').style.display=(sable||porte)?'':'none'; // ➕ Case : Bac à sable + correction de la Porte
+     el('brushFloor').style.display=(sable||porte||state.map==='songe')?'':'none'; // ➕ Case : partout où l'on retouche (sauf Donjon figé)
      if(el('psSave'))el('psSave').style.display=porte?'':'none'; // 💾 exporter la map corrigée : Porte seulement
-     edgeArrowGroup.visible=(state.phase==='setup'&&!dj&&!porte);} // flèches d'étirement : pas sur les maps réelles
+     edgeArrowGroup.visible=(state.phase==='setup'&&sable);} // flèches d'étirement : Bac à sable seulement
     const hasChar=!!(state.player&&state.player.className!=='—'); // classe choisie → cœur actif (prévisualisation confusion possible avant même le placement)
     {const t=hasChar?tierOf(state.player):null,pct=hasChar?VITA[t].mid/100:0,f=el('heartFill'),v=el('heartVal'); // le cœur = la TRANCHE de vita choisie sur le perso (rien d'autre)
      if(f){const h=22*pct;f.setAttribute('y',(22-h).toFixed(2));f.setAttribute('height',h.toFixed(2));f.setAttribute('fill',pct>.5?'#ff5568':pct>.25?'#ff8a4a':'#ff4d4d');} // jauge remplie au milieu de la tranche
      v.textContent=hasChar?VITA[t].l:'—';v.classList.toggle('small',hasChar);}
-    if(el('turnbox'))el('turnbox').style.display=playing?'':'none'; // plus de bouton Lancer : le combat démarre seul (Comte + 1 joueur présents)
+    if(el('turnbox'))el('turnbox').style.display=showReset?'':'none'; // le card ne contient que « Réinitialiser » : il suit la même règle (sinon il resterait un petit card vide)
     document.querySelectorAll('#spellSlots .slot').forEach(x=>{
       if(x.classList.contains('ph'))return; // case vide (aucune classe) : rien à mettre à jour
       if(x.dataset.act){x.classList.remove('dim');x.classList.toggle('on',x.dataset.act==='portal'&&state.mode==='portal');return;}
@@ -2045,8 +2086,8 @@
     const dx=tx-px,dy=ty-py,dist=Math.abs(dx)+Math.abs(dy);
     if(dist===0||!inGrid(tx,ty)){box.classList.remove('show');return;}
     const o=projectCell(px,py,0.3),ex=projectCell(px+1,py,0.3),ey=projectCell(px,py+1,0.3),parts=[]; // directions écran réelles des axes de la grille (vue iso)
-    if(dx!==0)parts.push(Math.abs(dx)+arrowFor((ex.sx-o.sx)*Math.sign(dx),(ex.sy-o.sy)*Math.sign(dx)));
-    if(dy!==0)parts.push(Math.abs(dy)+arrowFor((ey.sx-o.sx)*Math.sign(dy),(ey.sy-o.sy)*Math.sign(dy)));
+    if(dx!==0)parts.push('<i>'+Math.abs(dx)+'<span class="ar">'+arrowFor((ex.sx-o.sx)*Math.sign(dx),(ex.sy-o.sy)*Math.sign(dx))+'</span></i>');
+    if(dy!==0)parts.push('<i>'+Math.abs(dy)+'<span class="ar">'+arrowFor((ey.sx-o.sx)*Math.sign(dy),(ey.sy-o.sy)*Math.sign(dy))+'</span></i>');
     let swp='',mortel=false;const sw=swapPreviewInfo(); // qui pivote / échange si ce sort touche le Comte ?
     if(sw){const nm=o=>o.t==='ally'?('Perso '+(o.a.id+1)):(o.e.name||'une entité');let t;
       if(!sw.ok){mortel=true; // la case d'arrivée est hors map ou dans un mur → la rotation ne peut pas se faire = WIPE
@@ -2057,7 +2098,7 @@
       else t=sw.swapWith?('🔀 TU échanges ta place avec '+nm(sw.swapWith)):'🔁 TOI, tu pivotes de 180°';
       swp='<span'+(mortel?' class="mort"':'')+'>'+t+'</span>';}
     box.classList.toggle('danger',mortel);
-    box.innerHTML='<b>'+tag+dist+' case'+(dist>1?'s':'')+'</b><span>'+parts.join('  ')+'</span>'+swp;
+    box.innerHTML='<b>'+tag+dist+' case'+(dist>1?'s':'')+'</b><span class="dirs">'+parts.join('<em>+</em>')+'</span>'+swp;
     const p=projectCell(tx,ty,1.1);box.style.left=p.sx+'px';box.style.top=(p.sy-2)+'px';box.classList.add('show');}
   function updateHoverHp(){const box=el('hoverHp');
     const ent=hoverCell?entityAt(hoverCell.x,hoverCell.y):null;
@@ -2183,8 +2224,8 @@
   function panBy(dx,dy){camRight.set(-Math.sin(theta),0,Math.cos(theta));camFwd.set(Math.cos(theta),0,Math.sin(theta));
     const k=radius*0.0016;targetV.addScaledVector(camRight,dx*k);targetV.addScaledVector(camFwd,-dy*k);
     const lim=N*0.7;targetV.x=Math.max(-lim,Math.min(lim,targetV.x));targetV.z=Math.max(-lim,Math.min(lim,targetV.z));updateCam();}
-  function edgeAt(x,y){ // case au BORD de la zone jouable Songe (préparation) → étirable au clic maintenu (zone tolérante : bord ± 1 case)
-    if(state.phase!=='setup'||state.map==='dj'||isPorte(state.map))return null; // Donjon et maps Porte sont figés ; Songe et Bac à sable s'étirent
+  function edgeAt(x,y){ // case au BORD de la zone jouable (préparation) → étirable au clic maintenu (zone tolérante : bord ± 1 case)
+    if(state.phase!=='setup'||state.map!=='sable')return null; // SEUL le Bac à sable s'étire : Donjon, salles du Songe et map d'attente sont figés
     const rw=(state.mapW-1)/2,rh=(state.mapH-1)/2,ax=Math.abs(x-HALF),ay=Math.abs(y-HALF);
     if(ax>rw+1||ay>rh+1)return null; // trop loin de la zone
     const w=(ax===rw||ax===rw+1), h=(ay===rh||ay===rh+1); // près d'un bord vertical (colonnes) / horizontal (lignes)
@@ -2396,6 +2437,7 @@
     state.initiative=[];state.launchSnap=null;
     state.mapW=state.mapH=(state.map==='sable'?21:15); // le Bac à sable démarre GRAND (étirable jusqu'à 25 en tirant sur les bords)
     applyAmbiance();}
+  let openRoomPick=null; // rempli plus bas (IIFE des listes de salles) : ouvre le panneau « Choisis ta salle »
   function setMapMode(m){if(m===state.map)return; // déjà sur cette carte : on n'y touche pas
     cancelMulti(); // un Multicomte armé ne suit pas d'une carte à l'autre
     saveMapState();state.map=m;state.edit=false;state.mode='idle';state.setupSel=null;state.spell=null;state.toPlace=null;state.editHistory=[]; // l'annulation ne traverse pas d'une carte à l'autre
@@ -2406,20 +2448,21 @@
     el('modeDj').classList.toggle('on',m==='dj');el('modeSonge').classList.toggle('on',m==='songe'||isPorte(m));el('modeSable').classList.toggle('on',m==='sable');
     if(el('songeSubs')){el('songeSubs').classList.toggle('open',m==='songe'||isPorte(m)); // l'onglet Songe déplie ses 2 listes (boss + maps)
       const bi=isPorte(m)?(+m.slice(5)||0):-1,nm=bi>=0?(PS_MAPS[bi]||PS_MAPS[0]).name:null,isBoss=!!(nm&&nm.slice(0,4)==='Boss');
-      el('bossSelBtn').textContent='👹 '+(isBoss?nm:'Boss')+' ▾';el('bossSelBtn').classList.toggle('on',isBoss);
-      el('mapsSelBtn').textContent='🗺️ '+(nm&&!isBoss?nm:'Maps')+' ▾';el('mapsSelBtn').classList.toggle('on',!!(nm&&!isBoss));}
+      el('bossSelBtn').textContent='👹 '+(isBoss?nm:'Maps Finale')+' ▾';el('bossSelBtn').classList.toggle('on',isBoss);
+      el('mapsSelBtn').textContent='🗺️ '+(nm&&!isBoss?nm:'Maps des salles')+' ▾';el('mapsSelBtn').classList.toggle('on',!!(nm&&!isBoss));}
     toast(isPorte(m)?('🚪 '+(PS_MAPS[+m.slice(5)||0]||PS_MAPS[0]).name+' : map reconstruite de ton screen — corrige-la avec les pinceaux, tout est sauvegardé. Chaque carte est totalement séparée des autres.')
          :({dj:'🏰 Donjon : la vraie salle du Comte — pose tes persos et le boss à la main.',
-           songe:'🌙 Songe : grande map à construire.',
-           sable:'🧪 Bac à sable : grande carte, tous les outils (cases, blocs, trous, monstres).'}[m]+' Chaque carte est totalement séparée des autres.'));}
+           songe:'🌙 Songe : choisis la salle à afficher — en attendant, une map d\'attente générique.',
+           sable:'🧪 Bac à sable : grande carte, tous les outils (cases, blocs, trous, monstres).'}[m]+' Chaque carte est totalement séparée des autres.'));
+    if(m==='songe'&&openRoomPick)openRoomPick();} // en ARRIVANT sur Songe : proposer la salle à afficher
   el('modeDj').onclick=()=>setMapMode('dj');
   el('modeSonge').onclick=()=>setMapMode('songe');
   el('modeSable').onclick=()=>setMapMode('sable');
   el('backComte').onclick=()=>setMapMode('songe'); // depuis le Bac à sable : retour aux cartes du Comte
   (function(){ // les 2 listes déroulantes de l'onglet Songe (Boss / Maps) : SURVOL = aperçu dessiné de la carte, clic = ouverture
     const prev=el('portePrev'),subs=el('songeSubs');
-    function drawPrev(i){ // mini-rendu iso 2D (les corrections localStorage de CETTE map priment sur le layout gravé)
-      const g2=prev.getContext('2d');g2.clearRect(0,0,prev.width,prev.height);
+    function paintMapCanvas(i,cv){ // mini-rendu iso 2D (les corrections localStorage de CETTE map priment sur le layout gravé)
+      const g2=cv.getContext('2d');g2.clearRect(0,0,cv.width,cv.height);
       let cells=null;
       try{const sv=JSON.parse(localStorage.getItem('ps_map_custom_v1:porte'+i)||'null');
         if(sv&&sv.v&&sv.o){cells=new Map();const voids=new Set(sv.v),obs=new Set(sv.o);
@@ -2432,14 +2475,15 @@
       cells.forEach((_,k)=>{const[x,y]=k.split(',').map(Number);
         xMin=Math.min(xMin,x);xMax=Math.max(xMax,x);yMin=Math.min(yMin,y);yMax=Math.max(yMax,y);});
       const span=(xMax-xMin)+(yMax-yMin)+2;
-      const hw=Math.min((prev.width-10)/span,(prev.height-12)*2/span),hh=hw/2;
-      const ox=prev.width/2-((xMax+xMin)/2-(yMax+yMin)/2)*hw;
-      const oy=prev.height/2-((xMax+xMin)/2+(yMax+yMin)/2)*hh;
+      const hw=Math.min((cv.width-10)/span,(cv.height-12)*2/span),hh=hw/2;
+      const ox=cv.width/2-((xMax+xMin)/2-(yMax+yMin)/2)*hw;
+      const oy=cv.height/2-((xMax+xMin)/2+(yMax+yMin)/2)*hh;
       const dr=(x,y,col)=>{const cx=ox+(x-y)*hw,cy=oy+(x+y)*hh;
         g2.fillStyle=col;g2.beginPath();
         g2.moveTo(cx+hw,cy);g2.lineTo(cx,cy+hh);g2.lineTo(cx-hw,cy);g2.lineTo(cx,cy-hh);g2.closePath();g2.fill();};
       cells.forEach((t,k)=>{const[x,y]=k.split(',').map(Number);if(t==='#')dr(x,y,((x+y)&1)?'#1b3d5e':'#22456b');});
       cells.forEach((t,k)=>{const[x,y]=k.split(',').map(Number);if(t==='X'){dr(x,y-0.45,'#c98042');dr(x,y,'#8a5427');}});}
+    const drawPrev=i=>paintMapCanvas(i,prev); // l'aperçu volant des listes déroulantes utilise le même rendu
     const closeAll=()=>{subs.querySelectorAll('.sublist').forEach(l=>l.classList.remove('open'));prev.style.display='none';};
     function wire(btnId,listId,indices){
       const btn=el(btnId),list=el(listId);
@@ -2457,7 +2501,19 @@
     wire('bossSelBtn','bossList',bossIdx);
     wire('mapsSelBtn','mapsList',mapsIdx);
     document.addEventListener('pointerdown',ev=>{if(!ev.target.closest('#songeSubs'))closeAll();});
-    if(state.map==='songe'||isPorte(state.map))subs.classList.add('open');})(); // au boot, la carte par défaut est Songe → ses listes sont visibles d'entrée
+    if(state.map==='songe'||isPorte(state.map))subs.classList.add('open'); // au boot, la carte par défaut est Songe → ses listes sont visibles d'entrée
+    // ---- panneau central « Choisis ta salle » : ouvert en arrivant sur Songe (mêmes maps que les 2 listes) ----
+    const rp=el('roomPick');
+    function fillRp(){[['rpBoss',bossIdx],['rpRooms',mapsIdx]].forEach(([id,idx])=>{const g=el(id);g.innerHTML='';
+      idx.forEach(i=>{const it=document.createElement('button');it.type='button';it.className='rp-item';it.title='Ouvrir « '+PS_MAPS[i].name+' »';
+        const cv=document.createElement('canvas');cv.width=284;cv.height=192; // ×2 : vignette nette (affichée 142×96)
+        const b=document.createElement('b');b.textContent=PS_MAPS[i].name;
+        it.appendChild(cv);it.appendChild(b);paintMapCanvas(i,cv);
+        it.onclick=()=>{rp.classList.remove('show');setMapMode('porte'+i);};
+        g.appendChild(it);});});}
+    openRoomPick=()=>{fillRp();rp.classList.add('show');}; // repeint à CHAQUE ouverture : les retouches localStorage apparaissent sur les vignettes
+    el('rpLater').onclick=()=>rp.classList.remove('show');
+    rp.addEventListener('pointerdown',ev=>{if(ev.target===rp)rp.classList.remove('show');});})(); // clic à côté du panneau = fermer
   el('invTag').onclick=()=>{const C=comte();if(!C){toast('Le boss apparaîtra au lancement du combat.');return;}
     C.vulnerable=!C.vulnerable;refreshHUD();toast(C.vulnerable?'🎯 Boss signalé VULNÉRABLE (délock).':'🛡️ Boss signalé invulnérable.');};
   // (bouton « 🔓 DÉLOCK » de secours retiré : le clic sur 🛡️/🎯 juste à côté fait déjà basculer l'état du boss à la main)
@@ -2489,7 +2545,7 @@
     state.voids=new Set(base);dug.forEach(k=>{if(!base.has(k))state.voids.add(k);}); // garde les trous encore dans la zone
     state.obstacles=new Set([...state.obstacles].filter(k=>!base.has(k))); // retire les obstacles hors zone
     applyEditVisual();buildEdgeArrows();updateMapSizeLabels();refreshHUD();return true;}
-  function resizeMap(dw,dh){if(state.map==='dj'||isPorte(state.map)){toast('Cette carte est fixe (relevé du vrai jeu) — passe en Songe ou en Bac à sable pour redimensionner.');return;}
+  function resizeMap(dw,dh){if(state.map!=='sable'){toast('Cette carte est fixe — seul le Bac à sable se redimensionne en tirant sur les bords.');return;}
     setMapDims(state.mapW+dw*2,state.mapH+dh*2); // ±1 rangée/colonne de chaque côté (reste centré)
     toast('🗺️ Carte : '+state.mapW+' × '+state.mapH+' cases.');}
   updateSetupBtns();updateMapSizeLabels();
@@ -2516,7 +2572,11 @@
     box.innerHTML=html;
     const nSlots=box.children.length,deux=state.map==='sable'&&nSlots>8; // Bac à sable : les ~22 sorts d'une classe sur DEUX lignes, sans défilement
     box.classList.toggle('deux',deux);
-    box.style.width=deux?(Math.ceil(nSlots/2)*49+4)+'px':'';
+    if(el('spellbar'))el('spellbar').classList.toggle('wide',deux); // le card s'élargit avec les sorts : rien ne déborde du fond
+    if(deux){const avail=Math.max(330,innerWidth*0.97-330); // place restante à côté du cœur, des PA/PM et du bouton Réinitialiser
+      let rows=2;while(Math.ceil(nSlots/rows)*49-5>avail&&rows<4)rows++; // écran trop étroit pour 2 lignes → 3, puis 4
+      box.style.width=(Math.ceil(nSlots/rows)*49-5+2)+'px';} // une ligne de k slots = k×44 + (k−1)×5 px
+    else box.style.width='';
     box.querySelectorAll('.slot').forEach(d=>{
       if(d.dataset.act){d.onclick=()=>doAction(d.dataset.act);return;}
       const sp=(spells||[]).find(s=>s.id===+d.dataset.id);
@@ -2719,7 +2779,7 @@
   applyAmbiance();applyRosterMode();refreshTiles();refreshHUD();rebuildSpellBar(state.classSpells||[]);renderTips();animate();loadEl.style.display='none';
   (()=>{const hp=el('homePick');if(!hp)return; // ACCUEIL : deux choix par-dessus l'arène floutée
     const bye=()=>{hp.classList.add('bye');setTimeout(()=>hp.remove(),450);};
-    el('hpComte').onclick=bye; // Donjon/Songe : l'état par défaut est déjà le bon
+    el('hpComte').onclick=()=>{bye();if(state.map==='songe'&&openRoomPick)openRoomPick();}; // l'état par défaut est déjà Songe → on enchaîne sur le choix de la salle
     el('hpSable').onclick=()=>{setMapMode('sable');bye();};})();
   breedsReady=loadBreeds(); // promesse gardée : une classe posée AVANT la fin du chargement attend au lieu de retomber sur Crâ
   // (plus de chrono de tour : jeu libre)
