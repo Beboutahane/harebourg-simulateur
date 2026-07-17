@@ -690,6 +690,7 @@
       const p=worldPos(x,y);x0=Math.min(x0,p.x-0.5);x1=Math.max(x1,p.x+0.5);z0=Math.min(z0,p.z-0.5);z1=Math.max(z1,p.z+0.5);}
     if(!any)return;
     targetV.set((x0+x1)/2,0,(z0+z1)/2); // ① viser le centre de la map
+    if(state.map==='dj'){radius=21.3;updateCam();return;} // Donjon : zoom FIXE relevé de la capture de l'utilisateur (« garde ce zoom ») — la map passe sous les coins libres des panneaux, c'est voulu
     const R0=30;radius=R0;updateCam();activeCam.updateMatrixWorld();
     // les CASES réelles une par une (pas le rectangle englobant, dont les coins sont vides sur les maps non rectangulaires) : le zoom va jusqu'à ce qu'une case touche un panneau
     let nx=0,ny=0;const v3=new THREE.Vector3();
