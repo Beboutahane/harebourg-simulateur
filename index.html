@@ -411,24 +411,16 @@
      toujours DERRIÈRE les vignettes (.hp-in est en z-index:1).
      ⚠️ Aucun `filter` ni `mix-blend-mode` ici (parent #homePick en backdrop-filter → ils ré-afficheraient le fond
      flouté dans le rectangle du div, cf. « fond horrible » déjà rencontré). Juste background + animation d'entrée. */
-  /* Fond d'accueil BLEU NUIT (#102542) + la scène (Xélor + fuseau + œuf) DÉTOURÉE du noir (scratchpad/detoure-home.mjs :
-     alpha = max(luminance, colorfulness) → le noir pur devient transparent, le sujet même sombre mais COLORÉ reste
-     opaque, dématté à ses couleurs d'origine). Demande : le bleu ne doit PAS teindre le Comte. Donc PLUS de blend :
-     l'image à alpha laisse voir le bleu nuit là où était le noir, et le Comte garde ses vraies couleurs.
-     Le voile radial (lisibilité du titre) reste posé par-dessus. */
-  #hpBg{position:absolute;inset:0;z-index:0;pointer-events:none;
-    background-color:#102542;
-    background-image:
-      radial-gradient(60% 42% at 50% 35%,rgba(2,6,13,.5),rgba(2,6,13,.13) 56%,transparent 78%),
-      url(harebourg-home-cut.webp);
-    background-position:center, center center;
-    background-size:auto, contain;
-    background-repeat:no-repeat, no-repeat;
+  /* Fond d'accueil : BLEU NUIT uni (#102542). L'ancien composite plein écran (Xélor + fuseau + œuf) est REMPLACÉ
+     par l'artwork « Comte accoudé » ancré sur la vignette Songe (voir #hpSonge .hpComteArt plus bas). */
+  #hpBg{position:absolute;inset:0;z-index:0;pointer-events:none;background:#102542;
     animation:hpBgIn 1.2s ease-out both}
   @keyframes hpBgIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
   #homePick .hp-in{text-align:center;transform:translateY(-3vh);position:relative;z-index:1}
   #homePick h1{font-family:var(--display);font-size:34px;letter-spacing:.12em;color:var(--frost);
-    /* ombre SOMBRE d'abord (lisibilité par-dessus les zones claires du composite), puis une pointe de bleu pour le style */
+    /* ombre SOMBRE d'abord (lisibilité par-dessus les zones claires de l'artwork), puis une pointe de bleu pour le style.
+       z-index : le titre passe AU-DESSUS du Comte accoudé (son épaulière recouvrait la fin du titre). */
+    position:relative;z-index:2;
     text-shadow:0 1px 3px rgba(0,0,0,.92),0 0 16px rgba(0,0,0,.7),0 2px 18px rgba(75,184,240,.5);margin-bottom:30px}
   #homePick .hp-sub{color:var(--muted);font-size:13px;letter-spacing:.28em;text-transform:uppercase;margin-bottom:34px;
     text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 10px rgba(0,0,0,.65)}
@@ -458,6 +450,15 @@
   @media (max-width:1100px){#hpSandbox{right:14px;bottom:14px}}
   .hp-card .hp-ic{font-size:38px;display:block;margin-bottom:12px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
   .hp-card .hp-ic img{width:52px;height:52px;object-fit:contain;vertical-align:middle}
+  /* Le COMTE ACCOUDÉ sur la vignette Songe (artwork fourni, détouré par scratchpad/detoure-comte.mjs : fond bleuté
+     ET carte factice retirés, seul le bras qui s'accoude est gardé au-dessus de la carte). Ancré EN PIXELS dans le
+     bouton (la carte fait 250 px fixes) : le coin haut-droit de la carte factice (source 422,721, échelle 0.52) tombe
+     pile sur le coin haut-droit de la vraie vignette → le coude se pose dessus à toutes les tailles d'écran.
+     ⚠️ AUCUN filter/blend ici (parent #homePick en backdrop-filter, cf. v4.69). pointer-events:none : le clic passe
+     au bouton, et le hover du bouton soulève carte + Comte ensemble. */
+  #hpSonge{position:relative}
+  #hpSonge .hpComteArt{position:absolute;right:-345px;top:-375px;width:565px;pointer-events:none;display:block}
+  @media (max-width:1100px){#hpSonge .hpComteArt{display:none}} /* écran étroit : pas la place pour l'artwork */
   .hp-card b{display:block;font-family:var(--display);font-size:18px;letter-spacing:.06em;color:var(--frost);margin-bottom:7px}
   .hp-card span{display:block;font-size:12px;line-height:1.45;color:var(--muted)}
   /* ===== SONGE : choix de la salle à afficher (par-dessus la map d'attente floutée) ===== */
@@ -492,7 +493,7 @@
   <h1>❄️ Assistant Comte Harebourg</h1>
   <div class="hp-cards" id="hpStep1"><!-- ACCUEIL DIRECT : Donjon ou Songe (le Bac à sable est relégué en bas-droite, en bêta) -->
     <button class="hp-card" id="hpDj" type="button"><span class="hp-ic"><img src="donjon-icon.png" alt=""></span><b>Donjon</b><span>Affrontes le Comte dans son donjon</span></button>
-    <button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button>
+    <button class="hp-card" id="hpSonge" type="button"><img class="hpComteArt" src="harebourg-comte-songe.webp" alt="" aria-hidden="true"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button>
   </div>
 </div>
   <div id="hpSandbox"><!-- vignette secondaire, coin bas-droite -->
@@ -2361,7 +2362,9 @@
     state.active=0;state.initiative=[];state.curEnt=null;state.enemyTurn=false;
     state.enemies.forEach(e=>{if(e.obj)scene.remove(e.obj);});state.enemies=[];
     clearPortals();clearTraps();
-    applyAmbiance();refreshTiles();refreshHUD();}
+    applyAmbiance();
+    if(state.map==='dj')djPackInit(); // « Rejouer » en DONJON : le Comte + les mobs de base (B4) reviennent à leur placement de départ (avant : ils disparaissaient tous). La map, elle, n'est pas touchée.
+    refreshTiles();refreshHUD();}
 
   /* ===== INPUT ===== */
   const ray=new THREE.Raycaster(),ptr=new THREE.Vector2();
