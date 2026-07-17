@@ -209,6 +209,7 @@
   #modeDj.on{border-color:#e8a04b;background:linear-gradient(120deg,rgba(232,160,75,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(232,160,75,.35)}
   #modeSonge.on{border-color:#b98cff;background:linear-gradient(120deg,rgba(185,140,255,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(185,140,255,.35)}
   #modeSable.on{border-color:#6be3c0;background:linear-gradient(120deg,rgba(107,227,192,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(107,227,192,.35)}
+  #modePorte.on{border-color:#f0975c;background:linear-gradient(120deg,rgba(240,151,92,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(240,151,92,.35)}
   #ctxMenu,#placeMenu,#allyMenu{position:absolute;z-index:12;display:none;background:var(--panel);border:1px solid var(--border-strong);border-radius:9px;padding:4px;pointer-events:auto;box-shadow:0 10px 24px rgba(0,8,20,.6)}
   #ctxMenu.show,#placeMenu.show,#allyMenu.show{display:block}
   #ctxMenu button,#placeMenu button{display:block;width:100%;border:0;background:transparent;color:var(--danger);font-family:var(--font);font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:7px;cursor:pointer;text-align:left;white-space:nowrap}
@@ -368,6 +369,8 @@
       <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M7 12C2.5 9.5 1.5 3.5 3.8 2.4C6.6 4.2 8.4 7.6 9.2 10.8Z" fill="#4bb8f0"/><path d="M25 12C29.5 9.5 30.5 3.5 28.2 2.4C25.4 4.2 23.6 7.6 22.8 10.8Z" fill="#4bb8f0"/><path d="M16 5C9.4 5 6 9.7 6 14.6C6 18.2 8.4 20 8.4 22V25C8.4 26.1 9.3 27 10.4 27H12V24.4H14V27H18V24.4H20V27H21.6C22.7 27 23.6 26.1 23.6 25V22C23.6 20 26 18.2 26 14.6C26 9.7 22.6 5 16 5Z" fill="#eef5ff"/><ellipse cx="12" cy="15.5" rx="2.7" ry="3.1" fill="#0c2740"/><ellipse cx="20" cy="15.5" rx="2.7" ry="3.1" fill="#0c2740"/><circle cx="12" cy="15.3" r="1.1" fill="#39d0ff"/><circle cx="20" cy="15.3" r="1.1" fill="#39d0ff"/><path d="M16 18.2L14.4 21.4H17.6Z" fill="#0c2740"/></svg></span><span class="mtxt"><b>Donjon</b><i>la vraie salle du boss</i></span></button>
     <button class="mbtn on" id="modeSonge" title="Grande map vide : construis la tienne avec ✏️ Obstacles">
       <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M16 16C16.4 14.6 18.2 14.2 19.3 15.4C21 16.9 20 19.8 17.4 20.4C13.6 21.2 10.4 18 11 14C11.7 9.2 16.8 6.2 21.6 7.6C27.2 9.2 29.6 15.8 26.8 21.4" fill="none" stroke="#f4c65a" stroke-width="2.6" stroke-linecap="round"/><circle cx="16" cy="16" r="1.5" fill="#ffe9a8"/></svg></span><span class="mtxt"><b>Songe</b><i>grande map à construire</i></span></button>
+    <button class="mbtn" id="modePorte" title="La map de ton screen, reconstruite case par case : sol, blocs et fosses de lave (carte fixe)">
+      <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M16 3L29 16L16 29L3 16Z" fill="none" stroke="#f0975c" stroke-width="2.2" stroke-linejoin="round"/><path d="M16 9L23 16L16 23L9 16Z" fill="#f0975c" opacity=".45"/><path d="M13 14h6v6h-6z" fill="#2b1608"/></svg></span><span class="mtxt"><b>Porte de Songe</b><i>la map de ton screen</i></span></button>
   </div>
 </div>
 
@@ -489,7 +492,8 @@
   const API='https://api.dofusdb.fr';
 
   /* ===== STATE ===== */
-  const N=25,TILE=1,HALF=(N-1)/2,PA_MAX=12,PM_MAX=6,SWAP_RANGE=4; // grille interne 25×25 ; la zone jouable (Songe) est réglable via state.mapW/mapH ; SWAP_RANGE = portée de l'Échange
+  const N=31,TILE=1,HALF=(N-1)/2,PA_MAX=12,PM_MAX=6,SWAP_RANGE=4; // grille interne 31×31 (la Porte de Songe fait 30 cases de large) ; la zone jouable (Songe) est réglable via state.mapW/mapH ; SWAP_RANGE = portée de l'Échange
+  const DJ_OFF=3; // la salle du Donjon (DJ_MAP, 25×25) reste CENTRÉE sur la grille 31×31 : décalée de (31−25)/2
   const A2D={0:{x:0,y:-1},90:{x:1,y:0},180:{x:0,y:1},270:{x:-1,y:0}};
   const allyColors=[0xbcd0ff,0x8effc4,0xffcf6b,0xff9ad2,0xc9a0ff,0xff8f6b,0x7be0d0,0xe8e06b];
   const POUTCH_NAME='Acnoh le poutch', POUTCH_MAX=7; // le mob ennemi de base : 7 au plus sur le terrain
@@ -699,6 +703,30 @@
     '.........................',
     '.........................'];
   // (plus aucun monstre pré-posé en Donjon : comme en Songe, TOUT se pose à la main — persos par GLISSÉ du widget, Comte/Poutch au clic droit)
+  // ===== PORTE DE SONGE : map RECONSTRUITE au pixel depuis le screenshot du jeu (grille détectée par ajustement
+  // sur le damier, contour lu sur la bordure rouge, blocs recalés sur leur case de BASE, 3 fosses de lave = vides).
+  // 370 cases de sol dont 14 blocs · 30 de large × 19 de haut, posée sur la grille 31×31 (y décalé de PS_OFFY). =====
+  const PS_OFFY=6;
+  const PS_MAP=[
+    '.....####......................',
+    '...######......................',
+    '..#############........#####...',
+    '..###########XX........######..',
+    '.################...#########..',
+    '.####X###########..XX########..',
+    '.################...##########.',
+    '.##########..#################.',
+    '.#############################.',
+    '################XX######.####..',
+    '####.###########XX######.####..',
+    '####.#################XX.####..',
+    '#########XX##################..',
+    '##########...################..',
+    '.#######.....##############....',
+    '..#####........#####X######....',
+    '.....................######....',
+    '......................#####....',
+    '......................####.....'];
   function computeSongeVoids(){const v=new Set(),rw=(state.mapW-1)/2,rh=(state.mapH-1)/2; // Songe : cases hors de la zone jouable mapW×mapH (centrée) = hors-jeu
     for(let x=0;x<N;x++)for(let y=0;y<N;y++)if(Math.abs(x-HALF)>rw||Math.abs(y-HALF)>rh)v.add(key(x,y));return v;}
   function renderMap(){ // DESSINE la carte telle qu'elle est dans state (obstacles/voids) — ne régénère et n'efface RIEN
@@ -717,9 +745,14 @@
     state.voids=new Set();
     if(state.map==='dj'){ // DJ = la vraie salle, lue case par case dans DJ_MAP ; Songe / Bac à sable = grande map à construire
       state.obstacles=new Set();
-      for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=(DJ_MAP[y]||'')[x]||'.';
+      for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=(DJ_MAP[y-DJ_OFF]||'')[x-DJ_OFF]||'.'; // DJ_OFF : la salle 25×25 reste centrée sur la grille 31×31
         if(c==='.')state.voids.add(key(x,y)); // vide / trou
         else if(c==='X')state.obstacles.add(key(x,y));} // bloc posé sur du sol
+    }else if(state.map==='porte'){ // PORTE DE SONGE = map figée reconstruite du screenshot, lue dans PS_MAP
+      state.obstacles=new Set();
+      for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=(PS_MAP[y-PS_OFFY]||'')[x]||'.';
+        if(c==='.')state.voids.add(key(x,y));
+        else if(c==='X')state.obstacles.add(key(x,y));}
     }else{state.obstacles=new Set();state.voids=computeSongeVoids();} // Songe & Bac à sable : zone jouable réglable mapW×mapH
     // (plus de « cases bleues » de départ : dans toutes les cartes, les persos se posent sur n'importe quelle case libre)
     state._baseVoids=new Set(state.voids);
@@ -1406,8 +1439,8 @@
     const playing=state.phase==='playing';
     el('topbar').style.display=playing?'':'none'; // bandeau Tour/parité/vulnérabilité/confusion : seulement en combat
     if(el('retreat'))el('retreat').style.display=playing?'':'none'; // « Abandonner » : seulement en combat
-    {const dj=state.map==='dj',sable=state.map==='sable'; // le DONJON est la vraie salle, figée : ni outils de map ni tuto, on y joue (comme en Songe : tout se pose à la main)
-     const showSetup=(state.phase==='setup'||!comte())&&!dj; // les outils de map restent tant que le COMTE n'est pas là (le combat, lui, démarre dès le 1er perso posé)
+    {const fixe=state.map==='dj'||state.map==='porte',sable=state.map==='sable'; // DONJON et PORTE DE SONGE = maps réelles FIGÉES : ni outils de map ni étirement, on y joue
+     const showSetup=(state.phase==='setup'||!comte())&&!fixe; // les outils de map restent tant que le COMTE n'est pas là (le combat, lui, démarre dès le 1er perso posé)
      el('setup').style.display=showSetup?'flex':'none';
      if(!showSetup&&state.edit){state.edit=false;updateSetupBtns();} // le Comte arrive, les outils disparaissent → on sort de l'édition pour ne pas creuser en cliquant
      if(el('tips'))el('tips').style.display=sable?'none':''; // Pense-bête : pas en Bac à sable (terrain d'essai libre)
@@ -1415,7 +1448,7 @@
      el('mapHint').style.display=''; // étirement de la zone : Songe ET Bac à sable
      el('mobAdd').style.display=sable?'':'none'; // ajout de monstre : Bac à sable seulement
      el('brushFloor').style.display=sable?'':'none'; // ➕ Case : Bac à sable seulement
-     edgeArrowGroup.visible=(state.phase==='setup'&&!dj);} // flèches d'étirement : partout sauf en Donjon
+     edgeArrowGroup.visible=(state.phase==='setup'&&!fixe);} // flèches d'étirement : pas sur les maps figées
     const hasChar=!!(state.player&&state.player.className!=='—'); // classe choisie → cœur actif (prévisualisation confusion possible avant même le placement)
     {const t=hasChar?tierOf(state.player):null,pct=hasChar?VITA[t].mid/100:0,f=el('heartFill'),v=el('heartVal'); // le cœur = la TRANCHE de vita choisie sur le perso (rien d'autre)
      if(f){const h=22*pct;f.setAttribute('y',(22-h).toFixed(2));f.setAttribute('height',h.toFixed(2));f.setAttribute('fill',pct>.5?'#ff5568':pct>.25?'#ff8a4a':'#ff4d4d');} // jauge remplie au milieu de la tranche
@@ -1963,7 +1996,7 @@
     const k=radius*0.0016;targetV.addScaledVector(camRight,dx*k);targetV.addScaledVector(camFwd,-dy*k);
     const lim=N*0.7;targetV.x=Math.max(-lim,Math.min(lim,targetV.x));targetV.z=Math.max(-lim,Math.min(lim,targetV.z));updateCam();}
   function edgeAt(x,y){ // case au BORD de la zone jouable Songe (préparation) → étirable au clic maintenu (zone tolérante : bord ± 1 case)
-    if(state.phase!=='setup'||state.map==='dj')return null; // la salle du Donjon est figée ; Songe et Bac à sable s'étirent
+    if(state.phase!=='setup'||state.map==='dj'||state.map==='porte')return null; // Donjon et Porte de Songe sont figés ; Songe et Bac à sable s'étirent
     const rw=(state.mapW-1)/2,rh=(state.mapH-1)/2,ax=Math.abs(x-HALF),ay=Math.abs(y-HALF);
     if(ax>rw+1||ay>rh+1)return null; // trop loin de la zone
     const w=(ax===rw||ax===rw+1), h=(ay===rh||ay===rh+1); // près d'un bord vertical (colonnes) / horizontal (lignes)
@@ -2182,13 +2215,15 @@
     if(loadMapState(m))renderMap();else freshMapState(); // carte déjà visitée → retrouvée INTACTE ; sinon → carte neuve
     applyRosterMode(); // bac à sable → widget des 19 classes ; sinon → persos + Comte + poutchs
     updateSetupBtns();updateMapSizeLabels();setActive(state.active);refreshTiles();refreshHUD();renderTips();
-    el('modeDj').classList.toggle('on',m==='dj');el('modeSonge').classList.toggle('on',m==='songe');el('modeSable').classList.toggle('on',m==='sable');
+    el('modeDj').classList.toggle('on',m==='dj');el('modeSonge').classList.toggle('on',m==='songe');el('modeSable').classList.toggle('on',m==='sable');el('modePorte').classList.toggle('on',m==='porte');
     toast({dj:'🏰 Donjon : la vraie salle du Comte — pose tes persos et le boss à la main.',
            songe:'🌙 Songe : grande map à construire.',
+           porte:'🚪 Porte de Songe : la map de ton screen, reconstruite case par case (sol, blocs, fosses). Carte fixe.',
            sable:'🧪 Bac à sable : grande carte, tous les outils (cases, blocs, trous, monstres).'}[m]+' Chaque carte est totalement séparée des autres.');}
   el('modeDj').onclick=()=>setMapMode('dj');
   el('modeSonge').onclick=()=>setMapMode('songe');
   el('modeSable').onclick=()=>setMapMode('sable');
+  el('modePorte').onclick=()=>setMapMode('porte');
   el('invTag').onclick=()=>{const C=comte();if(!C){toast('Le boss apparaîtra au lancement du combat.');return;}
     C.vulnerable=!C.vulnerable;refreshHUD();toast(C.vulnerable?'🎯 Boss signalé VULNÉRABLE (délock).':'🛡️ Boss signalé invulnérable.');};
   // (bouton « 🔓 DÉLOCK » de secours retiré : le clic sur 🛡️/🎯 juste à côté fait déjà basculer l'état du boss à la main)
@@ -2210,7 +2245,7 @@
     state.voids=new Set(base);dug.forEach(k=>{if(!base.has(k))state.voids.add(k);}); // garde les trous encore dans la zone
     state.obstacles=new Set([...state.obstacles].filter(k=>!base.has(k))); // retire les obstacles hors zone
     applyEditVisual();buildEdgeArrows();updateMapSizeLabels();refreshHUD();return true;}
-  function resizeMap(dw,dh){if(state.map==='dj'){toast('La salle du Donjon est fixe — passe en Songe ou en Bac à sable pour redimensionner.');return;}
+  function resizeMap(dw,dh){if(state.map==='dj'||state.map==='porte'){toast('Cette carte est fixe (relevé du vrai jeu) — passe en Songe ou en Bac à sable pour redimensionner.');return;}
     setMapDims(state.mapW+dw*2,state.mapH+dh*2); // ±1 rangée/colonne de chaque côté (reste centré)
     toast('🗺️ Carte : '+state.mapW+' × '+state.mapH+' cases.');}
   updateSetupBtns();updateMapSizeLabels();
