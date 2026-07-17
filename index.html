@@ -731,6 +731,7 @@
   const neonFloor=new THREE.Mesh(new THREE.PlaneGeometry(NEON_SPAN,NEON_SPAN),
     new THREE.MeshBasicMaterial({map:neonTex,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
   neonFloor.rotation.x=-Math.PI/2;neonFloor.position.y=-(TILE_H+0.03);islandGroup.add(neonFloor);
+  neonFloor.renderOrder=-1; // la LUMIÈRE se dessine AVANT les autres transparents : sinon le rectangle (invisible) des sprites de monstres écrit sa profondeur et découpe un carré sombre dans le halo derrière eux
   function buildNeonFloor(){
     const S=NEON_S,sc=S/(NEON_SPAN/TILE),off=(S-N*sc)/2; // px par case ; grille centrée sur le plane
     const raw=document.createElement('canvas');raw.width=raw.height=S;const r2=raw.getContext('2d');
