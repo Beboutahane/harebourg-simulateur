@@ -393,11 +393,13 @@
   @keyframes rpin{from{opacity:0}to{opacity:1}}
   #roomPick .rp-in{max-width:min(92vw,880px);max-height:86vh;overflow:auto;padding:26px 30px 24px;border-radius:18px;
     background:linear-gradient(165deg,rgba(16,34,58,.96),rgba(8,18,34,.97));border:1px solid var(--border-strong);
-    box-shadow:0 24px 70px rgba(0,0,0,.6),inset 0 1px 0 rgba(143,228,255,.12);text-align:center}
+    box-shadow:0 24px 70px rgba(0,0,0,.6),inset 0 1px 0 rgba(143,228,255,.12);text-align:center;
+    scrollbar-width:none} /* scrollable SANS barre visible : les coins arrondis restent nets des deux côtés */
+  #roomPick .rp-in::-webkit-scrollbar{display:none}
   #roomPick h2{font-family:var(--display);font-size:22px;letter-spacing:.1em;color:var(--frost);margin-bottom:2px;text-shadow:0 2px 14px rgba(75,184,240,.45)}
   #roomPick .rp-sub{color:var(--muted);font-size:12px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:14px}
-  #roomPick h3{font-family:var(--display);font-size:13.5px;letter-spacing:.14em;color:var(--ice);text-transform:uppercase;margin:14px 0 10px;text-align:left}
-  #roomPick .rp-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-start}
+  #roomPick h3{font-family:var(--display);font-size:13.5px;letter-spacing:.14em;color:var(--ice);text-transform:uppercase;margin:14px 0 10px;text-align:center}
+  #roomPick .rp-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center} /* tout est CENTRÉ dans le panneau */
   .rp-item{width:158px;padding:8px 8px 7px;border-radius:12px;cursor:pointer;font-family:var(--font);
     background:rgba(10,24,44,.85);border:1px solid var(--border);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
   .rp-item:hover{transform:translateY(-3px);border-color:var(--ice-2);box-shadow:0 10px 26px rgba(0,0,0,.45),0 0 22px rgba(75,184,240,.2)}
@@ -995,7 +997,21 @@
     '..#####........','.#######.......','########.......','###XX###.......',
     '##XX#####......','##########.....','############...','######.#######.',
     'X####.#########','..###X###X.####','..########.###.','...###########.',
-    '....#########..','......#####....','........##.....']}];
+    '....#########..','......#####....','........##.....']},
+   // Boss 2 et Boss 3 : copies de Boss 1 EN FIN de liste (⚠️ ne JAMAIS insérer au milieu : les retouches localStorage sont indexées par 'porteN').
+   // L'utilisateur les modifiera avec les pinceaux quand il aura les captures des vraies salles.
+   {name:'Boss 2',rows:[
+    '....###.................','...#####................','..########X.............',
+    '.############.....####..','.###X##########XX######.','.#######################',
+    '.#######################','############XX####.#####','###.###X####X####X.####.',
+    '#######X##########.####.','.######################.','..####....#####X#######.',
+    '...##.......##########..','...............######...','..................##....']},
+   {name:'Boss 3',rows:[
+    '....###.................','...#####................','..########X.............',
+    '.############.....####..','.###X##########XX######.','.#######################',
+    '.#######################','############XX####.#####','###.###X####X####X.####.',
+    '#######X##########.####.','.######################.','..####....#####X#######.',
+    '...##.......##########..','...............######...','..................##....']}];
   const isPorte=m=>typeof m==='string'&&m.slice(0,5)==='porte'; // 'porte0'..'porte17' : une clé de carte PAR map (états et sauvegardes séparés)
   function computeSongeVoids(){const v=new Set(),rw=(state.mapW-1)/2,rh=(state.mapH-1)/2; // Songe : cases hors de la zone jouable mapW×mapH (centrée) = hors-jeu
     for(let x=0;x<N;x++)for(let y=0;y<N;y++)if(Math.abs(x-HALF)>rw||Math.abs(y-HALF)>rh)v.add(key(x,y));return v;}
