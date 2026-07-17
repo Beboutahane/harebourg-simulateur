@@ -358,6 +358,7 @@
   #cellCount span{display:block;font-size:12px;color:var(--ice);font-weight:800;margin-top:3px;white-space:nowrap;letter-spacing:1px}
   #cellCount span.mort{color:#ff5566;letter-spacing:.3px} /* rotation impossible = mort : le message doit sauter aux yeux */
   #cellCount.danger{border-color:#ff5566;background:rgba(52,10,16,.96);box-shadow:0 0 14px rgba(255,85,102,.5)}
+  #hoverHp.sansVie .hhbar,#hoverHp.sansVie .hhv{display:none} /* les ennemis n'ont ni vitalité ni barre de vie : vignette = le nom seul */
   #hoverHp .hhbar{position:relative;height:8px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
   #hoverHp .hhbar>i{display:block;height:100%;width:100%}
   #hoverHp .hhbar::after{content:'';position:absolute;inset:0;pointer-events:none; /* graduations par QUART : 25 / 50 / 75 % */
@@ -719,7 +720,10 @@
     const c2=neonCv.getContext('2d');c2.clearRect(0,0,S,S);
     tint('#2f9df0');c2.filter='blur('+(sc*1.6)+'px)';c2.globalAlpha=.9;c2.drawImage(raw,0,0);   // halo bleu, large et doux
     tint('#c8ecff');c2.filter='blur('+(sc*0.55)+'px)';c2.globalAlpha=.75;c2.drawImage(raw,0,0); // cœur presque blanc (additif → centre lumineux)
-    c2.filter='none';c2.globalAlpha=1;neonTex.needsUpdate=true;
+    c2.filter='none';c2.globalAlpha=1;
+    c2.globalCompositeOperation='destination-out';c2.fillStyle='#fff'; // les TROUS INTERNES restent SOMBRES : sans ça, le halo flou fuit par l'ouverture et noie les parois du gouffre
+    innerHoles().forEach(k=>{const[x,y]=k.split(',').map(Number);c2.fillRect(off+x*sc-0.5,off+y*sc-0.5,sc+1,sc+1);});
+    c2.globalCompositeOperation='source-over';neonTex.needsUpdate=true;
   }
   const decorGroup=new THREE.Group();scene.add(decorGroup);
   const obstacleGroup=new THREE.Group();scene.add(obstacleGroup);
@@ -738,8 +742,45 @@
       cap.position.set(p.x,0.29,p.z);obstacleGroup.add(cap);
       [[-0.2,-0.14],[0.15,0.17]].forEach(([ox,oz])=>{const d=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.045,0.03,10),new THREE.MeshStandardMaterial(dotMat));d.position.set(p.x+ox,0.35,p.z+oz);obstacleGroup.add(d);});});
   }
-  /* ---- trous : de VRAIS trous, nets. Rien n'est dessiné au fond : le trou = absence de case (noir) + liseré néon des voisines.
-         (l'ancien « gouffre glacé » texturé — stalagmites sur un plan à y=-0.36 — laissait des marques blanches dans les trous) ---- */
+  /* ---- trous : PROFONDEUR réelle — des parois verticales dégradées (roche bleu nuit → noir) tapissent les bords
+         des trous INTERNES : en vue iso on voit la paroi du fond → effet de gouffre en perspective. Le fond reste noir (profondeur infinie).
+         Le vide EXTÉRIEUR (le tour de l'île) reste une découpe nue. Tout est SOMBRE : pas de texture claire
+         (l'ancien « gouffre glacé » — stalagmites sur un plan à y=-0.36 — laissait des marques blanches dans les trous). ---- */
+  const holeGroup=new THREE.Group();scene.add(holeGroup);
+  const holeMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide});
+  function innerHoles(){ // les voids NON connectés au bord de la grille = les vrais trous internes (le vide extérieur reste une découpe nue)
+    const outside=new Set(),inner=new Set();
+    if(!state.voids)return inner;
+    const st=[];
+    for(let i=0;i<N;i++)[[i,0],[i,N-1],[0,i],[N-1,i]].forEach(([x,y])=>{const k=key(x,y);
+      if(state.voids.has(k)&&!outside.has(k)){outside.add(k);st.push([x,y]);}});
+    while(st.length){const[x,y]=st.pop();
+      [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{const a=x+dx,b=y+dy,k=key(a,b);
+        if(a<0||b<0||a>=N||b>=N||outside.has(k)||!state.voids.has(k))return;
+        outside.add(k);st.push([a,b]);});}
+    state.voids.forEach(k=>{if(!outside.has(k))inner.add(k);});
+    return inner;}
+  function buildHoleWalls(){
+    holeGroup.children.forEach(m=>m.geometry.dispose());holeGroup.clear();
+    const inner=innerHoles();if(!inner.size)return;
+    const DEPTH=2.2,TOPC=new THREE.Color(0x2c5e91),BOTC=new THREE.Color(0x01040a); // haut = roche bleue BIEN lisible, bas = quasi noir (profondeur)
+    const pos=[],col=[],idx=[];
+    const addWall=(x1,z1,x2,z2,shade)=>{const b=pos.length/3,T=TOPC.clone().multiplyScalar(shade); // shade = faux éclairage directionnel : la perspective se lit d'un coup d'œil
+      pos.push(x1,-TILE_H,z1, x2,-TILE_H,z2, x2,-TILE_H-DEPTH,z2, x1,-TILE_H-DEPTH,z1);
+      col.push(T.r,T.g,T.b, T.r,T.g,T.b, BOTC.r,BOTC.g,BOTC.b, BOTC.r,BOTC.g,BOTC.b);
+      idx.push(b,b+1,b+2, b,b+2,b+3);};
+    inner.forEach(k=>{const[x,y]=k.split(',').map(Number);
+      const p=worldPos(x,y),h=TILE/2; // une paroi sur chaque côté qui touche du SOL — N/O « éclairées », S/E dans l'ombre
+      if(!state.voids.has(key(x,y-1)))addWall(p.x-h,p.z-h,p.x+h,p.z-h,1.2);
+      if(!state.voids.has(key(x,y+1)))addWall(p.x-h,p.z+h,p.x+h,p.z+h,.55);
+      if(!state.voids.has(key(x-1,y)))addWall(p.x-h,p.z-h,p.x-h,p.z+h,.9);
+      if(!state.voids.has(key(x+1,y)))addWall(p.x+h,p.z-h,p.x+h,p.z+h,.55);});
+    if(!pos.length)return;
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(pos),3));
+    g.setAttribute('color',new THREE.BufferAttribute(new Float32Array(col),3));
+    g.setIndex(idx);
+    holeGroup.add(new THREE.Mesh(g,holeMat));}
   /* ---- portails (Eliotrope) & pièges au sol ---- */
   function buildPortal(x,y){const g=new THREE.Group();const p=worldPos(x,y);
     const tor=new THREE.Mesh(new THREE.TorusGeometry(0.34,0.07,12,26),new THREE.MeshBasicMaterial({color:0x39d0ff,transparent:true,opacity:.92}));
@@ -945,7 +986,7 @@
       'radial-gradient(1100px 600px at 12% -8%, rgba(120,180,255,.16), transparent 60%),linear-gradient(160deg,'+a.bg+',#050a14)';
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){tiles[x][y].userData.base=(x+y)%2===0?a.tileA:a.tileB;}
     decorGroup.clear(); // aucun décor (plots, pics, statues…) : mode tactique pur pour construire ses maps
-    buildObstacles();refreshTiles();buildNeonFloor();
+    buildObstacles();refreshTiles();buildNeonFloor();buildHoleWalls();
     buildEdgeArrows(); // (re)place les flèches d'étirement aux bords de la zone jouable
   }
   function applyAmbiance(){ // GÉNÈRE le terrain de la carte courante (1re visite / remise à zéro) puis le dessine
@@ -1968,14 +2009,12 @@
       t.ondrop=ev=>{ev.preventDefault();moveInit(+ev.dataTransfer.getData('text/plain'),+t.dataset.i);};
       t.onclick=()=>{const it=state.initiative[+t.dataset.i];if(it&&it.t==='ally'&&state.phase==='playing'){setActive(state.allies.indexOf(it.a));toast('🔵 Perso '+(it.a.id+1)+' actif.');}};});}
 
-  function damageEnemy(e,dmg,label){e.hp-=dmg;e.obj.userData.flash=0.4;burst(e.tp,0x8fd0ff);
-    if(e.hp<=0){e.alive=false;scene.remove(e.obj);if(e.kind==='count'){endGame(true);return true;}toast(e.name+' éliminé !');}return false;}
+  function damageEnemy(e,dmg,label){e.obj.userData.flash=0.4;burst(e.tp,0x8fd0ff);return false;} // les sorts NE TAPENT PLUS (placement pur) : ni vitalité ni mort — un monstre ne quitte le terrain QUE par clic droit → « ☠ Mort »
   function hitComte(e,dmg){
     // Mécanique du site : CHAQUE coup sur le Comte déclenche une rotation de 180° (même invulnérable → 0 dégât mais rotation).
     // Tour PAIR : le COMTE pivote autour de l'attaquant → ce changement de place le rend VULNÉRABLE.
     // Tour IMPAIR : c'est l'ATTAQUANT qui pivote autour du Comte (aucun délock possible).
-    if(e.vulnerable){e.hp-=dmg;e.obj.userData.flash=0.4;burst(e.tp,0x8fd0ff);
-      if(e.hp<=0){e.alive=false;scene.remove(e.obj);endGame(true);return;}}
+    if(e.vulnerable){e.obj.userData.flash=0.4;burst(e.tp,0x8fd0ff);} // coup encaissé — AUCUN dégât ni mort (placement pur) : le retrait passe par clic droit → « ☠ Mort »
     else{e.obj.userData.flash=0.4;toast('🛡️ Invulnérable — 0 dégât, mais le coup déclenche la rotation.');}
     const pair=comtePivots(); // parité relative au tour d'apparition du Comte (widget « Comte au tour N »)
     const entName=o=>o.t==='ally'?('Perso '+(o.a.id+1)):(o.e.name||'une entité');
@@ -2003,26 +2042,22 @@
      4=téléportation · 5=poussée · 6=attirance · 8=échange de positions · 91-95=vols · 96-100=dégâts · 108=soin
      Ordre d'application : dégâts/soins D'ABORD (sur les occupants de la zone), PUIS les mouvements —
      sinon une cible poussée sortirait de la zone avant de prendre les dégâts du même sort. ===== */
-  const DMG_MULT=8; // les valeurs DofusDB sont les dégâts DE BASE (sans stats) : ×8 ≈ un perso stuffé — sinon 14 dégâts sur 3000 PV, illisible
-  const fxAvg=e=>Math.round(((e.min+Math.max(e.min,e.max))/2)*DMG_MULT);
+  // (DMG_MULT/fxAvg supprimés : les sorts n'infligent plus AUCUN dégât — simulateur de placement pur)
   function zoneCells(cx,cy,r){ // cases touchées : croix/cercle ≈ manhattan ≤ r (suffisant pour un simulateur tactique)
     const out=[];for(let x=Math.max(0,cx-r);x<=Math.min(N-1,cx+r);x++)for(let y=Math.max(0,cy-r);y<=Math.min(N-1,cy+r);y++)
       if(Math.abs(x-cx)+Math.abs(y-cy)<=r&&tiles[x]&&tiles[x][y]&&tiles[x][y].visible)out.push({x,y});
     return out;}
   function applySpellEffects(sp,rx,ry){ // renvoie les messages de ce qui s'est réellement passé (résumés dans le toast)
     const P=state.player,msgs=[];
-    const dmgFx=sp.fx.filter(e=>e.fid>=91&&e.fid<=100),healFx=sp.fx.filter(e=>e.fid===108),
+    const dmgFx=sp.fx.filter(e=>e.fid>=91&&e.fid<=100),
           moveFx=sp.fx.filter(e=>e.fid===5||e.fid===6),selfFx=sp.fx.filter(e=>e.fid===4||e.fid===8);
-    // ① dégâts + vols : cumulés PAR entité (une seule frappe par sort → un seul pivot du Comte)
+    // ① les sorts NE TAPENT PLUS (simulateur de PLACEMENT — ni dégâts, ni vols, ni soins) :
+    //    « toucher » sert UNIQUEMENT à déclencher la rotation du Comte (délock) ; un mob ne meurt que par clic droit → « ☠ Mort »
     const hits=new Map();
     dmgFx.forEach(e=>zoneCells(rx,ry,e.zone).forEach(c=>{const o=occupant(c.x,c.y);
-      if(o&&o.t==='enemy'&&!o.e.friendly){hits.set(o.e,(hits.get(o.e)||0)+fxAvg(e));
-        if(e.fid<=95&&P.hp<P.hpMax)P.hp=Math.min(P.hpMax,P.hp+Math.round(fxAvg(e)/2));}})); // vol : le lanceur récupère la moitié
-    hits.forEach((v,e)=>{if(e.kind==='count')hitComte(e,v);else damageEnemy(e,v,sp.name);
-      msgs.push(v+' dégâts sur '+(e.kind==='count'?'le Comte':(e.name||'le monstre')));});
-    // ② soins → alliés dans la zone
-    healFx.forEach(e=>zoneCells(rx,ry,e.zone).forEach(c=>{const o=occupant(c.x,c.y);
-      if(o&&o.t==='ally'){const v=fxAvg(e);o.a.hp=Math.min(o.a.hpMax,o.a.hp+v);msgs.push(skinOf(o.a).name+' soigné de '+v);}}));
+      if(o&&o.t==='enemy'&&!o.e.friendly)hits.set(o.e,true);}));
+    hits.forEach((v,e)=>{if(e.kind==='count')hitComte(e,0);else damageEnemy(e,0,sp.name);
+      msgs.push('touche '+(e.kind==='count'?'le Comte':(e.name||'le monstre')));});
     // ③ poussées / attirances : chaque entité de la zone glisse sur l'axe lanceur→cible ; un piège à l'arrivée se déclenche
     moveFx.forEach(e=>zoneCells(rx,ry,e.zone).forEach(c=>{const o=occupant(c.x,c.y);
       if(!o||(o.t==='ally'&&o.a===P))return;
@@ -2064,10 +2099,10 @@
       const msgs=applySpellEffects(sp,rx,ry);
       toast((dev?('⤳ Confusion '+cmap[state.confusion]+' — dévié en '+rx+','+ry+' ! '):'')
         +'✨ « '+sp.name+' » : '+(msgs.length?msgs.join(' · '):'aucun effet ici.'));}
-    else{ // sorts fixes (Flèche d'Immo / Flamiche) : comportement historique
+    else{ // sorts fixes (Flèche d'Immo / Flamiche) : sans dégâts non plus — le coup marque la cible (et fait pivoter le Comte)
       const o=(inGrid(rx,ry)&&!blocked(rx,ry))?occupant(rx,ry):null;
-      if(o&&o.t==='enemy'){const dmg=120+sp.apCost*30;const who=o.e.kind==='count'?'le boss':o.e.name;
-        if(o.e.kind==='count')hitComte(o.e,dmg);else damageEnemy(o.e,dmg,sp.name);
+      if(o&&o.t==='enemy'){const who=o.e.kind==='count'?'le boss':o.e.name;
+        if(o.e.kind==='count')hitComte(o.e,0);else damageEnemy(o.e,0,sp.name);
         if(dev)toast('⤳ Confusion '+cmap[state.confusion]+' : dévié mais touche '+who+' !');}
       else toast(dev?('⤳ Confusion '+cmap[state.confusion]+' : le sort a dévié sur une case vide.'):('« '+sp.name+' » lancé (aucune cible).'));}
     restMove();refreshTiles();refreshHUD();}
@@ -2173,6 +2208,7 @@
     const pct=Math.max(0,Math.min(100,Math.round(Math.max(0,hp)/(max||1)*100)));
     const quart=pct>=100?100:pct>=75?75:pct>=50?50:pct>=25?25:0; // palier par QUART (100 / 75 / 50 / 25)
     box.classList.toggle('joueur',ent.t==='ally'); // seul un perso joué a un blason, une guilde et un pseudo doré
+    box.classList.toggle('sansVie',ent.t!=='ally'); // les ENNEMIS n'ont NI vitalité NI barre de vie (placement pur) : leur vignette = juste le nom
     el('hhName').textContent=name;el('hhTitle').textContent=title;el('hhVal').textContent=pct+' %'+(quart<100&&pct>0?' · palier '+quart+' %':'');
     const f=el('hhFill');f.style.width=pct+'%';f.style.background=col;
     const p=projectCell(hoverCell.x,hoverCell.y,1.6);box.style.left=p.sx+'px';box.style.top=(p.sy-6)+'px';box.classList.add('show');}
@@ -2204,7 +2240,7 @@
     rebuildSpellBar(state.classSpells);
     if(state.phase==='playing')restMove();refreshTiles();refreshHUD();}
   function savePorteCustom(){try{localStorage.setItem('ps_map_custom_v1:'+state.map,JSON.stringify({v:[...state.voids],o:[...state.obstacles]}));}catch(_){}} // corrections persistées PAR MAP dans ce navigateur
-  function applyEditVisual(){for(let x=0;x<N;x++)for(let y=0;y<N;y++)tiles[x][y].visible=!(state.voids&&state.voids.has(key(x,y)));buildObstacles();refreshTiles();buildNeonFloor();
+  function applyEditVisual(){for(let x=0;x<N;x++)for(let y=0;y<N;y++)tiles[x][y].visible=!(state.voids&&state.voids.has(key(x,y)));buildObstacles();refreshTiles();buildNeonFloor();buildHoleWalls();
     if(isPorte(state.map))savePorteCustom();} // toute retouche d'une map Porte (pinceaux, Ctrl+Z, Tout vider) est AUTO-SAUVEGARDÉE
   // ===== CONSTRUCTION : pile d'annulation (Ctrl+Z) =====
   const EDIT_HIST_MAX=60;
