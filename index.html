@@ -353,6 +353,7 @@
       <button class="sbtn" data-brush="hole" title="Creuser un trou — re-clique l'outil pour revenir au placement, ou re-clique un trou pour le reboucher (ne pose jamais de case dans le vide)">🕳️ Trou</button>
       <button class="sbtn" id="brushFloor" data-brush="floor" title="Rendre une case jouable : rebouche un trou ou retire un bloc (dans les limites de la carte — tire un bord pour l'agrandir)">➕ Case</button>
       <button class="sbtn" id="clearObs" title="Vider tous les obstacles">Tout vider</button>
+      <button class="sbtn" id="psSave" style="display:none" title="Copie la map corrigée (texte) : colle-la à Claude pour qu'elle devienne la map par défaut. Tes corrections sont déjà auto-sauvegardées dans ce navigateur.">💾 Copier la map</button>
     </span>
   </div>
   <div id="mapHint">🖱️ Attrape un <b>bord</b> de la carte et <b>tire</b> pour l'agrandir ou la réduire <span class="mhcase">(<span id="mapWval">15</span> × <span id="mapHval">15</span> cases)</span></div>
@@ -748,9 +749,11 @@
       for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=(DJ_MAP[y-DJ_OFF]||'')[x-DJ_OFF]||'.'; // DJ_OFF : la salle 25×25 reste centrée sur la grille 31×31
         if(c==='.')state.voids.add(key(x,y)); // vide / trou
         else if(c==='X')state.obstacles.add(key(x,y));} // bloc posé sur du sol
-    }else if(state.map==='porte'){ // PORTE DE SONGE = map figée reconstruite du screenshot, lue dans PS_MAP
+    }else if(state.map==='porte'){ // PORTE DE SONGE = map reconstruite du screenshot (PS_MAP) — corrigée par l'utilisateur : ses retouches (localStorage) priment
       state.obstacles=new Set();
-      for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=(PS_MAP[y-PS_OFFY]||'')[x]||'.';
+      let saved=null;try{saved=JSON.parse(localStorage.getItem('ps_map_custom_v1')||'null');}catch(_){}
+      if(saved&&saved.v&&saved.o){state.voids=new Set(saved.v);state.obstacles=new Set(saved.o);}
+      else for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=(PS_MAP[y-PS_OFFY]||'')[x]||'.';
         if(c==='.')state.voids.add(key(x,y));
         else if(c==='X')state.obstacles.add(key(x,y));}
     }else{state.obstacles=new Set();state.voids=computeSongeVoids();} // Songe & Bac à sable : zone jouable réglable mapW×mapH
@@ -1439,16 +1442,17 @@
     const playing=state.phase==='playing';
     el('topbar').style.display=playing?'':'none'; // bandeau Tour/parité/vulnérabilité/confusion : seulement en combat
     if(el('retreat'))el('retreat').style.display=playing?'':'none'; // « Abandonner » : seulement en combat
-    {const fixe=state.map==='dj'||state.map==='porte',sable=state.map==='sable'; // DONJON et PORTE DE SONGE = maps réelles FIGÉES : ni outils de map ni étirement, on y joue
-     const showSetup=(state.phase==='setup'||!comte())&&!fixe; // les outils de map restent tant que le COMTE n'est pas là (le combat, lui, démarre dès le 1er perso posé)
+    {const dj=state.map==='dj',porte=state.map==='porte',sable=state.map==='sable'; // le DONJON reste figé ; la PORTE DE SONGE est CORRIGEABLE (pinceaux) mais pas étirable (forme réelle)
+     const showSetup=(state.phase==='setup'||!comte())&&!dj; // les outils de map restent tant que le COMTE n'est pas là (le combat, lui, démarre dès le 1er perso posé)
      el('setup').style.display=showSetup?'flex':'none';
      if(!showSetup&&state.edit){state.edit=false;updateSetupBtns();} // le Comte arrive, les outils disparaissent → on sort de l'édition pour ne pas creuser en cliquant
      if(el('tips'))el('tips').style.display=sable?'none':''; // Pense-bête : pas en Bac à sable (terrain d'essai libre)
-     el('setupTitle').textContent=sable?'🧪 Bac à sable':'🏖️ Construis ta map';
-     el('mapHint').style.display=''; // étirement de la zone : Songe ET Bac à sable
+     el('setupTitle').textContent=sable?'🧪 Bac à sable':(porte?'🚪 Corrige la map':'🏖️ Construis ta map');
+     el('mapHint').style.display=porte?'none':''; // pas d'étirement sur la Porte (le pinceau ➕ Case suffit pour ajuster le contour)
      el('mobAdd').style.display=sable?'':'none'; // ajout de monstre : Bac à sable seulement
-     el('brushFloor').style.display=sable?'':'none'; // ➕ Case : Bac à sable seulement
-     edgeArrowGroup.visible=(state.phase==='setup'&&!fixe);} // flèches d'étirement : pas sur les maps figées
+     el('brushFloor').style.display=(sable||porte)?'':'none'; // ➕ Case : Bac à sable + correction de la Porte
+     if(el('psSave'))el('psSave').style.display=porte?'':'none'; // 💾 exporter la map corrigée : Porte seulement
+     edgeArrowGroup.visible=(state.phase==='setup'&&!dj&&!porte);} // flèches d'étirement : pas sur les maps réelles
     const hasChar=!!(state.player&&state.player.className!=='—'); // classe choisie → cœur actif (prévisualisation confusion possible avant même le placement)
     {const t=hasChar?tierOf(state.player):null,pct=hasChar?VITA[t].mid/100:0,f=el('heartFill'),v=el('heartVal'); // le cœur = la TRANCHE de vita choisie sur le perso (rien d'autre)
      if(f){const h=22*pct;f.setAttribute('y',(22-h).toFixed(2));f.setAttribute('height',h.toFixed(2));f.setAttribute('fill',pct>.5?'#ff5568':pct>.25?'#ff8a4a':'#ff4d4d');} // jauge remplie au milieu de la tranche
@@ -1942,7 +1946,10 @@
     state.classSpells=state.player.classSpells||[];state.spell=null;
     rebuildSpellBar(state.classSpells);
     if(state.phase==='playing')restMove();refreshTiles();refreshHUD();}
-  function applyEditVisual(){for(let x=0;x<N;x++)for(let y=0;y<N;y++)tiles[x][y].visible=!(state.voids&&state.voids.has(key(x,y)));buildObstacles();refreshTiles();buildNeonFloor();}
+  const PS_LS='ps_map_custom_v1'; // corrections de la Porte de Songe, persistées dans CE navigateur (survivent au rechargement)
+  function savePorteCustom(){try{localStorage.setItem(PS_LS,JSON.stringify({v:[...state.voids],o:[...state.obstacles]}));}catch(_){}}
+  function applyEditVisual(){for(let x=0;x<N;x++)for(let y=0;y<N;y++)tiles[x][y].visible=!(state.voids&&state.voids.has(key(x,y)));buildObstacles();refreshTiles();buildNeonFloor();
+    if(state.map==='porte')savePorteCustom();} // toute retouche de la Porte (pinceaux, Ctrl+Z, Tout vider) est AUTO-SAUVEGARDÉE
   // ===== CONSTRUCTION : pile d'annulation (Ctrl+Z) =====
   const EDIT_HIST_MAX=60;
   function snapshotEdit(){return{obstacles:new Set(state.obstacles),voids:new Set(state.voids),mapW:state.mapW,mapH:state.mapH};}
@@ -2264,6 +2271,16 @@
     state.brush=b.dataset.brush;state.edit=true;state.setupSel=null;updateSetupBtns();refreshTiles();
     toast('🧱 '+({block:'Blocs',hole:'Trous',floor:'Cases'}[b.dataset.brush]||'Édition')+' : maintiens le clic et glisse pour en '+(b.dataset.brush==='floor'?'ajouter':'poser')+' plusieurs d\'un coup · Ctrl+Z pour annuler · re-clique l\'outil pour revenir au placement.');});
   el('clearObs').onclick=()=>{pushEditHistory();state.obstacles=new Set();state.voids=new Set(state._baseVoids||[]);applyEditVisual();toast('Obstacles vidés. (Ctrl+Z pour revenir)');};
+  el('psSave').onclick=()=>{ // exporte la Porte corrigée au format PS_MAP ('.', '#', 'X') : à coller à Claude pour la graver en dur
+    const lines=[];
+    for(let y=0;y<N;y++){let s='';
+      for(let x=0;x<N;x++){const k=key(x,y);
+        s+=state.voids.has(k)?'.':(state.obstacles.has(k)?'X':'#');}
+      lines.push(s);}
+    const txt=lines.join('\n');
+    const done=()=>toast('💾 <b>Map copiée !</b> Colle-la à Claude pour qu\'elle devienne la map par défaut. (Tes corrections sont déjà sauvegardées dans ce navigateur.)');
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(done,()=>{console.log(txt);toast('⚠️ Copie refusée — la map est affichée dans la console (F12). Elle reste sauvegardée dans ce navigateur.');});
+    else{console.log(txt);toast('⚠️ Presse-papier indisponible — la map est affichée dans la console (F12).');}};
   function updateMapSizeLabels(){if(el('mapWval'))el('mapWval').textContent=state.mapW;if(el('mapHval'))el('mapHval').textContent=state.mapH;}
   function setMapDims(w,h){ // taille ABSOLUE (bornée 9..N, impaire pour rester centrée) — silencieux (utilisé par l'étirement au bord)
     w=Math.max(9,Math.min(N,w));h=Math.max(9,Math.min(N,h));if(w%2===0)w++;if(h%2===0)h++;
