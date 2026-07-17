@@ -1780,8 +1780,8 @@
     {const sable2=state.map==='sable'; // en sable, la grande card « LE COMTE EN » laisse place à un simple bouton de retour
      el('mapPick').style.display=sable2?'none':'flex';
      if(el('backComte'))el('backComte').style.display=sable2?'':'none';}
-    {const dj=state.map==='dj',porte=isPorte(state.map),sable=state.map==='sable'; // le DONJON reste figé ; les maps PORTE sont CORRIGEABLES (pinceaux) mais pas étirables (formes réelles)
-     const showSetup=(state.phase==='setup'||!comte())&&!dj; // les outils de map restent tant que le COMTE n'est pas là (le combat, lui, démarre dès le 1er perso posé)
+    {const dj=state.map==='dj',porte=isPorte(state.map),sable=state.map==='sable'; // les vraies maps (Donjon, salles, boss) sont GRAVÉES : plus aucun panneau de construction dessus
+     const showSetup=(state.phase==='setup'||!comte())&&sable; // outils de construction : Bac à sable UNIQUEMENT (demande : « retire l'assistant de construction pour les maps »)
      el('setup').style.display=showSetup?'flex':'none';
      if(!showSetup&&state.edit){state.edit=false;updateSetupBtns();} // le Comte arrive, les outils disparaissent → on sort de l'édition pour ne pas creuser en cliquant
      if(el('tips'))el('tips').style.display=sable?'none':''; // Pense-bête : pas en Bac à sable (terrain d'essai libre)
