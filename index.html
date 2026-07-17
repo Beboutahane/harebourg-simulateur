@@ -166,16 +166,16 @@
   #resetMapBtn:hover{background:rgba(255,120,120,.26);border-color:#ff9a9a;transform:translateY(-2px)}
   #retreat{border:1px solid rgba(255,150,150,.4);background:rgba(255,120,120,.14);color:#ff9a9a;font-family:var(--font);font-weight:700;font-size:11px;padding:0 10px;border-radius:9px;cursor:pointer;white-space:nowrap}
   #retreat:hover{background:rgba(255,120,120,.24);border-color:#ff9a9a}
-  #retreatBox{position:absolute;left:50%;bottom:150px;transform:translateX(-50%);z-index:12;display:none;max-width:340px;padding:16px 18px;text-align:center}
-  #retreatBox.show{display:block}
-  #retreatBox h2{font-family:var(--display);font-size:18px;color:var(--ice);margin-bottom:6px}
-  #retreatBox p{color:var(--muted);font-size:12px;line-height:1.5;margin-bottom:12px}
-  #retreatBox .rbtns{display:flex;gap:8px;margin-bottom:8px}
-  #retreatBox .rbtns button{flex:1;border:1px solid var(--border-strong);border-radius:10px;padding:10px 8px;font-family:var(--font);font-weight:700;font-size:12.5px;cursor:pointer}
+  #retreatBox,#resetConfirm{position:absolute;left:50%;bottom:150px;transform:translateX(-50%);z-index:12;display:none;max-width:340px;padding:16px 18px;text-align:center}
+  #retreatBox.show,#resetConfirm.show{display:block}
+  #retreatBox h2,#resetConfirm h2{font-family:var(--display);font-size:18px;color:var(--ice);margin-bottom:6px}
+  #retreatBox p,#resetConfirm p{color:var(--muted);font-size:12px;line-height:1.5;margin-bottom:12px}
+  #retreatBox .rbtns,#resetConfirm .rbtns{display:flex;gap:8px;margin-bottom:8px}
+  #retreatBox .rbtns button,#resetConfirm .rbtns button{flex:1;border:1px solid var(--border-strong);border-radius:10px;padding:10px 8px;font-family:var(--font);font-weight:700;font-size:12.5px;cursor:pointer}
   #retreatKeep{background:rgba(99,230,179,.16);border-color:rgba(99,230,179,.45)!important;color:var(--ok)}
-  #retreatWipe{background:rgba(255,120,120,.14);border-color:rgba(255,120,120,.4)!important;color:#ff9a9a}
-  #retreatBox .rbtns button:hover{filter:brightness(1.12)}
-  #retreatBox .rcancel{background:transparent;border:0;color:var(--muted);font-family:var(--font);font-size:12px;cursor:pointer;text-decoration:underline}
+  #retreatWipe,#resetYes{background:rgba(255,120,120,.14);border-color:rgba(255,120,120,.4)!important;color:#ff9a9a}
+  #retreatBox .rbtns button:hover,#resetConfirm .rbtns button:hover{filter:brightness(1.12)}
+  #retreatBox .rcancel,#resetConfirm .rcancel{background:transparent;border:0;color:var(--muted);font-family:var(--font);font-size:12px;cursor:pointer;text-decoration:underline}
   #loading{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:var(--bg);color:var(--muted);font-size:15px;text-align:center;padding:20px}
   #status{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:7;font-size:11px;color:var(--muted);pointer-events:none;opacity:0;transition:.3s}
   #status.show{opacity:1}
@@ -413,7 +413,7 @@
   #homePick .hp-in{text-align:center;transform:translateY(-3vh);position:relative;z-index:1}
   #homePick h1{font-family:var(--display);font-size:34px;letter-spacing:.12em;color:var(--frost);
     /* ombre SOMBRE d'abord (lisibilité par-dessus les zones claires du composite), puis une pointe de bleu pour le style */
-    text-shadow:0 1px 3px rgba(0,0,0,.92),0 0 16px rgba(0,0,0,.7),0 2px 18px rgba(75,184,240,.5);margin-bottom:6px}
+    text-shadow:0 1px 3px rgba(0,0,0,.92),0 0 16px rgba(0,0,0,.7),0 2px 18px rgba(75,184,240,.5);margin-bottom:30px}
   #homePick .hp-sub{color:var(--muted);font-size:13px;letter-spacing:.28em;text-transform:uppercase;margin-bottom:34px;
     text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 10px rgba(0,0,0,.65)}
   #homePick .hp-cards{display:flex;gap:22px;justify-content:center;flex-wrap:wrap}
@@ -426,6 +426,18 @@
     box-shadow:0 20px 52px rgba(0,0,0,.55),0 0 0 1px rgba(75,184,240,.35),0 0 34px rgba(75,184,240,.22)}
   .hp-back{margin-top:20px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--font);font-size:12px;padding:7px 16px;border-radius:10px;cursor:pointer}
   .hp-back:hover{color:var(--frost);border-color:var(--border-strong)}
+  /* VIGNETTE SECONDAIRE « Bac à sable (en bêta) » : coin bas-droite de l'accueil, plus petite que les 2 cartes principales */
+  #hpSandbox{position:absolute;right:26px;bottom:24px;z-index:2;display:flex;flex-direction:column;align-items:center;gap:7px}
+  #hpSandbox .hpbeta{font-family:var(--display);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#f2cd84;
+    background:rgba(58,44,14,.6);border:1px solid rgba(242,205,132,.5);border-radius:20px;padding:2px 11px;text-shadow:0 1px 2px rgba(0,0,0,.7)}
+  .hp-mini{display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:14px;cursor:pointer;font-family:var(--font);
+    background:linear-gradient(165deg,rgba(20,42,72,.82),rgba(10,22,40,.86));border:1px solid var(--border-strong);color:var(--txt);
+    box-shadow:0 10px 30px rgba(0,0,0,.42),inset 0 1px 0 rgba(143,228,255,.12);
+    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+  .hp-mini:hover{transform:translateY(-3px) scale(1.02);border-color:var(--ice-2);box-shadow:0 16px 40px rgba(0,0,0,.5),0 0 0 1px rgba(75,184,240,.32),0 0 26px rgba(75,184,240,.2)}
+  .hp-mini .hp-ic{font-size:24px;filter:drop-shadow(0 3px 8px rgba(0,0,0,.5))}
+  .hp-mini b{font-family:var(--display);font-size:14px;letter-spacing:.05em;color:var(--frost)}
+  @media (max-width:1100px){#hpSandbox{right:14px;bottom:14px}}
   .hp-card .hp-ic{font-size:38px;display:block;margin-bottom:12px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
   .hp-card b{display:block;font-family:var(--display);font-size:18px;letter-spacing:.06em;color:var(--frost);margin-bottom:7px}
   .hp-card span{display:block;font-size:12px;line-height:1.45;color:var(--muted)}
@@ -458,19 +470,16 @@
 
 <div id="homePick"><div id="hpBg" aria-hidden="true"></div><div class="hp-in">
   <h1>❄️ Assistant Comte Harebourg</h1>
-  <div class="hp-sub" id="hpSub">Choisis ton mode de jeu</div>
-  <div class="hp-cards" id="hpStep1">
-    <button class="hp-card" id="hpComte" type="button"><span class="hp-ic">👑</span><b>Comte Harebourg</b><span>Donjon &amp; Songe — le combat, l'assistant et le délock.</span></button>
-    <button class="hp-card" id="hpSable" type="button"><span class="hp-ic">🧪</span><b>Bac à sable</b><span>Grande carte libre — classes, sorts et monstres sans règles.</span></button>
+  <div class="hp-cards" id="hpStep1"><!-- ACCUEIL DIRECT : Donjon ou Songe (le Bac à sable est relégué en bas-droite, en bêta) -->
+    <button class="hp-card" id="hpDj" type="button"><span class="hp-ic">🏰</span><b>Donjon</b><span>La vraie salle du boss — pose tes persos et le Comte.</span></button>
+    <button class="hp-card" id="hpSonge" type="button"><span class="hp-ic">🌙</span><b>Songe</b><span>Choisis ta map en songe</span></button>
   </div>
-  <div id="hpStep2" style="display:none"><!-- 2e étape : Comte Harebourg → EN DONJON ou EN SONGE, direction directe -->
-    <div class="hp-cards">
-      <button class="hp-card" id="hpDj" type="button"><span class="hp-ic">🏰</span><b>Donjon</b><span>La vraie salle du boss — pose tes persos et le Comte.</span></button>
-      <button class="hp-card" id="hpSonge" type="button"><span class="hp-ic">🌙</span><b>Songe</b><span>Choisis ta map en songe</span></button>
-    </div>
-    <button class="hp-back" id="hpBack" type="button">← Retour</button>
+</div>
+  <div id="hpSandbox"><!-- vignette secondaire, coin bas-droite -->
+    <span class="hpbeta">en bêta</span>
+    <button class="hp-mini" id="hpSable" type="button"><span class="hp-ic">🧪</span><b>Bac à sable</b></button>
   </div>
-</div></div>
+</div>
 
 <!-- SONGE : le choix de la salle à afficher (le Donjon, lui, se choisit à l'ACCUEIL — pas de doublon ici) -->
 <div id="roomPick"><div class="rp-in">
@@ -642,6 +651,14 @@
     <button id="retreatWipe">♻️ Tout réinitialiser</button>
   </div>
   <button id="retreatCancel" class="rcancel">Annuler</button>
+</div>
+<div id="resetConfirm" class="hud card"><!-- confirmation du bouton ♻️ Réinitialiser la map (Donjon, Songe ET Bac à sable) -->
+  <h2>♻️ Réinitialiser la map ?</h2>
+  <p>Les alliés quittent le terrain et tout revient à l'état de départ. En Bac à sable, le setup en cours est effacé.</p>
+  <div class="rbtns">
+    <button id="resetYes">♻️ Oui, réinitialiser</button>
+  </div>
+  <button id="resetNo" class="rcancel">Annuler</button>
 </div>
 <div id="overlay"><div class="box"><h2 id="ovTitle"></h2><p id="ovText"></p><button id="ovBtn">Rejouer</button></div></div>
 
@@ -1835,7 +1852,7 @@
     el('topbar').style.display=(playing&&state.map!=='sable')?'':'none'; // bandeau Tour/parité/vulnérabilité : en combat, mais PAS en Bac à sable (pas de Comte à y gérer)
     const showReset=playing&&state.enemies.some(e=>e.alive)&&state.allies.some(a=>a.placed&&a.hp>0); // « Réinitialiser » : seulement quand au moins un ennemi ET un allié sont sur le terrain
     if(el('retreat'))el('retreat').style.display=showReset?'':'none';
-    if(el('resetMapBtn'))el('resetMapBtn').style.display=(state.map!=='sable')?'block':'none'; // cartes du Comte seulement : le Bac à sable a déjà « Tout vider » (et son setup est auto-sauvé)
+    if(el('resetMapBtn'))el('resetMapBtn').style.display='block'; // ♻️ dans TOUS les modes désormais (Donjon, Songe ET Bac à sable) — la confirmation évite les resets accidentels
     {const sable2=state.map==='sable'; // en sable, la grande card « LE COMTE EN » laisse place à un simple bouton de retour
      el('mapPick').style.display=sable2?'none':'flex';
      if(el('backComte'))el('backComte').style.display=sable2?'':'none';}
@@ -3101,7 +3118,9 @@
       if(tok[0]==='m'){const e=newMobs[+tok.slice(1)];return e?{t:'enemy',e}:null;}return null;}).filter(Boolean); // ordre d'initiative conservé (sans le Comte)
     setActive(Math.min(s.active,state.allies.length-1));refreshTiles();refreshHUD();
     toast('↩️ Retour au placement — compo, monstres et initiative conservés. Réajuste puis relance.');}
-  el('resetMapBtn').onclick=()=>resetMap(); // ♻️ carte à zéro, sans passer par la modale « Abandonner ? » (qui, elle, ne sert qu'au combat lancé)
+  el('resetMapBtn').onclick=()=>el('resetConfirm').classList.add('show'); // ♻️ CONFIRMATION avant de tout remettre à zéro (Donjon, Songe, Bac à sable)
+  el('resetNo').onclick=()=>el('resetConfirm').classList.remove('show');
+  el('resetYes').onclick=()=>{el('resetConfirm').classList.remove('show');resetMap();};
   {const rt=el('retreat');if(rt)rt.onclick=()=>{if(state.phase!=='playing')return;el('retreatBox').classList.add('show');};} // #retreat retiré du HTML : garde-fou si absent
   el('retreatCancel').onclick=()=>el('retreatBox').classList.remove('show');
   el('retreatKeep').onclick=()=>{el('retreatBox').classList.remove('show');restoreLaunch();};
@@ -3155,10 +3174,8 @@
   if(location.hash.slice(0,3)==='#s='){ // lien de PARTAGE d'un setup Bac à sable : chargé direct, sans passer par l'accueil
     try{const p=sableDecLink(location.hash.slice(3));el('homePick').classList.add('bye');applySableSnapshot(p);toast('✅ Setup partagé chargé : la map et les placements sont là.');}
     catch(_){toast('❌ Lien de setup illisible.');}}
-  (()=>{const hp=el('homePick');if(!hp)return; // ACCUEIL en 2 étapes : ① Comte / Bac à sable → ② Donjon / Songe (direction directe)
+  (()=>{const hp=el('homePick');if(!hp)return; // ACCUEIL DIRECT : Donjon ou Songe (le Bac à sable est relégué en bas-droite, en bêta)
     const bye=()=>{hp.classList.add('bye');setTimeout(()=>hp.remove(),450);};
-    el('hpComte').onclick=()=>{el('hpStep1').style.display='none';el('hpStep2').style.display='block';el('hpSub').textContent='En Donjon ou en Songe ?';};
-    el('hpBack').onclick=()=>{el('hpStep2').style.display='none';el('hpStep1').style.display='flex';el('hpSub').textContent='Choisis ton mode de jeu';};
     el('hpDj').onclick=()=>{setMapMode('dj');bye();}; // → directement la vraie salle
     el('hpSonge').onclick=()=>{bye();if(state.map==='songe'&&openRoomPick)openRoomPick();}; // → la page Songe (map d'attente) + son choix de salle
     el('hpSable').onclick=()=>{setMapMode('sable');bye();};})();
