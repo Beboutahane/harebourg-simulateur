@@ -210,6 +210,8 @@
   #modeSonge.on{border-color:#b98cff;background:linear-gradient(120deg,rgba(185,140,255,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(185,140,255,.35)}
   #modeSable.on{border-color:#6be3c0;background:linear-gradient(120deg,rgba(107,227,192,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(107,227,192,.35)}
   #modePorte.on{border-color:#f0975c;background:linear-gradient(120deg,rgba(240,151,92,.28),rgba(8,18,32,.65));box-shadow:0 0 12px rgba(240,151,92,.35)}
+  #porteSel{width:100%;margin-top:4px;padding:6px 8px;background:rgba(8,18,32,.85);color:#f0b98c;border:1px solid rgba(240,151,92,.45);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer}
+  #porteSel:hover{border-color:#f0975c}
   #ctxMenu,#placeMenu,#allyMenu{position:absolute;z-index:12;display:none;background:var(--panel);border:1px solid var(--border-strong);border-radius:9px;padding:4px;pointer-events:auto;box-shadow:0 10px 24px rgba(0,8,20,.6)}
   #ctxMenu.show,#placeMenu.show,#allyMenu.show{display:block}
   #ctxMenu button,#placeMenu button{display:block;width:100%;border:0;background:transparent;color:var(--danger);font-family:var(--font);font-weight:700;font-size:12.5px;padding:7px 14px;border-radius:7px;cursor:pointer;text-align:left;white-space:nowrap}
@@ -370,8 +372,9 @@
       <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M7 12C2.5 9.5 1.5 3.5 3.8 2.4C6.6 4.2 8.4 7.6 9.2 10.8Z" fill="#4bb8f0"/><path d="M25 12C29.5 9.5 30.5 3.5 28.2 2.4C25.4 4.2 23.6 7.6 22.8 10.8Z" fill="#4bb8f0"/><path d="M16 5C9.4 5 6 9.7 6 14.6C6 18.2 8.4 20 8.4 22V25C8.4 26.1 9.3 27 10.4 27H12V24.4H14V27H18V24.4H20V27H21.6C22.7 27 23.6 26.1 23.6 25V22C23.6 20 26 18.2 26 14.6C26 9.7 22.6 5 16 5Z" fill="#eef5ff"/><ellipse cx="12" cy="15.5" rx="2.7" ry="3.1" fill="#0c2740"/><ellipse cx="20" cy="15.5" rx="2.7" ry="3.1" fill="#0c2740"/><circle cx="12" cy="15.3" r="1.1" fill="#39d0ff"/><circle cx="20" cy="15.3" r="1.1" fill="#39d0ff"/><path d="M16 18.2L14.4 21.4H17.6Z" fill="#0c2740"/></svg></span><span class="mtxt"><b>Donjon</b><i>la vraie salle du boss</i></span></button>
     <button class="mbtn on" id="modeSonge" title="Grande map vide : construis la tienne avec ✏️ Obstacles">
       <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M16 16C16.4 14.6 18.2 14.2 19.3 15.4C21 16.9 20 19.8 17.4 20.4C13.6 21.2 10.4 18 11 14C11.7 9.2 16.8 6.2 21.6 7.6C27.2 9.2 29.6 15.8 26.8 21.4" fill="none" stroke="#f4c65a" stroke-width="2.6" stroke-linecap="round"/><circle cx="16" cy="16" r="1.5" fill="#ffe9a8"/></svg></span><span class="mtxt"><b>Songe</b><i>grande map à construire</i></span></button>
-    <button class="mbtn" id="modePorte" title="La map de ton screen, reconstruite case par case : sol, blocs et fosses de lave (carte fixe)">
-      <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M16 3L29 16L16 29L3 16Z" fill="none" stroke="#f0975c" stroke-width="2.2" stroke-linejoin="round"/><path d="M16 9L23 16L16 23L9 16Z" fill="#f0975c" opacity=".45"/><path d="M13 14h6v6h-6z" fill="#2b1608"/></svg></span><span class="mtxt"><b>Porte de Songe</b><i>la map de ton screen</i></span></button>
+    <button class="mbtn" id="modePorte" title="Les maps de tes screens, reconstruites case par case : sol, blocs et trous (corrigeables, sauvegardées)">
+      <span class="mico"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M16 3L29 16L16 29L3 16Z" fill="none" stroke="#f0975c" stroke-width="2.2" stroke-linejoin="round"/><path d="M16 9L23 16L16 23L9 16Z" fill="#f0975c" opacity=".45"/><path d="M13 14h6v6h-6z" fill="#2b1608"/></svg></span><span class="mtxt"><b>Portes de Songe</b><i>les maps de tes screens</i></span></button>
+    <select id="porteSel" title="Choisis la map — elle s'ouvre directement"></select>
   </div>
 </div>
 
@@ -704,30 +707,110 @@
     '.........................',
     '.........................'];
   // (plus aucun monstre pré-posé en Donjon : comme en Songe, TOUT se pose à la main — persos par GLISSÉ du widget, Comte/Poutch au clic droit)
-  // ===== PORTE DE SONGE : map RECONSTRUITE au pixel depuis le screenshot du jeu (grille détectée par ajustement
-  // sur le damier, contour lu sur la bordure rouge, blocs recalés sur leur case de BASE, 3 fosses de lave = vides).
-  // 370 cases de sol dont 14 blocs · 30 de large × 19 de haut, posée sur la grille 31×31 (y décalé de PS_OFFY). =====
-  const PS_OFFY=6;
-  const PS_MAP=[
-    '.....####......................',
-    '...######......................',
-    '..#############........#####...',
-    '..###########XX........######..',
-    '.################...#########..',
-    '.####X###########..XX########..',
-    '.################...##########.',
-    '.##########..#################.',
-    '.#############################.',
-    '################XX######.####..',
-    '####.###########XX######.####..',
-    '####.#################XX.####..',
-    '#########XX##################..',
-    '##########...################..',
-    '.#######.....##############....',
-    '..#####........#####X######....',
-    '.....................######....',
-    '......................#####....',
-    '......................####.....'];
+  // ===== PORTES DE SONGE : maps RECONSTRUITES depuis les screenshots du jeu ('.'=vide, '#'=sol, 'X'=bloc).
+  // La 1re vient du screen en combat (bordure rouge) ; les « map songe N » viennent des captures MODE TACTIQUE
+  // du dossier Desktop\MAPS (grille détectée par les liserés des cases de départ, hw≈21.6 ; doublons écartés :
+  // capture 10 = capture 7, capture 19 = capture 18). Chaque map est CENTRÉE sur la grille 31×31 au rendu. =====
+  const PS_MAPS=[
+   {name:'Porte de Songe',rows:[
+    '.....####......................','...######......................','..#############........#####...',
+    '..###########XX........######..','.################...#########..','.####X###########..XX########..',
+    '.################...##########.','.##########..#################.','.#############################.',
+    '################XX######.####..','####.###########XX######.####..','####.#################XX.####..',
+    '#########XX##################..','##########...################..','.#######.....##############....',
+    '..#####........#####X######....','.....................######....','......................#####....',
+    '......................####.....']},
+   {name:'map songe 1',rows:[
+    '.......#####X.......','...#########X####...','...##############X..','.X####X##########X..',
+    '.X###########X###XXX','.X#########..X#####X','XXXX....############','X###################',
+    'X####XX###X###....##','X#######.###########','X#################X#','X#################X.',
+    '...#X...##..X######.','....################','....###############.','....##############..']},
+   {name:'map songe 2',rows:[
+    '..........X.......','........####.#....','...############...','...############X..',
+    '.X.######XX######.','#########XX######.','#################.','#####.#######X###.',
+    '####.############X','X###.###XX########','.#######XX.#######','..#######..######.',
+    '...##############.','.....############.','......X##########.','........########..','..........##......']},
+   {name:'map songe 3',rows:[
+    '.....#######.........','...#############.....','...#####X########....','.#################...',
+    '.#############X####..','.###X###############.','.########...########.','#######......#######.',
+    '#######.......#######','######...XXXXX###X###','###X##...XXX...######','#######XXXXX...######',
+    '.######........######','.#######......######.','.#########..########.','..###X##########X###.',
+    '...#################.','....#######X#######..','.....############....','........#######......']},
+   {name:'map songe 4',rows:[
+    '..##########.....','#############....','######.X#####....','##X.###XXX#####..',
+    '##.#####.#######X','################X','X####X###########','X.###X.##########',
+    'XX###X.##########','.X###############','.################','.##X.X###########',
+    '.########.######X','.###############X','..#############XX','..XX###########X.','...X###..XX####..']},
+   {name:'map songe 5',rows:[
+    '############XXX#####...','##.#################...','##.###.XX############..','#######################',
+    '###############XX######','######.#########.######','######.####.###########','###########X###########',
+    '######.################','.#####################.']},
+   {name:'map songe 6',rows:[
+    '...##..####....','.X#########....','############X..','######XX####XX.',
+    '##.###########.','###############','##########..###','####X#####X.###',
+    '##########..##.','#########..###.','..#######..###.','....X.#######..',
+    '....X.######...','.....######....','.....#####.....','.....##........']},
+   {name:'map songe 7',rows:[
+    '....#####XX.......','...######XX.......','XXX########.......','X##########.XX....',
+    'X###########XX....','X############X###.','X..####XXX###.####','XXX.###XXX########',
+    'XXX#####X#########','X################.','#################.','###X#############.',
+    '.##X.############.','.#########XX####..','.##########X####..','..##########XXXX..',
+    '...#########......','......###.........']},
+   {name:'map songe 8',rows:[
+    '.######.............','########............','########............','####.###............',
+    '###...##............','####.####...........','##########...####...','.#X###X###########..',
+    '.XXX###.#####XX###..','....#########XX.###.','.....#########.#####','......###X.#########',
+    '......###X.#########','.......###.#########','.......#############','........###########.',
+    '...........#####....']},
+   {name:'map songe 9',rows:[
+    '......#####........','....#######........','...##########......','..###..########....',
+    '..#######XX####X...','XXX.######X.###X...','##X#######..#.##...','#######.###########',
+    '############X######','#####.##.####..####','##.##.##..#########','#########.########.',
+    '.###X#############.','.##XX.##X#####XX...','..####.#X######X...','..#############X...',
+    '....##########.....','....#X#######......','.....XX######......']},
+   {name:'map songe 10',rows:[
+    '...#######X##########....','##########X###X########..','##############X###.######','#######X#################',
+    '#######.X################','.############..##XX######','...#######X######X#######','...#######X##############',
+    '.....###################.','.....########XX#########.']},
+   {name:'map songe 11',rows:[
+    '..##X###....####.......','.##XX######X######.....','.##################....','######...############..',
+    '######....###X..#####..','#####....X###....#####.','#####....####....######','######...####....X#####',
+    '.#####X..####...XX#####','.############....X####.','..############..######.','...###################.',
+    '....######..########...','.....####....#######...']},
+   {name:'map songe 12',rows:[
+    '........##X...........','.......####XX.........','......#########.......','......#########.......',
+    '......#########.......','......X######.........','......X######.........','......X#####..........',
+    '......XX####...######.','####..X######..#######','####..################','####XX################',
+    '######.###############','.###########.##.######','.##########X.##..####.','....#######.##........',
+    '........######........','........#######.......','.........######.......','.........######.......',
+    '..........#####.......','..........####........']},
+   {name:'map songe 13',rows:[
+    '....#######.......','...#########......','##X##########.##..','##X###...########.',
+    '######.X##########','##########X#######','###########..#####','#######.####X.####',
+    '..X###..##########','...###############','....##############','....##XX###X######',
+    '....#######X######','....###########...','.....##########...','......#########...']},
+   {name:'map songe 14',rows:[
+    '##############','##############','########XX####','########XXX.##',
+    '########XXX.##','###XX####XX.##','##XXX.########','##XXX.########',
+    '##XXX.###..###','##XX.####.####','#############.','#############.',
+    '######.######.','##########....']},
+   {name:'map songe 15',rows:[
+    '.....#####......','...#########....','..X##########...','.###X#########..',
+    '.##XX.########..','####X.##X..###..','########X.####..','########X#####..',
+    '###.#XXXX######.','################','.###############','.##########XX###',
+    '..########.X####','...#############','........#######.','.........#####..']},
+   {name:'map songe 16',rows:[
+    '..........##......','.......#..##......','......######......','......######......',
+    '......##..##......','......###.##......','......######......','......######......',
+    '.....X##..##X.....','.....###.####.....','.##.##########.##.','###X##########X###',
+    '######XX##XX######','##################','##################','######..##..#X####',
+    '###X###....###.##.','.##.##########.##.','.....######X#.....','.....X######......']},
+   {name:'map songe 17',rows:[
+    '..#####........','.#######.......','########.......','###XX###.......',
+    '##XX#####......','##########.....','############...','######.#######.',
+    'X####.#########','..###X###X.####','..########.###.','...###########.',
+    '....#########..','......#####....','........##.....']}];
+  const isPorte=m=>typeof m==='string'&&m.slice(0,5)==='porte'; // 'porte0'..'porte17' : une clé de carte PAR map (états et sauvegardes séparés)
   function computeSongeVoids(){const v=new Set(),rw=(state.mapW-1)/2,rh=(state.mapH-1)/2; // Songe : cases hors de la zone jouable mapW×mapH (centrée) = hors-jeu
     for(let x=0;x<N;x++)for(let y=0;y<N;y++)if(Math.abs(x-HALF)>rw||Math.abs(y-HALF)>rh)v.add(key(x,y));return v;}
   function renderMap(){ // DESSINE la carte telle qu'elle est dans state (obstacles/voids) — ne régénère et n'efface RIEN
@@ -749,13 +832,16 @@
       for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=(DJ_MAP[y-DJ_OFF]||'')[x-DJ_OFF]||'.'; // DJ_OFF : la salle 25×25 reste centrée sur la grille 31×31
         if(c==='.')state.voids.add(key(x,y)); // vide / trou
         else if(c==='X')state.obstacles.add(key(x,y));} // bloc posé sur du sol
-    }else if(state.map==='porte'){ // PORTE DE SONGE = map reconstruite du screenshot (PS_MAP) — corrigée par l'utilisateur : ses retouches (localStorage) priment
+    }else if(isPorte(state.map)){ // PORTES DE SONGE = maps reconstruites des screenshots — les retouches de l'utilisateur (localStorage, par map) priment
       state.obstacles=new Set();
-      let saved=null;try{saved=JSON.parse(localStorage.getItem('ps_map_custom_v1')||'null');}catch(_){}
+      let saved=null;try{saved=JSON.parse(localStorage.getItem('ps_map_custom_v1:'+state.map)
+        ||(state.map==='porte0'?localStorage.getItem('ps_map_custom_v1'):null)||'null');}catch(_){} // compat : l'ancienne clé (v4.33) = la 1re map
       if(saved&&saved.v&&saved.o){state.voids=new Set(saved.v);state.obstacles=new Set(saved.o);}
-      else for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=(PS_MAP[y-PS_OFFY]||'')[x]||'.';
-        if(c==='.')state.voids.add(key(x,y));
-        else if(c==='X')state.obstacles.add(key(x,y));}
+      else{const def=PS_MAPS[+state.map.slice(5)||0]||PS_MAPS[0];
+        const offX=Math.floor((N-def.rows[0].length)/2),offY=Math.floor((N-def.rows.length)/2); // map CENTRÉE sur la grille
+        for(let y=0;y<N;y++)for(let x=0;x<N;x++){const c=(def.rows[y-offY]||'')[x-offX]||'.';
+          if(c==='.')state.voids.add(key(x,y));
+          else if(c==='X')state.obstacles.add(key(x,y));}}
     }else{state.obstacles=new Set();state.voids=computeSongeVoids();} // Songe & Bac à sable : zone jouable réglable mapW×mapH
     // (plus de « cases bleues » de départ : dans toutes les cartes, les persos se posent sur n'importe quelle case libre)
     state._baseVoids=new Set(state.voids);
@@ -1442,7 +1528,7 @@
     const playing=state.phase==='playing';
     el('topbar').style.display=playing?'':'none'; // bandeau Tour/parité/vulnérabilité/confusion : seulement en combat
     if(el('retreat'))el('retreat').style.display=playing?'':'none'; // « Abandonner » : seulement en combat
-    {const dj=state.map==='dj',porte=state.map==='porte',sable=state.map==='sable'; // le DONJON reste figé ; la PORTE DE SONGE est CORRIGEABLE (pinceaux) mais pas étirable (forme réelle)
+    {const dj=state.map==='dj',porte=isPorte(state.map),sable=state.map==='sable'; // le DONJON reste figé ; les maps PORTE sont CORRIGEABLES (pinceaux) mais pas étirables (formes réelles)
      const showSetup=(state.phase==='setup'||!comte())&&!dj; // les outils de map restent tant que le COMTE n'est pas là (le combat, lui, démarre dès le 1er perso posé)
      el('setup').style.display=showSetup?'flex':'none';
      if(!showSetup&&state.edit){state.edit=false;updateSetupBtns();} // le Comte arrive, les outils disparaissent → on sort de l'édition pour ne pas creuser en cliquant
@@ -1946,10 +2032,9 @@
     state.classSpells=state.player.classSpells||[];state.spell=null;
     rebuildSpellBar(state.classSpells);
     if(state.phase==='playing')restMove();refreshTiles();refreshHUD();}
-  const PS_LS='ps_map_custom_v1'; // corrections de la Porte de Songe, persistées dans CE navigateur (survivent au rechargement)
-  function savePorteCustom(){try{localStorage.setItem(PS_LS,JSON.stringify({v:[...state.voids],o:[...state.obstacles]}));}catch(_){}}
+  function savePorteCustom(){try{localStorage.setItem('ps_map_custom_v1:'+state.map,JSON.stringify({v:[...state.voids],o:[...state.obstacles]}));}catch(_){}} // corrections persistées PAR MAP dans ce navigateur
   function applyEditVisual(){for(let x=0;x<N;x++)for(let y=0;y<N;y++)tiles[x][y].visible=!(state.voids&&state.voids.has(key(x,y)));buildObstacles();refreshTiles();buildNeonFloor();
-    if(state.map==='porte')savePorteCustom();} // toute retouche de la Porte (pinceaux, Ctrl+Z, Tout vider) est AUTO-SAUVEGARDÉE
+    if(isPorte(state.map))savePorteCustom();} // toute retouche d'une map Porte (pinceaux, Ctrl+Z, Tout vider) est AUTO-SAUVEGARDÉE
   // ===== CONSTRUCTION : pile d'annulation (Ctrl+Z) =====
   const EDIT_HIST_MAX=60;
   function snapshotEdit(){return{obstacles:new Set(state.obstacles),voids:new Set(state.voids),mapW:state.mapW,mapH:state.mapH};}
@@ -1961,7 +2046,7 @@
     state.obstacles=new Set(s.obstacles);state.voids=new Set(s.voids);
     applyEditVisual();updateMapSizeLabels();refreshTiles();refreshHUD();
     toast('↶ Annulé.'+(state.editHistory.length?' ('+state.editHistory.length+' pas restants)':''));}
-  const inDecor=(x,y)=>state.map==='porte'?false:!!(state._baseVoids&&state._baseVoids.has(key(x,y))); // hors carte : RIEN ne s'y pose — SAUF sur la Porte de Songe, où TOUT est corrigeable (cases, trous, blocs, partout sur la grille)
+  const inDecor=(x,y)=>isPorte(state.map)?false:!!(state._baseVoids&&state._baseVoids.has(key(x,y))); // hors carte : RIEN ne s'y pose — SAUF sur les maps Porte, où TOUT est corrigeable (cases, trous, blocs, partout sur la grille)
   // Applique le pinceau sur UNE case dans un SENS imposé (add/remove) — c'est ce qui permet de peindre en glissant sans « clignoter ». Renvoie true si la case a changé.
   function applyBrushCell(x,y,mode){
     if(entityAt(x,y)||inDecor(x,y))return false;
@@ -1980,7 +2065,7 @@
   // Sens du trait décidé par la 1re case : sur un bloc/trou existant → on efface ; sinon → on pose. Tout le glissé garde ce sens.
   function brushDir(x,y){const k=key(x,y);
     if(state.brush==='block')return state.obstacles.has(k)?'remove':'add';
-    if(state.brush==='hole')return(state.voids.has(k)&&(state.map==='porte'||!(state._baseVoids&&state._baseVoids.has(k))))?'remove':'add'; // sur la Porte, MÊME un trou « d'origine » se rebouche
+    if(state.brush==='hole')return(state.voids.has(k)&&(isPorte(state.map)||!(state._baseVoids&&state._baseVoids.has(k))))?'remove':'add'; // sur les maps Porte, MÊME un trou « d'origine » se rebouche
     return 'add';}
   let paintStroke=null; // {mode, snap, changed} — trait de pinceau en cours (clic maintenu)
   function beginPaint(x,y){paintStroke={mode:brushDir(x,y),snap:snapshotEdit(),changed:false};paintAt(x,y);}
@@ -2032,7 +2117,7 @@
     const k=radius*0.0016;targetV.addScaledVector(camRight,dx*k);targetV.addScaledVector(camFwd,-dy*k);
     const lim=N*0.7;targetV.x=Math.max(-lim,Math.min(lim,targetV.x));targetV.z=Math.max(-lim,Math.min(lim,targetV.z));updateCam();}
   function edgeAt(x,y){ // case au BORD de la zone jouable Songe (préparation) → étirable au clic maintenu (zone tolérante : bord ± 1 case)
-    if(state.phase!=='setup'||state.map==='dj'||state.map==='porte')return null; // Donjon et Porte de Songe sont figés ; Songe et Bac à sable s'étirent
+    if(state.phase!=='setup'||state.map==='dj'||isPorte(state.map))return null; // Donjon et maps Porte sont figés ; Songe et Bac à sable s'étirent
     const rw=(state.mapW-1)/2,rh=(state.mapH-1)/2,ax=Math.abs(x-HALF),ay=Math.abs(y-HALF);
     if(ax>rw+1||ay>rh+1)return null; // trop loin de la zone
     const w=(ax===rw||ax===rw+1), h=(ay===rh||ay===rh+1); // près d'un bord vertical (colonnes) / horizontal (lignes)
@@ -2251,15 +2336,18 @@
     if(loadMapState(m))renderMap();else freshMapState(); // carte déjà visitée → retrouvée INTACTE ; sinon → carte neuve
     applyRosterMode(); // bac à sable → widget des 19 classes ; sinon → persos + Comte + poutchs
     updateSetupBtns();updateMapSizeLabels();setActive(state.active);refreshTiles();refreshHUD();renderTips();
-    el('modeDj').classList.toggle('on',m==='dj');el('modeSonge').classList.toggle('on',m==='songe');el('modeSable').classList.toggle('on',m==='sable');el('modePorte').classList.toggle('on',m==='porte');
-    toast({dj:'🏰 Donjon : la vraie salle du Comte — pose tes persos et le boss à la main.',
+    el('modeDj').classList.toggle('on',m==='dj');el('modeSonge').classList.toggle('on',m==='songe');el('modeSable').classList.toggle('on',m==='sable');el('modePorte').classList.toggle('on',isPorte(m));
+    if(isPorte(m)&&el('porteSel'))el('porteSel').selectedIndex=+m.slice(5)||0; // la liste déroulante suit la carte active
+    toast(isPorte(m)?('🚪 '+(PS_MAPS[+m.slice(5)||0]||PS_MAPS[0]).name+' : map reconstruite de ton screen — corrige-la avec les pinceaux, tout est sauvegardé. Chaque carte est totalement séparée des autres.')
+         :({dj:'🏰 Donjon : la vraie salle du Comte — pose tes persos et le boss à la main.',
            songe:'🌙 Songe : grande map à construire.',
-           porte:'🚪 Porte de Songe : la map de ton screen, reconstruite case par case (sol, blocs, fosses). Carte fixe.',
-           sable:'🧪 Bac à sable : grande carte, tous les outils (cases, blocs, trous, monstres).'}[m]+' Chaque carte est totalement séparée des autres.');}
+           sable:'🧪 Bac à sable : grande carte, tous les outils (cases, blocs, trous, monstres).'}[m]+' Chaque carte est totalement séparée des autres.'));}
   el('modeDj').onclick=()=>setMapMode('dj');
   el('modeSonge').onclick=()=>setMapMode('songe');
   el('modeSable').onclick=()=>setMapMode('sable');
-  el('modePorte').onclick=()=>setMapMode('porte');
+  PS_MAPS.forEach((mp,i)=>{const o=document.createElement('option');o.value=i;o.textContent=mp.name;el('porteSel').appendChild(o);}); // la liste déroulante des maps Porte
+  el('modePorte').onclick=()=>setMapMode('porte'+(+el('porteSel').value||0));
+  el('porteSel').onchange=()=>setMapMode('porte'+(+el('porteSel').value||0));
   el('invTag').onclick=()=>{const C=comte();if(!C){toast('Le boss apparaîtra au lancement du combat.');return;}
     C.vulnerable=!C.vulnerable;refreshHUD();toast(C.vulnerable?'🎯 Boss signalé VULNÉRABLE (délock).':'🛡️ Boss signalé invulnérable.');};
   // (bouton « 🔓 DÉLOCK » de secours retiré : le clic sur 🛡️/🎯 juste à côté fait déjà basculer l'état du boss à la main)
@@ -2291,7 +2379,7 @@
     state.voids=new Set(base);dug.forEach(k=>{if(!base.has(k))state.voids.add(k);}); // garde les trous encore dans la zone
     state.obstacles=new Set([...state.obstacles].filter(k=>!base.has(k))); // retire les obstacles hors zone
     applyEditVisual();buildEdgeArrows();updateMapSizeLabels();refreshHUD();return true;}
-  function resizeMap(dw,dh){if(state.map==='dj'||state.map==='porte'){toast('Cette carte est fixe (relevé du vrai jeu) — passe en Songe ou en Bac à sable pour redimensionner.');return;}
+  function resizeMap(dw,dh){if(state.map==='dj'||isPorte(state.map)){toast('Cette carte est fixe (relevé du vrai jeu) — passe en Songe ou en Bac à sable pour redimensionner.');return;}
     setMapDims(state.mapW+dw*2,state.mapH+dh*2); // ±1 rangée/colonne de chaque côté (reste centré)
     toast('🗺️ Carte : '+state.mapW+' × '+state.mapH+' cases.');}
   updateSetupBtns();updateMapSizeLabels();
