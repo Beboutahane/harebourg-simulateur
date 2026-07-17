@@ -381,6 +381,8 @@
     transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
   .hp-card:hover{transform:translateY(-5px) scale(1.02);border-color:var(--ice-2);
     box-shadow:0 20px 52px rgba(0,0,0,.55),0 0 0 1px rgba(75,184,240,.35),0 0 34px rgba(75,184,240,.22)}
+  .hp-back{margin-top:20px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--font);font-size:12px;padding:7px 16px;border-radius:10px;cursor:pointer}
+  .hp-back:hover{color:var(--frost);border-color:var(--border-strong)}
   .hp-card .hp-ic{font-size:38px;display:block;margin-bottom:12px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
   .hp-card b{display:block;font-family:var(--display);font-size:18px;letter-spacing:.06em;color:var(--frost);margin-bottom:7px}
   .hp-card span{display:block;font-size:12px;line-height:1.45;color:var(--muted)}
@@ -420,10 +422,17 @@
 
 <div id="homePick"><div class="hp-in">
   <h1>❄️ HAREBOURG TACTIQUE</h1>
-  <div class="hp-sub">Choisis ta partie</div>
-  <div class="hp-cards">
+  <div class="hp-sub" id="hpSub">Choisis ta partie</div>
+  <div class="hp-cards" id="hpStep1">
     <button class="hp-card" id="hpComte" type="button"><span class="hp-ic">👑</span><b>Comte Harebourg</b><span>Donjon &amp; Songe — le combat, l'assistant et le délock.</span></button>
     <button class="hp-card" id="hpSable" type="button"><span class="hp-ic">🧪</span><b>Bac à sable</b><span>Grande carte libre — classes, sorts et monstres sans règles.</span></button>
+  </div>
+  <div id="hpStep2" style="display:none"><!-- 2e étape : Comte Harebourg → EN DONJON ou EN SONGE, direction directe -->
+    <div class="hp-cards">
+      <button class="hp-card" id="hpDj" type="button"><span class="hp-ic">🏰</span><b>Donjon</b><span>La vraie salle du boss — pose tes persos et le Comte.</span></button>
+      <button class="hp-card" id="hpSonge" type="button"><span class="hp-ic">🌙</span><b>Songe</b><span>Les salles reconstruites — choisis ta map.</span></button>
+    </div>
+    <button class="hp-back" id="hpBack" type="button">← Retour</button>
   </div>
 </div></div>
 
@@ -2889,9 +2898,12 @@
     bg.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">'+s+'</svg>';})();
   /* ===== INIT ===== */
   applyAmbiance();applyRosterMode();refreshTiles();refreshHUD();rebuildSpellBar(state.classSpells||[]);renderTips();animate();loadEl.style.display='none';
-  (()=>{const hp=el('homePick');if(!hp)return; // ACCUEIL : deux choix par-dessus l'arène floutée
+  (()=>{const hp=el('homePick');if(!hp)return; // ACCUEIL en 2 étapes : ① Comte / Bac à sable → ② Donjon / Songe (direction directe)
     const bye=()=>{hp.classList.add('bye');setTimeout(()=>hp.remove(),450);};
-    el('hpComte').onclick=()=>{bye();if(state.map==='songe'&&openRoomPick)openRoomPick();}; // l'état par défaut est déjà Songe → on enchaîne sur le choix de la salle
+    el('hpComte').onclick=()=>{el('hpStep1').style.display='none';el('hpStep2').style.display='block';el('hpSub').textContent='En Donjon ou en Songe ?';};
+    el('hpBack').onclick=()=>{el('hpStep2').style.display='none';el('hpStep1').style.display='flex';el('hpSub').textContent='Choisis ta partie';};
+    el('hpDj').onclick=()=>{setMapMode('dj');bye();}; // → directement la vraie salle
+    el('hpSonge').onclick=()=>{bye();if(state.map==='songe'&&openRoomPick)openRoomPick();}; // → la page Songe (map d'attente) + son choix de salle
     el('hpSable').onclick=()=>{setMapMode('sable');bye();};})();
   breedsReady=loadBreeds(); // promesse gardée : une classe posée AVANT la fin du chargement attend au lieu de retomber sur Crâ
   // (plus de chrono de tour : jeu libre)
