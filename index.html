@@ -684,7 +684,7 @@
   const dl=new THREE.DirectionalLight(0xffffff,0.9);dl.position.set(6,13,4);scene.add(dl);
   const pl=new THREE.PointLight(0x66d0ff,0.8,44);pl.position.set(0,7,0);scene.add(pl);
   function worldPos(gx,gy){return new THREE.Vector3((gx-HALF)*TILE,0,(gy-HALF)*TILE);}
-  function fitCamToMap(){ // cadre la caméra SUR la map : zoom au maximum tel que TOUT le plateau reste visible ENTRE les panneaux d'interface
+  function fitCamToMap(){ // cadre la caméra SUR la map : map PILE au centre de l'écran, zoom au maximum tel que TOUT le plateau reste visible entre les panneaux
     let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9,any=false;
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){if(state.voids&&state.voids.has(key(x,y)))continue;any=true;
       const p=worldPos(x,y);x0=Math.min(x0,p.x-0.5);x1=Math.max(x1,p.x+0.5);z0=Math.min(z0,p.z-0.5);z1=Math.max(z1,p.z+0.5);}
@@ -702,11 +702,9 @@
     const rb=rect('bottombar');if(rb)B=Math.min(B,rb.top);
     L+=16;Rr-=16;T+=16;B-=16;
     if(Rr-L<200){L=W*0.2;Rr=W*0.8;}if(B-T<160){T=H*0.2;B=H*0.8;} // garde-fou (panneaux anormalement larges)
-    const need=R0*Math.max(nx*(W/2)/((Rr-L)/2),ny*(H/2)/((B-T)/2)); // ③ ortho : taille écran ∝ 1/radius → le radius juste assez grand
-    radius=Math.max(8,Math.min(60,need));
-    const m=activeCam.matrixWorld.elements,wpp=radius/H; // ④ recentrer la map au centre de la ZONE LIBRE (les panneaux sont asymétriques)
-    const camR=new THREE.Vector3(m[0],m[1],m[2]),camU=new THREE.Vector3(m[4],m[5],m[6]);
-    targetV.addScaledVector(camR,-((L+Rr)/2-W/2)*wpp).addScaledVector(camU,-(H/2-(T+B)/2)*wpp);
+    const hw=Math.max(120,Math.min(W/2-L,Rr-W/2)),hh=Math.max(90,Math.min(H/2-T,B-H/2)); // ③ centrage ÉCRAN : l'espace utile = le côté le plus court autour du CENTRE de l'écran
+    const need=R0*Math.max(nx*(W/2)/hw,ny*(H/2)/hh); // ortho : taille écran ∝ 1/radius → le radius juste assez grand
+    radius=Math.max(8,Math.min(60,need)); // ④ aucun décalage : la caméra vise le centre de la map → la map reste PILE au centre de l'écran
     updateCam();}
 
   /* ---- decor / ambiances ---- */
