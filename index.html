@@ -1961,7 +1961,7 @@
     state.obstacles=new Set(s.obstacles);state.voids=new Set(s.voids);
     applyEditVisual();updateMapSizeLabels();refreshTiles();refreshHUD();
     toast('↶ Annulé.'+(state.editHistory.length?' ('+state.editHistory.length+' pas restants)':''));}
-  const inDecor=(x,y)=>!!(state._baseVoids&&state._baseVoids.has(key(x,y))); // hors carte (hors salle / hors zone mapW×mapH) : RIEN ne s'y pose — on agrandit la carte au bord pour construire plus loin
+  const inDecor=(x,y)=>state.map==='porte'?false:!!(state._baseVoids&&state._baseVoids.has(key(x,y))); // hors carte : RIEN ne s'y pose — SAUF sur la Porte de Songe, où TOUT est corrigeable (cases, trous, blocs, partout sur la grille)
   // Applique le pinceau sur UNE case dans un SENS imposé (add/remove) — c'est ce qui permet de peindre en glissant sans « clignoter ». Renvoie true si la case a changé.
   function applyBrushCell(x,y,mode){
     if(entityAt(x,y)||inDecor(x,y))return false;
@@ -1980,7 +1980,7 @@
   // Sens du trait décidé par la 1re case : sur un bloc/trou existant → on efface ; sinon → on pose. Tout le glissé garde ce sens.
   function brushDir(x,y){const k=key(x,y);
     if(state.brush==='block')return state.obstacles.has(k)?'remove':'add';
-    if(state.brush==='hole')return(state.voids.has(k)&&!(state._baseVoids&&state._baseVoids.has(k)))?'remove':'add';
+    if(state.brush==='hole')return(state.voids.has(k)&&(state.map==='porte'||!(state._baseVoids&&state._baseVoids.has(k))))?'remove':'add'; // sur la Porte, MÊME un trou « d'origine » se rebouche
     return 'add';}
   let paintStroke=null; // {mode, snap, changed} — trait de pinceau en cours (clic maintenu)
   function beginPaint(x,y){paintStroke={mode:brushDir(x,y),snap:snapshotEdit(),changed:false};paintAt(x,y);}
