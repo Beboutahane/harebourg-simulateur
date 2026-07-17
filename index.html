@@ -41,7 +41,7 @@
   #roster{top:12px;left:12px;width:236px;padding:13px 14px;display:flex;flex-direction:column;gap:8px;z-index:7}
   #roster h3{font-family:var(--display);font-size:13.5px;letter-spacing:.4px;color:var(--ice);display:flex;align-items:center;gap:7px;margin-bottom:2px}
   #roster h3 .dico{flex:0 0 auto;display:flex} /* icône glisser-déposer (image néon) */
-  #roster h3 .dico img{width:22px;height:22px;object-fit:contain;display:block}
+  #roster h3 .dico img{width:34px;height:34px;object-fit:contain;display:block} /* agrandie (22→34) : plus de texte de titre, elle porte le sens */
   #roster h3 .rttx{min-width:0}
   #roster h3 .rcount{margin-left:auto;font-weight:600;color:#cfe2f8;font-size:12px;flex:0 0 auto} /* compteur 0/8 déplacé dans le titre (l'ancienne ligne « Alliés » retirée) */
   #roster.sable h3 .rcount{display:none} /* Bac à sable : pas d'alliés → le compteur du titre est masqué */
@@ -417,12 +417,12 @@
      → elles suivent la taille de l'écran. ⚠️ toujours AUCUN filter ici (parent #homePick en backdrop-filter). */
   #hpBg{position:absolute;inset:0;z-index:0;pointer-events:none;
     background:
-      radial-gradient(90% 80% at 22% 22%,rgba(96,148,224,.085),transparent 70%),
-      radial-gradient(80% 70% at 82% 74%,rgba(72,124,206,.07),transparent 70%),
-      radial-gradient(60% 55% at 46% 88%,rgba(104,156,232,.055),transparent 72%),
-      radial-gradient(55% 60% at 6% 64%,rgba(120,170,240,.06),transparent 72%),
-      radial-gradient(130% 110% at 68% 38%,#0c1626 0%,#070d18 56%,#04080f 100%);
-    animation:hpBgIn 1.2s ease-out both}
+      radial-gradient(90% 80% at 22% 22%,rgba(96,180,196,.06),transparent 70%),
+      radial-gradient(80% 70% at 82% 74%,rgba(80,164,180,.05),transparent 70%),
+      radial-gradient(60% 55% at 46% 88%,rgba(96,176,192,.04),transparent 72%),
+      radial-gradient(55% 60% at 6% 64%,rgba(110,186,200,.045),transparent 72%),
+      radial-gradient(130% 110% at 68% 38%,#0a171b 0%,#071013 56%,#04090b 100%);
+    animation:hpBgIn 1.2s ease-out both} /* teinte SOMBRE bleu/vert (celle du halo de l'artwork) étendue à TOUT le fond — plus de différence visible autour du Comte */
   #hpBg::before{content:'';position:absolute;left:0;top:0;width:2px;height:2px;border-radius:50%;background:transparent;
     box-shadow:3vw 12vh 0 rgba(205,228,255,.55),9vw 32vh 0 rgba(205,228,255,.4),14vw 7vh 0 rgba(215,235,255,.6),
       18vw 55vh 0 rgba(205,228,255,.38),22vw 84vh 0 rgba(205,228,255,.5),28vw 18vh 0 rgba(205,228,255,.42),
@@ -485,9 +485,11 @@
      pile sur le coin haut-droit de la vraie vignette → le coude se pose dessus à toutes les tailles d'écran.
      ⚠️ AUCUN filter/blend ici (parent #homePick en backdrop-filter, cf. v4.69). pointer-events:none : le clic passe
      au bouton, et le hover du bouton soulève carte + Comte ensemble. */
-  #hpSonge{position:relative}
-  #hpSonge .hpComteArt{position:absolute;right:-345px;top:-375px;width:565px;pointer-events:none;display:block}
-  @media (max-width:1100px){#hpSonge .hpComteArt{display:none}} /* écran étroit : pas la place pour l'artwork */
+  /* L'artwork est dans un WRAPPER autour du bouton (pas DANS le bouton) : au survol, la carte se soulève SEULE —
+     le Comte ne bouge pas (demande : « trop associé au bouton »). Le wrapper épouse exactement le bouton. */
+  .hpSongeWrap{position:relative;display:flex}
+  .hpSongeWrap .hpComteArt{position:absolute;right:-345px;top:-375px;width:565px;pointer-events:none;display:block}
+  @media (max-width:1100px){.hpSongeWrap .hpComteArt{display:none}} /* écran étroit : pas la place pour l'artwork */
   .hp-card b{display:block;font-family:var(--display);font-size:18px;letter-spacing:.06em;color:var(--frost);margin-bottom:7px}
   .hp-card span{display:block;font-size:12px;line-height:1.45;color:var(--muted)}
   /* ===== SONGE : choix de la salle à afficher (par-dessus la map d'attente floutée) ===== */
@@ -522,7 +524,7 @@
   <h1>❄️ Assistant Comte Harebourg</h1>
   <div class="hp-cards" id="hpStep1"><!-- ACCUEIL DIRECT : Donjon ou Songe (le Bac à sable est relégué en bas-droite, en bêta) -->
     <button class="hp-card" id="hpDj" type="button"><span class="hp-ic"><img src="donjon-icon.png" alt=""></span><b>Donjon</b><span>Affrontes le Comte dans son donjon</span></button>
-    <button class="hp-card" id="hpSonge" type="button"><img class="hpComteArt" src="harebourg-comte-songe.webp" alt="" aria-hidden="true"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button>
+    <div class="hpSongeWrap"><img class="hpComteArt" src="harebourg-comte-songe.webp" alt="" aria-hidden="true"><button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button></div>
   </div>
 </div>
   <div id="hpSandbox"><!-- vignette secondaire, coin bas-droite -->
@@ -608,7 +610,7 @@
 
 <!-- Bac à entités : chaque vignette se GLISSE sur une case. Les compteurs sont tenus par renderRoster(). -->
 <div class="hud card" id="roster">
-  <h3 id="rosterTitle"><span class="dico" aria-hidden="true"><img src="roster-drag.webp" alt=""></span><span class="rttx">Glisse-les alliés sur la map</span><b id="rosterAllies" class="rcount">0 / 8</b></h3>
+  <h3 id="rosterTitle"><span class="dico" aria-hidden="true"><img src="roster-drag.webp" alt=""></span><b id="rosterAllies" class="rcount">0 / 8</b></h3><!-- texte du titre retiré (demande) : icône agrandie + compteur suffisent, la flèche animée explique le geste -->
   <div id="rosterNormal">
   <div class="ritem" data-k="a0" title="Glisse-le sur une case libre — jusqu'à 8 alliés au total">
     <span class="rico"><img src="mika-bd.png" alt=""></span>
@@ -670,7 +672,7 @@
 <button id="resetMapBtn" type="button" title="Remet la carte à son état de départ : les monstres et le Comte reviennent à leur position, les alliés quittent le terrain (comme un rechargement de la page)">♻️ Réinitialiser la map</button>
 <div id="toast"></div>
 <div id="turnBadge">C'EST TON TOUR</div>
-<div id="rosterHint" aria-hidden="true"><span class="rhArrow">👈</span><b>Glisse un perso sur la carte</b></div>
+<div id="rosterHint" aria-hidden="true"><span class="rhArrow">👈</span><b>Glisses tes persos sur la carte</b></div>
 <!-- Vignette de survol : pour un perso joué, blason + guilde + pseudo, tout CENTRÉ. `blason.png` = le vrai blason Neo Midgard, recadré pile sur son disque (l'original n'a pas d'alpha : ses coins de damier sont masqués par le border-radius:50% de .hhblz). -->
 <div id="hoverHp">
   <div class="hhtop">
