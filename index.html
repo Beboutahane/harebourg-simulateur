@@ -417,6 +417,7 @@
      → elles suivent la taille de l'écran. ⚠️ toujours AUCUN filter ici (parent #homePick en backdrop-filter). */
   #hpBg{position:absolute;inset:0;z-index:0;pointer-events:none;
     background:
+      url(noise-fond.png) repeat, /* GRAIN doux (tuile sans raccord) : le motif du fond de l'artwork étendu à TOUT le fond */
       radial-gradient(90% 80% at 22% 22%,rgba(96,180,196,.045),transparent 70%),
       radial-gradient(80% 70% at 82% 74%,rgba(80,164,180,.038),transparent 70%),
       radial-gradient(60% 55% at 46% 88%,rgba(96,176,192,.03),transparent 72%),
@@ -2588,6 +2589,9 @@
       state.setupSel=null;refreshTiles();return;}
     if(o&&o.t==='enemy'&&mvMode){state.setupSel={t:'enemy',e:o.e};toast('👹 '+(o.e.name||'Monstre')+' sélectionné — clique sa case de destination.');refreshTiles();return;}
     if(state.mode==='enemyMove')return; // tour des monstres : pas de déplacement d'allié ni de sort
+    if(state.map==='sable'&&!state.spell&&state.mode!=='spell'&&state.mode!=='swap'){ // 🧪 BAC À SABLE : REPLACEMENT LIBRE au clic (en plus du drag) — clique un perso, puis la case de ton choix
+      if(o&&o.t==='ally'){state.setupSel={t:'ally',a:o.a};setActive(state.allies.indexOf(o.a));toast('🔵 Perso '+(o.a.id+1)+' sélectionné — clique la case où le poser (ou glisse-le).');refreshTiles();return;}
+      if(state.setupSel&&state.setupSel.t==='ally'&&!o&&!blocked(u.x,u.y)){moveEntity(state.setupSel,u.x,u.y);state.setupSel=null;refreshTiles();refreshHUD();toast('🔵 Perso replacé.');return;}}
     if(o&&o.t==='ally'&&o.a!==state.player){setActive(state.allies.indexOf(o.a));toast('🔵 Perso '+(o.a.id+1)+' actif.');return;} // clic sur un autre allié = le contrôler
     // (plus de déplacement au clic : les alliés se déplacent par DRAG & DROP)
     if(state.mode==='swap'){if(o&&o.t==='enemy'&&state.targets.has(key(u.x,u.y))){swapClick(o.e);return;}
