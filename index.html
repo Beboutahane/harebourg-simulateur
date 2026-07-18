@@ -1608,7 +1608,8 @@
   /* ---- Ce qu'il y a à faire, montré SUR le terrain (la case à cliquer n'est jamais celle visée : le tir est dévié).
      Étiquettes VOLONTAIREMENT COURTES : le bandeau de l'assistant porte déjà les phrases — sur le terrain, les phrases
      entières se chevauchaient entre elles et avec « C'EST TON TOUR ».
-     ① case CYAN     : mini Cawotte translucide + « ① »
+     ① case ORANGE   : « ① Glisse un allié ICI » (le pivot : l'allié posé dessus délock au coup suivant)
+     ① case CYAN     : mini Cawotte translucide + « ou invoque en ciblant ICI » (où CLIQUER pour invoquer, le tir dévie sur l'orange)
      ② case VIOLETTE : « ② » (ou « Tape ici » quand il n'y a pas d'étape ①, ex. taper un mob)
      ③ case VERTE    : « Va ici avec <perso> » — seule à l'écran dans ce cas, donc gardée en clair */
   let cawTex=null,aimGhost=null,aimGhostKey='',hitGhost=null,hitGhostKey='',moveGhost=null,moveGhostKey='';
@@ -1634,7 +1635,7 @@
     const p=worldPos(a.x,a.y),g=new THREE.Group();
     const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:cawTex,transparent:true,opacity:.72,depthTest:false,fog:false}));
     spr.scale.set(1.15,1.15,1);spr.position.set(p.x,0.72,p.z);g.add(spr); // la cawotte en transparence, À SA PLACE (même si quelqu'un occupe la case)
-    const tag=tagSprite(occ?('① Clique sur '+entLabel(occ)):'① Place-y une invocation ou un allié','47,224,255');
+    const tag=tagSprite(occ?('① Clique sur '+entLabel(occ)):'ou invoque en ciblant ICI','47,224,255'); // case CYAN = où CLIQUER pour invoquer (le tir dévie sur l'orange) ; l'allié, lui, se glisse sur l'ORANGE (label séparé)
     tag.scale.multiplyScalar(.55);tag.position.set(p.x,occ?2.15:1.7,p.z);g.add(tag); // texte long → échelle réduite pour ne pas barrer la map
     if(occ){ // flèche ↓ plantée au-dessus de sa tête : c'est LUI qu'il faut cliquer
       const cone=new THREE.Mesh(new THREE.ConeGeometry(0.13,0.32,12),new THREE.MeshBasicMaterial({color:0x2fe0ff,transparent:true,opacity:.95,depthTest:false}));
@@ -1662,6 +1663,16 @@
     const tag=tagSprite('Va ici avec '+(m.who||'ton perso'),'53,196,106'); // vert = la couleur de la case
     tag.position.set(p.x,0.85,p.z);g.add(tag);
     g.userData.ghost=true;scene.add(g);moveGhost=g;}
+  let pivotGhost=null,pivotGhostKey='';
+  function updatePivotGhost(pv){ // ① case ORANGE (pivot) : « Glisse un allié ICI » — l'allié posé dessus délock au coup suivant (l'invocation, elle, se cible via la case CYAN)
+    const k=pv?(pv.x+','+pv.y):'';
+    if(k===pivotGhostKey)return;pivotGhostKey=k;
+    if(pivotGhost){scene.remove(pivotGhost);pivotGhost=null;}
+    if(!pv)return;
+    const p=worldPos(pv.x,pv.y),g=new THREE.Group();
+    const tag=tagSprite('① Glisse un allié ICI','242,154,60'); // orange = la couleur de la case pivot
+    tag.scale.multiplyScalar(.62);tag.position.set(p.x,1.5,p.z);g.add(tag);
+    g.userData.ghost=true;scene.add(g);pivotGhost=g;}
   /* ---- MULTICOMTE (au clic droit sur le Comte) : il choisit une case, s'y TÉLÉPORTE, et sort ses illusions
      autour, en CROIX. 4 Comtes au total = le vrai (au centre) + 3 illusions au maximum.
      Une branche hors map / sur un obstacle / déjà occupée ne sort PAS son illusion — d'où les 3 ou 4 Comtes vus en jeu. ---- */
@@ -1763,6 +1774,7 @@
       if(t&&t.visible)t.material.color.setHex(0xc44dff);}
     updateAimGhost(state.aimCell);updateHitGhost(state.hitCell); // les étiquettes : ① invoque ici · ② tape le Comte ici
     updateMoveGhost(state.showDelock?state.adviceCell:null); // ③ « va ici » — suit la case verte, donc l'assistant
+    {const pv=delockView?pivotCell():null;updatePivotGhost(pv&&pv.status==='free'?pv:null);} // ① ORANGE : « Glisse un allié ICI » (voie allié, distincte de la voie invocation sur le cyan)
     if(state.multi&&hoverCell){const plan=multiPlan(hoverCell.x,hoverCell.y); // Multicomte armé : la croix se dessine sous le curseur
       if(plan){const t=tiles[plan.center.x][plan.center.y];if(t&&t.visible)t.material.color.setHex(0x8fe4ff); // centre = le VRAI
         plan.clones.forEach(c=>{const q=tiles[c.x]&&tiles[c.x][c.y];if(q&&q.visible)q.material.color.setHex(0x5a72b8);});} // branches = les illusions
