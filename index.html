@@ -308,6 +308,11 @@
   #heartHp{position:relative;width:79px;height:73px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;cursor:ns-resize;user-select:none} /* molette = choisir la tranche de vita du perso actif */
   #heartVal{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%);font-family:var(--display);font-weight:800;font-size:16px;color:#fff;text-shadow:0 1px 2px #000,0 0 3px #000;pointer-events:none;white-space:nowrap}
   #heartVal.small{font-size:10.5px}
+  /* légende du cœur : comment régler la vita (molette = palier % · clic droit perso = vita exacte) — minimaliste, au-dessus du cœur */
+  #heartHint{position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:1px;
+    font-family:var(--font);font-size:9.5px;line-height:1.35;color:var(--muted);white-space:nowrap;pointer-events:none;text-align:center;
+    background:rgba(8,18,32,.74);border:1px solid var(--border);border-radius:7px;padding:3px 8px;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+  #heartHint b{color:var(--frost);font-weight:800}
   .slotwrap{display:flex;gap:5px;max-width:52vw;overflow-x:auto;overflow-y:hidden;padding-bottom:2px} /* une seule rangée : la barre s'adapte au nombre de sorts */
   .slotwrap.deux{flex-wrap:wrap;overflow:visible;max-width:none;flex-shrink:0} /* Bac à sable : tous les sorts visibles sur 2 lignes (shrink:0 : le parent ne la compresse pas en 3 lignes) */
   .slotwrap .slot{flex:0 0 auto}
@@ -424,6 +429,35 @@
     background:#04080c url(harebourg-fond.webp) left center/max(170.7vw,150vh) no-repeat;
     animation:hpBgIn 1.2s ease-out both}
   @keyframes hpBgIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
+  /* ===== ACCUEIL ANIMÉ : étoiles qui scintillent + brume/vent qui dérive en continu (aucun filter/mix-blend-mode : parent #homePick en backdrop-filter) ===== */
+  #hpStars,#hpFog{position:absolute;inset:0;z-index:0;pointer-events:none}
+  #hpStars{background-repeat:no-repeat;background-image:
+    radial-gradient(1.4px 1.4px at 12% 16%,#e6f4ff,transparent),radial-gradient(1px 1px at 23% 58%,#fff,transparent),
+    radial-gradient(1.5px 1.5px at 37% 26%,#c6e4ff,transparent),radial-gradient(1px 1px at 46% 74%,#eaf6ff,transparent),
+    radial-gradient(1.3px 1.3px at 57% 12%,#fff,transparent),radial-gradient(1.5px 1.5px at 65% 44%,#cfeaff,transparent),
+    radial-gradient(1px 1px at 73% 66%,#fff,transparent),radial-gradient(1.4px 1.4px at 82% 20%,#e6f4ff,transparent),
+    radial-gradient(1.1px 1.1px at 89% 52%,#fff,transparent),radial-gradient(1.2px 1.2px at 30% 38%,#c6e4ff,transparent),
+    radial-gradient(1.2px 1.2px at 52% 60%,#fff,transparent),radial-gradient(1px 1px at 7% 78%,#eaf6ff,transparent),
+    radial-gradient(1.3px 1.3px at 94% 80%,#dff1ff,transparent),radial-gradient(1px 1px at 18% 90%,#fff,transparent);
+    animation:hpTwinkle 4.5s ease-in-out infinite alternate}
+  #hpStars::after{content:"";position:absolute;inset:0;background-repeat:no-repeat;background-image:
+    radial-gradient(1px 1px at 15% 40%,#fff,transparent),radial-gradient(1.3px 1.3px at 33% 70%,#cfeaff,transparent),
+    radial-gradient(1px 1px at 44% 18%,#fff,transparent),radial-gradient(1.2px 1.2px at 60% 82%,#e6f4ff,transparent),
+    radial-gradient(1px 1px at 70% 30%,#fff,transparent),radial-gradient(1.4px 1.4px at 86% 66%,#c6e4ff,transparent),
+    radial-gradient(1px 1px at 26% 8%,#fff,transparent),radial-gradient(1.1px 1.1px at 78% 88%,#eaf6ff,transparent),
+    radial-gradient(1.2px 1.2px at 5% 55%,#fff,transparent),radial-gradient(1px 1px at 97% 34%,#dff1ff,transparent);
+    animation:hpTwinkle 6.5s ease-in-out .9s infinite alternate}
+  @keyframes hpTwinkle{0%{opacity:.32}100%{opacity:.95}}
+  #hpFog{opacity:.75;background-repeat:no-repeat;background-image:
+    radial-gradient(55% 45% at 25% 64%,rgba(86,148,208,.17),transparent 70%),
+    radial-gradient(46% 40% at 72% 38%,rgba(120,186,236,.14),transparent 72%),
+    radial-gradient(42% 52% at 52% 86%,rgba(66,116,178,.13),transparent 70%);
+    background-size:185% 185%;animation:hpFogDrift 26s ease-in-out infinite alternate}
+  @keyframes hpFogDrift{0%{background-position:6% 42%}100%{background-position:94% 60%}}
+  @keyframes hpFloat{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-15px) rotate(-1.4deg)}}
+  @keyframes hpFloatXY{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}} /* même translation que hpFloat, sans la rotation → pour le tourbillon du Dofus qui doit rester calé */
+  @keyframes hpSpin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){#hpStars,#hpStars::after,#hpFog,.hpSongeWrap .hpComteArt2,.hpDofusFloat,.hpDofusSpin{animation:none!important}}
   #homePick .hp-in{text-align:center;transform:translateY(-3vh);position:relative;z-index:1} /* vignettes CENTRÉES et immobiles (règle : l'interface ne bouge pas, c'est le décor qui s'adapte) */
   #homePick h1{font-family:var(--display);font-size:34px;letter-spacing:.12em;color:var(--frost);
     /* ombre SOMBRE d'abord (lisibilité par-dessus les zones claires de l'artwork), puis une pointe de bleu pour le style.
@@ -472,8 +506,15 @@
      carte Songe (place habituelle du Comte), il flotte dans la zone vide à droite sans masquer le texte de la carte
      ni « Bac à sable » (base à droite du bord de la carte, pieds au-dessus du badge). L'interface reste centrée. */
   .hpSongeWrap{position:relative;display:flex}
-  .hpSongeWrap .hpComteArt2{position:absolute;right:-350px;top:-215px;width:350px;pointer-events:none;display:block}
-  @media (max-width:1100px){.hpSongeWrap .hpComteArt2{display:none}} /* écran étroit : pas la place pour le calque */
+  .hpSongeWrap .hpComteArt2{position:absolute;right:-350px;top:-215px;width:350px;pointer-events:none;display:block;
+    animation:hpFloat 5.5s ease-in-out infinite;transform-origin:50% 70%} /* LÉVITATION + léger balancement (effet cape) — pivot bas pour un flottement naturel */
+  /* tourbillon d'énergie sur le DOFUS (en haut-droite du calque) : anneau conique qui TOURNE, monté sur un wrapper qui lévite EN PHASE avec le Comte (hpFloatXY = même translation, sans la rotation → il reste calé) */
+  .hpSongeWrap .hpDofusFloat{position:absolute;right:-357px;top:-206px;width:122px;height:122px;pointer-events:none;animation:hpFloatXY 5.5s ease-in-out infinite}
+  .hpSongeWrap .hpDofusFloat .hpDofusSpin{position:absolute;inset:0;border-radius:50%;
+    background:conic-gradient(from 0deg,transparent 0deg,rgba(150,220,255,0) 55deg,rgba(160,226,255,.30) 120deg,rgba(214,242,255,.52) 152deg,rgba(160,226,255,.30) 184deg,transparent 250deg,transparent 360deg);
+    -webkit-mask:radial-gradient(closest-side,transparent 52%,#000 60%,#000 89%,transparent 98%);mask:radial-gradient(closest-side,transparent 52%,#000 60%,#000 89%,transparent 98%);
+    animation:hpSpin 8s linear infinite}
+  @media (max-width:1100px){.hpSongeWrap .hpComteArt2,.hpSongeWrap .hpDofusFloat{display:none}} /* écran étroit : pas la place pour le calque */
   .hp-card b{display:block;font-family:var(--display);font-size:18px;letter-spacing:.06em;color:var(--frost);margin-bottom:7px}
   .hp-card span{display:block;font-size:12px;line-height:1.45;color:var(--muted)}
   /* ===== SONGE : choix de la salle à afficher (par-dessus la map d'attente floutée) ===== */
@@ -504,11 +545,11 @@
 <div id="app"></div>
 <div id="loading">❄️ Chargement de l'arène 3D et des données Dofus…</div>
 
-<div id="homePick"><div id="hpBg" aria-hidden="true"></div><div class="hp-in">
+<div id="homePick"><div id="hpBg" aria-hidden="true"></div><div id="hpStars" aria-hidden="true"></div><div id="hpFog" aria-hidden="true"></div><div class="hp-in">
   <h1>❄️ Assistant Comte Harebourg</h1>
   <div class="hp-cards" id="hpStep1"><!-- ACCUEIL DIRECT : Donjon ou Songe (le Bac à sable est relégué en bas-droite, en bêta) -->
     <button class="hp-card" id="hpDj" type="button"><span class="hp-ic"><img src="donjon-icon.png" alt=""></span><b>Donjon</b><span>Affrontes le Comte dans son donjon</span></button>
-    <div class="hpSongeWrap"><button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button><img class="hpComteArt2" src="harebourg-comte3.png" alt="" aria-hidden="true"></div><!-- Comte HÉROS : full-body (green screen vif, incrustation nette), ancré à droite -->
+    <div class="hpSongeWrap"><button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button><img class="hpComteArt2" src="harebourg-comte3.png" alt="" aria-hidden="true"><span class="hpDofusFloat" aria-hidden="true"><span class="hpDofusSpin"></span></span></div><!-- Comte HÉROS animé (lévitation) + tourbillon qui tourne sur le Dofus -->
   </div>
 </div>
   <div id="hpSandbox"><!-- vignette secondaire, coin bas-droite -->
@@ -646,6 +687,7 @@
         <rect id="heartFill" x="0" y="0" width="24" height="22" fill="#ff5568" clip-path="url(#hc)"/>
         <path d="M12 20.6C12 20.6 2.4 13.8 2.4 7.5 2.4 4.3 4.6 2.3 7.1 2.3 9 2.3 10.9 3.6 12 5.6 13.1 3.6 15 2.3 16.9 2.3 19.4 2.3 21.6 4.3 21.6 7.5 21.6 13.8 12 20.6 12 20.6Z" fill="none" stroke="#ffd6dd" stroke-width="0.9"/>
       </svg><span id="heartVal">100</span>
+      <div id="heartHint" aria-hidden="true"><span>🖱️ <b>molette</b> ici : palier %</span><span>🖱️ <b>clic droit</b> perso : vitalité</span></div>
     </div>
     <div id="papm">
       <div class="bubble pa" title="Points d'Action"><span id="paNum">12</span></div>
@@ -1365,10 +1407,19 @@
   const skinAspect={}; // largeur/hauteur RÉELLE de chaque image : les planches n'ont pas toutes le même cadre (300×500, 263×524…) → sinon le perso est ÉTIRÉ
   const skinY=k=>SKIN_H*((skinFoot[k]||0.9)-0.5); // hauteur du sprite qui pose EXACTEMENT ses pieds sur la case
   const skinTex={}; // clé = pré + direction (ex. 'skin-bd') — rempli APRÈS la création de texLoader (cf. plus bas)
-  function facingOf(a){ // vers quelle diagonale doit-il se tourner pour faire face au Comte ?
-    const C=comte();if(!C)return 'bd'; // pas de Comte sur le terrain : il regarde la caméra
-    const CP=(dragEnt&&dragEnt.ent.t==='enemy'&&dragEnt.ent.e===C&&hoverCell)?hoverCell:C; // Comte MAINTENU à la souris : les alliés suivent la case sous le curseur, en direct
-    const P=livePos(a),dx=CP.x-P.x,dy=CP.y-P.y; // livePos : pendant un drag, il pivote en direct
+  let _sandCenter=null,_sandSig=''; // Bac à sable : cache de la case la + centrale (cible imaginaire d'orientation), recalculée quand la map change
+  function sandCenter(){const sig=state.mapW+'x'+state.mapH+':'+(state.voids?state.voids.size:0); // signature = taille + trous → recalcul au réajustement de la map
+    if(sig!==_sandSig||!_sandCenter){_sandSig=sig;let sx=0,sy=0,n=0;
+      for(let x=0;x<N;x++)for(let y=0;y<N;y++){if(state.voids&&state.voids.has(key(x,y)))continue;if(tiles[x]&&tiles[x][y]&&tiles[x][y].visible){sx+=x;sy+=y;n++;}}
+      _sandCenter=n?{x:Math.round(sx/n),y:Math.round(sy/n)}:{x:HALF,y:HALF};} // centroïde des cases visibles, arrondi à la case (à quelques cases près)
+    return _sandCenter;}
+  function facingTarget(){ // vers QUOI se tourner : Bac à sable = CENTRE de la map (cible imaginaire → orientations variées selon le placement) ; sinon = le Comte
+    if(state.map==='sable')return sandCenter();
+    const C=comte();if(!C)return null;
+    return (dragEnt&&dragEnt.ent.t==='enemy'&&dragEnt.ent.e===C&&hoverCell)?hoverCell:C;} // Comte MAINTENU à la souris : les alliés suivent la case sous le curseur, en direct
+  function facingOf(a){ // vers quelle diagonale se tourner pour faire face à la cible (Comte, ou centre de la map en Bac à sable)
+    const T=facingTarget();if(!T)return 'bd'; // pas de cible sur le terrain : il regarde la caméra
+    const P=livePos(a),dx=T.x-P.x,dy=T.y-P.y; // livePos : pendant un drag, il pivote en direct
     if(!dx&&!dy)return 'bd';
     // On raisonne en coordonnées ÉCRAN, pas en axes de la grille : en iso, +x part en bas-droite et +y en bas-gauche.
     const eX=dx-dy, eY=dx+dy; // eX>0 : le Comte est à DROITE · eY>0 : il est EN BAS
