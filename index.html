@@ -455,9 +455,7 @@
     background-size:185% 185%;animation:hpFogDrift 26s ease-in-out infinite alternate}
   @keyframes hpFogDrift{0%{background-position:6% 42%}100%{background-position:94% 60%}}
   @keyframes hpFloat{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-15px) rotate(-1.4deg)}}
-  @keyframes hpFloatXY{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}} /* même translation que hpFloat, sans la rotation → pour le tourbillon du Dofus qui doit rester calé */
-  @keyframes hpSpin{to{transform:rotate(360deg)}}
-  @media (prefers-reduced-motion:reduce){#hpStars,#hpStars::after,#hpFog,.hpSongeWrap .hpComteArt2,.hpDofusFloat,.hpDofusSpin{animation:none!important}}
+  @media (prefers-reduced-motion:reduce){#hpStars,#hpStars::after,#hpFog,.hpSongeWrap .hpComteArt2{animation:none!important}}
   #homePick .hp-in{text-align:center;transform:translateY(-3vh);position:relative;z-index:1} /* vignettes CENTRÉES et immobiles (règle : l'interface ne bouge pas, c'est le décor qui s'adapte) */
   #homePick h1{font-family:var(--display);font-size:34px;letter-spacing:.12em;color:var(--frost);
     /* ombre SOMBRE d'abord (lisibilité par-dessus les zones claires de l'artwork), puis une pointe de bleu pour le style.
@@ -508,13 +506,7 @@
   .hpSongeWrap{position:relative;display:flex}
   .hpSongeWrap .hpComteArt2{position:absolute;right:-350px;top:-215px;width:350px;pointer-events:none;display:block;
     animation:hpFloat 5.5s ease-in-out infinite;transform-origin:50% 70%} /* LÉVITATION + léger balancement (effet cape) — pivot bas pour un flottement naturel */
-  /* tourbillon d'énergie sur le DOFUS (en haut-droite du calque) : anneau conique qui TOURNE, monté sur un wrapper qui lévite EN PHASE avec le Comte (hpFloatXY = même translation, sans la rotation → il reste calé) */
-  .hpSongeWrap .hpDofusFloat{position:absolute;right:-357px;top:-206px;width:122px;height:122px;pointer-events:none;animation:hpFloatXY 5.5s ease-in-out infinite}
-  .hpSongeWrap .hpDofusFloat .hpDofusSpin{position:absolute;inset:0;border-radius:50%;
-    background:conic-gradient(from 0deg,transparent 0deg,rgba(150,220,255,0) 55deg,rgba(160,226,255,.30) 120deg,rgba(214,242,255,.52) 152deg,rgba(160,226,255,.30) 184deg,transparent 250deg,transparent 360deg);
-    -webkit-mask:radial-gradient(closest-side,transparent 52%,#000 60%,#000 89%,transparent 98%);mask:radial-gradient(closest-side,transparent 52%,#000 60%,#000 89%,transparent 98%);
-    animation:hpSpin 8s linear infinite}
-  @media (max-width:1100px){.hpSongeWrap .hpComteArt2,.hpSongeWrap .hpDofusFloat{display:none}} /* écran étroit : pas la place pour le calque */
+  @media (max-width:1100px){.hpSongeWrap .hpComteArt2{display:none}} /* écran étroit : pas la place pour le calque */
   .hp-card b{display:block;font-family:var(--display);font-size:18px;letter-spacing:.06em;color:var(--frost);margin-bottom:7px}
   .hp-card span{display:block;font-size:12px;line-height:1.45;color:var(--muted)}
   /* ===== SONGE : choix de la salle à afficher (par-dessus la map d'attente floutée) ===== */
@@ -549,7 +541,7 @@
   <h1>❄️ Assistant Comte Harebourg</h1>
   <div class="hp-cards" id="hpStep1"><!-- ACCUEIL DIRECT : Donjon ou Songe (le Bac à sable est relégué en bas-droite, en bêta) -->
     <button class="hp-card" id="hpDj" type="button"><span class="hp-ic"><img src="donjon-icon.png" alt=""></span><b>Donjon</b><span>Affrontes le Comte dans son donjon</span></button>
-    <div class="hpSongeWrap"><button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button><img class="hpComteArt2" src="harebourg-comte3.png" alt="" aria-hidden="true"><span class="hpDofusFloat" aria-hidden="true"><span class="hpDofusSpin"></span></span></div><!-- Comte HÉROS animé (lévitation) + tourbillon qui tourne sur le Dofus -->
+    <div class="hpSongeWrap"><button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button><img class="hpComteArt2" src="harebourg-comte3.png" alt="" aria-hidden="true"></div><!-- Comte HÉROS animé (lévitation) -->
   </div>
 </div>
   <div id="hpSandbox"><!-- vignette secondaire, coin bas-droite -->
