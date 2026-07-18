@@ -775,10 +775,22 @@
   let activeCam=orthoCam; // vue Dofus (isométrique) par défaut
   const targetV=new THREE.Vector3(0,0,0);let radius=34,theta=Math.PI*0.25,phi=Math.PI/3; // phi=60° => élévation 30° => cases en losange 2:1 comme Dofus (grand plateau => radius augmenté)
   const ISO_PHI=Math.PI/3;
+  let _boardW=null; // bbox MONDE du plateau (x0,x1,z0,z1) : sert à poser le bandeau de conseil au-dessus du bord HAUT du plateau (donc il SUIT le zoom)
   function updateCam(){
     activeCam.position.set(targetV.x+radius*Math.sin(phi)*Math.cos(theta),targetV.y+radius*Math.cos(phi),targetV.z+radius*Math.sin(phi)*Math.sin(theta));
     activeCam.lookAt(targetV);
     if(activeCam.isOrthographicCamera){const asp=innerWidth/innerHeight,h=radius*0.5;activeCam.left=-h*asp;activeCam.right=h*asp;activeCam.top=h;activeCam.bottom=-h;activeCam.updateProjectionMatrix();}
+    placeAdvice(); // repositionne le bandeau de conseil (#delockMsg) à chaque changement de caméra (zoom/pan/resize)
+  }
+  function placeAdvice(){ // pose #delockMsg JUSTE au-dessus du bord HAUT du plateau projeté → ne cache pas le terrain et se déplace avec le zoom
+    const b=document.getElementById('delockMsg');
+    if(!b||!b.classList.contains('show')||!_boardW)return;
+    const v=new THREE.Vector3(),H=innerHeight;let topY=1e9;
+    for(const c of [[_boardW.x0,_boardW.z0],[_boardW.x0,_boardW.z1],[_boardW.x1,_boardW.z0],[_boardW.x1,_boardW.z1]]){
+      const q=v.set(c[0],0,c[1]).project(activeCam);const sy=(1-q.y)*0.5*H;if(sy<topY)topY=sy;}
+    const tb=document.getElementById('topbar'),tbot=(tb&&getComputedStyle(tb).display!=='none')?tb.getBoundingClientRect().bottom:104;
+    const h=b.offsetHeight||70;
+    b.style.top=Math.round(Math.max(tbot+6,topY-10-h))+'px'; // juste au-dessus du plateau, sans jamais remonter sous la barre du haut
   }
   updateCam();
   const amb=new THREE.AmbientLight(0x9ec6ff,0.7);scene.add(amb);
@@ -790,6 +802,7 @@
     for(let x=0;x<N;x++)for(let y=0;y<N;y++){if(state.voids&&state.voids.has(key(x,y)))continue;any=true;
       const p=worldPos(x,y);x0=Math.min(x0,p.x-0.5);x1=Math.max(x1,p.x+0.5);z0=Math.min(z0,p.z-0.5);z1=Math.max(z1,p.z+0.5);}
     if(!any)return;
+    _boardW={x0,x1,z0,z1}; // bbox monde du plateau → sert à poser le bandeau de conseil au-dessus du bord haut (placeAdvice)
     targetV.set((x0+x1)/2,0,(z0+z1)/2); // ① viser le centre de la map
     if(state.map==='dj'){radius=21.3;updateCam();return;} // Donjon : zoom FIXE relevé de la capture de l'utilisateur (« garde ce zoom ») — la map passe sous les coins libres des panneaux, c'est voulu
     const R0=30;radius=R0;updateCam();activeCam.updateMatrixWorld();
@@ -1642,7 +1655,7 @@
     const p=worldPos(a.x,a.y),g=new THREE.Group();
     const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:cawTex,transparent:true,opacity:.72,depthTest:false,fog:false}));
     spr.scale.set(1.15,1.15,1);spr.position.set(p.x,0.72,p.z);g.add(spr); // la cawotte en transparence, À SA PLACE (même si quelqu'un occupe la case)
-    const tag=tagSprite(occ?('① Clique sur '+entLabel(occ)):'ou invoque en ciblant ICI','47,224,255'); // case CYAN = où CLIQUER pour invoquer (le tir dévie sur l'orange) ; l'allié, lui, se glisse sur l'ORANGE (label séparé)
+    const tag=tagSprite(occ?('① Clique sur '+entLabel(occ)):'① ou invoque en ciblant ICI','47,224,255'); // case CYAN = où CLIQUER pour invoquer (le tir dévie sur l'orange) ; MÊME step ① que « glisse un allié » sur l'ORANGE (2 voies, chacune préfixée ①)
     tag.scale.multiplyScalar(.55);tag.position.set(p.x,occ?2.15:1.7,p.z);g.add(tag); // texte long → échelle réduite pour ne pas barrer la map
     if(occ){ // flèche ↓ plantée au-dessus de sa tête : c'est LUI qu'il faut cliquer
       const cone=new THREE.Mesh(new THREE.ConeGeometry(0.13,0.32,12),new THREE.MeshBasicMaterial({color:0x2fe0ff,transparent:true,opacity:.95,depthTest:false}));
@@ -1902,8 +1915,8 @@
     if(C&&C.obj&&C.obj.userData.invuln)C.obj.userData.invuln.visible=C.alive&&!C.vulnerable; // état 🛡️ au-dessus de sa tête : disparaît une fois délock, revient quand il se re-verrouille
     el('paNum').textContent=state.player.pa;el('pmNum').textContent=state.player.pm;
     const playing=state.phase==='playing';
-    el('topbar').style.display=(playing&&state.map!=='sable')?'':'none'; // bandeau Tour/parité/vulnérabilité : en combat, mais PAS en Bac à sable (pas de Comte à y gérer)
-    if(el('bossT1'))el('bossT1').style.display=(playing&&(state.map==='songe'||isPorte(state.map)))?'':'none'; // « ⚑ 1er tour du boss » : SONGE uniquement (en Donjon le boss est présent dès le Tour 1, parité déjà bonne)
+    el('topbar').style.display=((playing||isPorte(state.map))&&state.map!=='sable')?'':'none'; // bandeau Tour/parité/vulnérabilité : en combat, ET dès l'arrivée sur une map de combat Songe (porte) pour choisir le 1er tour du boss ; PAS en Bac à sable
+    if(el('bossT1'))el('bossT1').style.display=((state.map==='songe'||isPorte(state.map))&&(playing||isPorte(state.map)))?'':'none'; // « ⚑ Choisis le 1er tour du boss » : maps Songe (dès le setup sur les portes) ; jamais en Donjon (boss là dès le Tour 1) ni Bac à sable
     const showReset=playing&&state.enemies.some(e=>e.alive)&&state.allies.some(a=>a.placed&&a.hp>0); // « Réinitialiser » : seulement quand au moins un ennemi ET un allié sont sur le terrain
     if(el('retreat'))el('retreat').style.display=showReset?'':'none';
     if(el('resetMapBtn'))el('resetMapBtn').style.display='block'; // ♻️ dans TOUS les modes désormais (Donjon, Songe ET Bac à sable) — la confirmation évite les resets accidentels
@@ -2169,7 +2182,7 @@
     const on=state.phase==='playing'&&state.showDelock&&state.map!=='sable'; // pas de bandeau assistant en Bac à sable (terrain d'essai libre)
     const txt=on?delockAdvice():(state.adviceCell=state.aimCell=state.hitCell=null,'');
     const m=el('delockMsg');
-    if(m){if(on){m.innerHTML=txt;m.classList.add('show');}else m.classList.remove('show');}
+    if(m){if(on){m.innerHTML=txt;m.classList.add('show');placeAdvice();}else m.classList.remove('show');} // placeAdvice : repositionne le bandeau au-dessus du plateau (le contenu change → hauteur change)
     if(was!==sig())refreshTiles();} // une case a changé → on repeint (refreshTiles est appelé AVANT refreshHUD par les appelants)
   let toastT;function toast(t){const e=el('toast');e.innerHTML=t;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),2600);}
 
@@ -2661,10 +2674,20 @@
     const n=poutchCount(),no=ostheoCount(),pleinM=mobCount()>=MOB_MAX; // limite commune : poser l'un consomme la place de l'autre
     set('poutch',pleinM,n+' / '+MOB_MAX);set('ostheo',pleinM,no+' / '+MOB_MAX);
     if(el('rosterAllies'))el('rosterAllies').textContent=na+' / '+ALLY_MAX;
-    {const h=el('rosterHint'),rs=el('roster'); // FLÈCHE animée « glisse un perso » : à l'arrivée sur une carte, tant qu'aucun allié n'est posé
-     const homeUp=el('homePick')&&!el('homePick').classList.contains('bye');
-     const show=!!h&&!!rs&&na===0&&state.phase!=='playing'&&!homeUp&&getComputedStyle(rs).display!=='none';
-     if(h){h.classList.toggle('show',show);if(show){const r=rs.getBoundingClientRect();h.style.left=(r.right+8)+'px';h.style.top=(r.top+58)+'px';}}}
+    {const h=el('rosterHint'),rs=el('roster'); // FLÈCHE animée : en SONGE, guide en 3 étapes (① 1er tour du boss → ② persos → ③ Comte) ; ailleurs, simple « glisse un perso »
+     const homeUp=el('homePick')&&!el('homePick').classList.contains('bye'),rsOk=!!rs&&getComputedStyle(rs).display!=='none';
+     const songe=isPorte(state.map)&&!homeUp&&rsOk; // maps de combat Songe (portes) : guide en 3 étapes, dès l'arrivée (setup compris)
+     let tgt=null,txt='',arrow='👈',up=false;
+     if(songe){ // séquence guidée : d'abord le 1er tour du boss, puis les persos, puis le Comte
+       const bt=el('bossT1');
+       if(!state.bossFirstSet&&bt&&getComputedStyle(bt).display!=='none'){tgt=bt;txt='① Choisis le 1er tour du boss';arrow='👆';up=true;}
+       else if(na===0){tgt=rs;txt='② Glisse tes persos sur la carte';}
+       else if(!comte()){tgt=rs;txt='③ Puis pose le Comte (ou un allié)';}
+     }else if(na===0&&state.phase!=='playing'&&!homeUp&&rsOk){tgt=rs;txt='Glisses tes persos sur la carte';}
+     if(h){const show=!!tgt;h.classList.toggle('show',show);
+       if(show){h.innerHTML='<span class="rhArrow">'+arrow+'</span><b>'+txt+'</b>';const r=tgt.getBoundingClientRect();
+         if(up){const tb2=el('topbar');const tbr=tb2?tb2.getBoundingClientRect():{bottom:r.bottom};h.style.left=Math.round(r.left)+'px';h.style.top=Math.round(tbr.bottom+8)+'px';} // SOUS toute la topbar (pas juste le bouton, sinon on masque le compteur), flèche 👆 vers le bouton
+         else{h.style.left=(r.right+8)+'px';h.style.top=(r.top+58)+'px';}}}} // à droite du roster, flèche vers la GAUCHE
     if(el('rosterFoes'))el('rosterFoes').textContent=((comte()?1:0)+mobCount())+' / '+(MOB_MAX+1);
     box.querySelectorAll('.ritem.cls').forEach(it=>it.classList.toggle('full',pleinA)); // bac à sable : les 19 classes s'éteignent quand l'équipe est pleine
     if(el('rosterClassesCount'))el('rosterClassesCount').textContent=na+' / '+ALLY_MAX;}
@@ -2846,6 +2869,7 @@
   function setMapMode(m){if(m===state.map)return; // déjà sur cette carte : on n'y touche pas
     cancelMulti(); // un Multicomte armé ne suit pas d'une carte à l'autre
     saveMapState();state.map=m;state.edit=false;state.mode='idle';state.setupSel=null;state.spell=null;state.toPlace=null;state.editHistory=[]; // l'annulation ne traverse pas d'une carte à l'autre
+    state.bossFirstSet=false; // à l'arrivée sur une nouvelle carte, le guide Songe repart de l'étape ① (« Choisis le 1er tour du boss »)
     state.targets=new Set();state.curEnt=null;state.enemyTurn=false;state.glyph.clear();_glyphAt=null;drawGlyph();
     if(loadMapState(m))renderMap();else{freshMapState(); // carte déjà visitée → retrouvée INTACTE ; sinon → carte neuve
       if(m==='sable'){let sv=null;try{sv=JSON.parse(localStorage.getItem('ps_sable_setup_v1')||'null');}catch(_){} // …et le Bac à sable retrouve son DERNIER setup auto-sauvé (1re visite de la session)
@@ -3105,12 +3129,14 @@
     if(!el('placeMenu').contains(ev.target))el('placeMenu').classList.remove('show');
     if(!el('allyMenu').contains(ev.target))el('allyMenu').classList.remove('show');});
   el('ovBtn').onclick=resetGame;
-  function setTurn(t){state.tour=Math.max(1,t);refreshTiles();refreshHUD(); // le tour pilote TOUT : qui pivote, et donc si le délock est possible
+  function setTurn(t){state.tour=Math.max(1,t);
+    {const C0=comte();if(C0)C0.vulnerable=false;} // à CHAQUE passage de tour, le Comte SE RE-VERROUILLE (redevient invulnérable) → il faut le re-délock ; le re-délock ne reste possible que les tours où il pivote
+    refreshTiles();refreshHUD(); // le tour pilote TOUT : qui pivote, et donc si le délock est possible
     const C=comte();if(!C){toast('Tour '+state.tour+'.');return;}
-    toast('Tour '+state.tour+' — '+(comtePivots()?'🔄 le COMTE pivote : délock possible.':'🔄 c\'est TOI qui pivotes : pas de délock ce tour.'));}
+    toast('Tour '+state.tour+' — '+(comtePivots()?'🔄 le COMTE pivote : délock possible ce tour (re-délock à refaire).':'🔄 c\'est TOI qui pivotes : le Comte reste verrouillé ce tour.'));}
   el('turnUp').onclick=()=>setTurn(state.tour+1);
   el('turnDn').onclick=()=>setTurn(state.tour-1);
-  el('bossT1').onclick=()=>{state.comteTurn=1;state.tour=1;refreshTiles();refreshHUD(); // SONGE : cale le « 1er tour du boss » sur MAINTENANT → ce tour = Tour 1, délock au Tour 2 (puis un sur deux), peu importe le tour réel
+  el('bossT1').onclick=()=>{state.comteTurn=1;state.tour=1;state.bossFirstSet=true;refreshTiles();refreshHUD(); // SONGE : cale le « 1er tour du boss » sur MAINTENANT → ce tour = Tour 1, délock au Tour 2 (puis un sur deux) ; bossFirstSet = étape ① du guide faite
     toast('⚑ 1er tour du boss = Tour 1 : le Comte reste invulnérable ce tour, délock possible dès le Tour 2 (puis un tour sur deux).');};
   el('mobSearch').oninput=e=>{clearTimeout(searchT);const v=e.target.value;searchT=setTimeout(()=>searchMonsters(v),280);};
   function fullReset(){ // repart de zéro : équipe, monstres, portails/pièges, obstacles, tour
