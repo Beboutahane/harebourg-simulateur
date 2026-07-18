@@ -463,7 +463,7 @@
      dessus, main qui retombe devant (pose de la référence). Wrapper autour du bouton → au survol la carte se
      soulève seule ; l'img APRÈS le bouton dans le DOM → le bras passe DEVANT la carte ; pointer-events:none. */
   .hpSongeWrap{position:relative;display:flex}
-  .hpSongeWrap .hpComteArt{position:absolute;right:-238px;top:-338px;width:372px;pointer-events:none;display:block}
+  .hpSongeWrap .hpComteArt{position:absolute;right:-232px;top:-262px;width:372px;pointer-events:none;display:block}
   @media (max-width:1100px){.hpSongeWrap .hpComteArt{display:none}} /* écran étroit : pas la place pour le calque */
   .hp-card b{display:block;font-family:var(--display);font-size:18px;letter-spacing:.06em;color:var(--frost);margin-bottom:7px}
   .hp-card span{display:block;font-size:12px;line-height:1.45;color:var(--muted)}
@@ -499,7 +499,7 @@
   <h1>❄️ Assistant Comte Harebourg</h1>
   <div class="hp-cards" id="hpStep1"><!-- ACCUEIL DIRECT : Donjon ou Songe (le Bac à sable est relégué en bas-droite, en bêta) -->
     <button class="hp-card" id="hpDj" type="button"><span class="hp-ic"><img src="donjon-icon.png" alt=""></span><b>Donjon</b><span>Affrontes le Comte dans son donjon</span></button>
-    <div class="hpSongeWrap"><button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button><img class="hpComteArt" src="harebourg-comte.webp" alt="" aria-hidden="true"></div><!-- Comte détouré (fond blanc) posé DEVANT la vignette, accoudé dessus -->
+    <div class="hpSongeWrap"><button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button><img class="hpComteArt" src="harebourg-comte.png" alt="" aria-hidden="true"></div><!-- Comte détouré (fond blanc, PNG sans perte, contour doux) accoudé sur la vignette -->
   </div>
 </div>
   <div id="hpSandbox"><!-- vignette secondaire, coin bas-droite -->
