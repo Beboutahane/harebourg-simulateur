@@ -413,8 +413,9 @@
      flouté dans le rectangle du div, cf. « fond horrible » déjà rencontré). Juste background + animation d'entrée. */
   /* Fond d'accueil : la PARTIE GAUCHE de harebourg-fond.webp (nuit + sol dallé embrumé), cadrée pour pousser SON
      Comte peint hors écran (left center / très large) → on ne garde que l'ambiance. Le Comte AFFICHÉ est le calque
-     .hpComteArt (harebourg-comte.webp), détouré PROPREMENT du fond BLANC fourni par l'user → couleurs exactes,
-     cape entière, zéro halo. L'interface reste centrée, c'est le décor qui s'y ancre. */
+     .hpComteArt (harebourg-comte.png), détouré PROPREMENT du fond VERT fourni par l'user (chroma-key g dominant +
+     despill du liseré + alpha doux, PNG sans perte) → couleurs exactes, cape entière, Dofus + halo tourbillonnant
+     conservés (pose de sort). L'interface reste centrée, c'est le décor qui s'y ancre. */
   #hpBg{position:absolute;inset:0;z-index:0;pointer-events:none;
     background:#04080c url(harebourg-fond.webp) left center/max(170.7vw,150vh) no-repeat;
     animation:hpBgIn 1.2s ease-out both}
@@ -463,7 +464,7 @@
      dessus, main qui retombe devant (pose de la référence). Wrapper autour du bouton → au survol la carte se
      soulève seule ; l'img APRÈS le bouton dans le DOM → le bras passe DEVANT la carte ; pointer-events:none. */
   .hpSongeWrap{position:relative;display:flex}
-  .hpSongeWrap .hpComteArt{position:absolute;right:-232px;top:-262px;width:372px;pointer-events:none;display:block}
+  .hpSongeWrap .hpComteArt{position:absolute;right:-326px;top:-242px;width:360px;pointer-events:none;display:block}
   @media (max-width:1100px){.hpSongeWrap .hpComteArt{display:none}} /* écran étroit : pas la place pour le calque */
   .hp-card b{display:block;font-family:var(--display);font-size:18px;letter-spacing:.06em;color:var(--frost);margin-bottom:7px}
   .hp-card span{display:block;font-size:12px;line-height:1.45;color:var(--muted)}
@@ -499,7 +500,7 @@
   <h1>❄️ Assistant Comte Harebourg</h1>
   <div class="hp-cards" id="hpStep1"><!-- ACCUEIL DIRECT : Donjon ou Songe (le Bac à sable est relégué en bas-droite, en bêta) -->
     <button class="hp-card" id="hpDj" type="button"><span class="hp-ic"><img src="donjon-icon.png" alt=""></span><b>Donjon</b><span>Affrontes le Comte dans son donjon</span></button>
-    <div class="hpSongeWrap"><button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button><img class="hpComteArt" src="harebourg-comte.png" alt="" aria-hidden="true"></div><!-- Comte détouré (fond blanc, PNG sans perte, contour doux) accoudé sur la vignette -->
+    <div class="hpSongeWrap"><button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button><img class="hpComteArt" src="harebourg-comte.png" alt="" aria-hidden="true"></div><!-- Comte détouré (fond vert, PNG sans perte, contour doux) : avant-bras posé sur le coin haut-droit de la vignette -->
   </div>
 </div>
   <div id="hpSandbox"><!-- vignette secondaire, coin bas-droite -->
