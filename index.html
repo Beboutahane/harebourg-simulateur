@@ -337,6 +337,9 @@
   #assistBtn{border:1px solid var(--border-strong);background:rgba(42,111,192,.28);color:var(--frost);font-family:var(--display);font-weight:800;font-size:12.5px;letter-spacing:.4px;padding:9px 14px;border-radius:9px;cursor:pointer;pointer-events:auto;white-space:nowrap;transition:.15s}
   #assistBtn:hover{border-color:var(--ice);background:rgba(75,184,240,.42)}
   #assistBtn.on{background:rgba(185,140,255,.3);border-color:var(--spell);color:#e9dcff}
+  /* SONGE : « ⚑ 1er tour du boss » — cale la parité du délock sur le tour où le boss entre en jeu (en Donjon il est là dès le début, donc bouton masqué) */
+  #bossT1{border:1px solid rgba(242,205,132,.5);background:rgba(242,205,132,.16);color:var(--gold);font-family:var(--display);font-weight:800;font-size:12px;letter-spacing:.3px;padding:8px 12px;border-radius:9px;cursor:pointer;pointer-events:auto;white-space:nowrap;transition:.15s}
+  #bossT1:hover{border-color:var(--gold);background:rgba(242,205,132,.3)}
   #delockMsg{top:118px;left:50%;transform:translateX(-50%);width:min(92vw,640px);padding:10px 14px;font-size:12.5px;line-height:1.55;color:var(--txt);display:none;pointer-events:auto;text-align:center} /* 118 : sous le bandeau du haut, qui tient sur 2 lignes */
   #delockMsg.show{display:block;animation:dmpop .18s ease-out}
   @keyframes dmpop{from{opacity:0;transform:translateX(-50%) translateY(-6px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
@@ -526,6 +529,7 @@
     <span class="tlbl">Tour</span>
     <button class="tstep" id="turnDn">−</button><span class="tnum" id="turnNum">1</span><button class="tstep" id="turnUp">+</button>
   </span>
+  <button id="bossT1" title="En Songe : clique quand le boss vient de jouer son 1er tour — ce tour devient le Tour 1, et le délock se calcule tout seul (Comte invulnérable ce tour, délock possible au Tour 2, puis un tour sur deux).">⚑ 1er tour du boss</button>
   <span class="pivcol"><!-- l'état du boss se lit JUSTE SOUS le badge du tour : les deux se lisent ensemble -->
     <span id="pivotInfo" class="pivbtn" title="Qui pivote au prochain coup sur le Comte — déduit du tour">🔄 —</span>
     <span class="invtag on" id="invTag" title="Clique pour signaler que le boss est vulnérable / invulnérable">🛡️ INVULNÉRABLE</span>
@@ -1896,6 +1900,7 @@
     el('paNum').textContent=state.player.pa;el('pmNum').textContent=state.player.pm;
     const playing=state.phase==='playing';
     el('topbar').style.display=(playing&&state.map!=='sable')?'':'none'; // bandeau Tour/parité/vulnérabilité : en combat, mais PAS en Bac à sable (pas de Comte à y gérer)
+    if(el('bossT1'))el('bossT1').style.display=(playing&&(state.map==='songe'||isPorte(state.map)))?'':'none'; // « ⚑ 1er tour du boss » : SONGE uniquement (en Donjon le boss est présent dès le Tour 1, parité déjà bonne)
     const showReset=playing&&state.enemies.some(e=>e.alive)&&state.allies.some(a=>a.placed&&a.hp>0); // « Réinitialiser » : seulement quand au moins un ennemi ET un allié sont sur le terrain
     if(el('retreat'))el('retreat').style.display=showReset?'':'none';
     if(el('resetMapBtn'))el('resetMapBtn').style.display='block'; // ♻️ dans TOUS les modes désormais (Donjon, Songe ET Bac à sable) — la confirmation évite les resets accidentels
@@ -3102,6 +3107,8 @@
     toast('Tour '+state.tour+' — '+(comtePivots()?'🔄 le COMTE pivote : délock possible.':'🔄 c\'est TOI qui pivotes : pas de délock ce tour.'));}
   el('turnUp').onclick=()=>setTurn(state.tour+1);
   el('turnDn').onclick=()=>setTurn(state.tour-1);
+  el('bossT1').onclick=()=>{state.comteTurn=1;state.tour=1;refreshTiles();refreshHUD(); // SONGE : cale le « 1er tour du boss » sur MAINTENANT → ce tour = Tour 1, délock au Tour 2 (puis un sur deux), peu importe le tour réel
+    toast('⚑ 1er tour du boss = Tour 1 : le Comte reste invulnérable ce tour, délock possible dès le Tour 2 (puis un tour sur deux).');};
   el('mobSearch').oninput=e=>{clearTimeout(searchT);const v=e.target.value;searchT=setTimeout(()=>searchMonsters(v),280);};
   function fullReset(){ // repart de zéro : équipe, monstres, portails/pièges, obstacles, tour
     state.enemies.forEach(e=>{if(e.obj)scene.remove(e.obj);});state.enemies=[];clearPortals();clearTraps();
