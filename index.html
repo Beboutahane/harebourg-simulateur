@@ -337,8 +337,9 @@
   #assistBtn{border:1px solid var(--border-strong);background:rgba(42,111,192,.28);color:var(--frost);font-family:var(--display);font-weight:800;font-size:12.5px;letter-spacing:.4px;padding:9px 14px;border-radius:9px;cursor:pointer;pointer-events:auto;white-space:nowrap;transition:.15s}
   #assistBtn:hover{border-color:var(--ice);background:rgba(75,184,240,.42)}
   #assistBtn.on{background:rgba(185,140,255,.3);border-color:var(--spell);color:#e9dcff}
-  /* SONGE : « ⚑ 1er tour du boss » — cale la parité du délock sur le tour où le boss entre en jeu (en Donjon il est là dès le début, donc bouton masqué) */
-  #bossT1{border:1px solid rgba(242,205,132,.5);background:rgba(242,205,132,.16);color:var(--gold);font-family:var(--display);font-weight:800;font-size:12px;letter-spacing:.3px;padding:8px 12px;border-radius:9px;cursor:pointer;pointer-events:auto;white-space:nowrap;transition:.15s}
+  /* SONGE : « ⚑ Choisis le premier tour du boss » — posé AU-DESSUS du compteur (colonne .turnStack) ; cale la parité du délock sur le tour où le boss entre en jeu (en Donjon il est là dès le début, donc bouton masqué) */
+  .turnStack{display:flex;flex-direction:column;align-items:center;gap:5px;pointer-events:auto}
+  #bossT1{border:1px solid rgba(242,205,132,.5);background:rgba(242,205,132,.16);color:var(--gold);font-family:var(--display);font-weight:800;font-size:11px;letter-spacing:.2px;padding:5px 12px;border-radius:8px;cursor:pointer;pointer-events:auto;white-space:nowrap;transition:.15s}
   #bossT1:hover{border-color:var(--gold);background:rgba(242,205,132,.3)}
   #delockMsg{top:118px;left:50%;transform:translateX(-50%);width:min(92vw,640px);padding:10px 14px;font-size:12.5px;line-height:1.55;color:var(--txt);display:none;pointer-events:auto;text-align:center} /* 118 : sous le bandeau du haut, qui tient sur 2 lignes */
   #delockMsg.show{display:block;animation:dmpop .18s ease-out}
@@ -525,11 +526,13 @@
 </div></div>
 
 <div class="hud" id="topbar"><div class="card">
-  <span id="turnBox" title="Le tour où tu te situes — le Comte pivote un tour sur deux depuis son arrivée, donc le délock se calcule tout seul">
-    <span class="tlbl">Tour</span>
-    <button class="tstep" id="turnDn">−</button><span class="tnum" id="turnNum">1</span><button class="tstep" id="turnUp">+</button>
+  <span class="turnStack"><!-- Songe : le label « Choisis le premier tour du boss » se pose AU-DESSUS du compteur -->
+    <button id="bossT1" title="En Songe : clique au moment où le boss joue son 1er tour → ce tour devient le Tour 1 (le Comte est invulnérable ce tour, délock possible au Tour 2, puis un tour sur deux).">⚑ Choisis le premier tour du boss</button>
+    <span id="turnBox" title="Le tour où tu te situes — le Comte pivote un tour sur deux depuis son arrivée, donc le délock se calcule tout seul">
+      <span class="tlbl">Tour</span>
+      <button class="tstep" id="turnDn">−</button><span class="tnum" id="turnNum">1</span><button class="tstep" id="turnUp">+</button>
+    </span>
   </span>
-  <button id="bossT1" title="En Songe : clique quand le boss vient de jouer son 1er tour — ce tour devient le Tour 1, et le délock se calcule tout seul (Comte invulnérable ce tour, délock possible au Tour 2, puis un tour sur deux).">⚑ 1er tour du boss</button>
   <span class="pivcol"><!-- l'état du boss se lit JUSTE SOUS le badge du tour : les deux se lisent ensemble -->
     <span id="pivotInfo" class="pivbtn" title="Qui pivote au prochain coup sur le Comte — déduit du tour">🔄 —</span>
     <span class="invtag on" id="invTag" title="Clique pour signaler que le boss est vulnérable / invulnérable">🛡️ INVULNÉRABLE</span>
