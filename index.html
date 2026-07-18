@@ -463,14 +463,13 @@
   /* Le COMTE = un CALQUE DE DÉCOR (détouré, harebourg-comte-songe.webp) ancré sur la vignette Songe : il s'appuie
      dessus, main qui retombe devant (pose de la référence). Wrapper autour du bouton → au survol la carte se
      soulève seule ; l'img APRÈS le bouton dans le DOM → le bras passe DEVANT la carte ; pointer-events:none. */
-  .hpSongeWrap{position:relative;display:flex}
-  .hpSongeWrap .hpComteArt{position:absolute;right:-326px;top:-242px;width:360px;pointer-events:none;display:block}
-  @media (max-width:1100px){.hpSongeWrap .hpComteArt{display:none}} /* écran étroit : pas la place pour le calque */
-  /* A/B TEMPORAIRE : 2e Comte (harebourg-comte2.png, full-body + aura de flammes cyan, détouré du fond vert) ancré à
-     GAUCHE sur la carte Donjon, pour que l'user compare les deux artworks et choisisse celui qu'il garde. */
+  /* Le COMTE de l'accueil = harebourg-comte2.png (full-body + aura de flammes cyan, détouré du fond vert, chapeau à
+     crochet compact = celui voulu par l'user) : calque HÉROS ancré à GAUCHE sur la carte Donjon, il flotte dans la
+     zone vide sans masquer les cartes ni le titre. `left:-340` = compromis responsive (10px de marge de chaque côté :
+     ni coupé à gauche vers ~1197, ni chevauchant trop la carte Donjon à 1440). L'interface reste centrée (règle UI). */
   .hpDjWrap{position:relative;display:flex}
-  .hpDjWrap .hpComteArt2{position:absolute;left:-400px;top:-235px;width:355px;pointer-events:none;display:block}
-  @media (max-width:1300px){.hpDjWrap .hpComteArt2{display:none}} /* s'étend loin à gauche → masqué plus tôt que le calque droit */
+  .hpDjWrap .hpComteArt2{position:absolute;left:-340px;top:-230px;width:350px;pointer-events:none;display:block}
+  @media (max-width:1100px){.hpDjWrap .hpComteArt2{display:none}} /* écran étroit : pas la place pour le calque */
   .hp-card b{display:block;font-family:var(--display);font-size:18px;letter-spacing:.06em;color:var(--frost);margin-bottom:7px}
   .hp-card span{display:block;font-size:12px;line-height:1.45;color:var(--muted)}
   /* ===== SONGE : choix de la salle à afficher (par-dessus la map d'attente floutée) ===== */
@@ -504,8 +503,8 @@
 <div id="homePick"><div id="hpBg" aria-hidden="true"></div><div class="hp-in">
   <h1>❄️ Assistant Comte Harebourg</h1>
   <div class="hp-cards" id="hpStep1"><!-- ACCUEIL DIRECT : Donjon ou Songe (le Bac à sable est relégué en bas-droite, en bêta) -->
-    <div class="hpDjWrap"><button class="hp-card" id="hpDj" type="button"><span class="hp-ic"><img src="donjon-icon.png" alt=""></span><b>Donjon</b><span>Affrontes le Comte dans son donjon</span></button><img class="hpComteArt2" src="harebourg-comte2.png" alt="" aria-hidden="true"></div><!-- A/B : nouveau Comte full-body flammes cyan, à gauche pour comparaison -->
-    <div class="hpSongeWrap"><button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button><img class="hpComteArt" src="harebourg-comte.png" alt="" aria-hidden="true"></div><!-- Comte détouré (fond vert, PNG sans perte, contour doux) : avant-bras posé sur le coin haut-droit de la vignette -->
+    <div class="hpDjWrap"><button class="hp-card" id="hpDj" type="button"><span class="hp-ic"><img src="donjon-icon.png" alt=""></span><b>Donjon</b><span>Affrontes le Comte dans son donjon</span></button><img class="hpComteArt2" src="harebourg-comte2.png" alt="" aria-hidden="true"></div><!-- Comte HÉROS : full-body + aura de flammes cyan, ancré à gauche -->
+    <button class="hp-card" id="hpSonge" type="button"><span class="hp-ic"><img src="songe-icon.png" alt=""></span><b>Songe</b><span>Affrontes le Comte sur la map de ton choix</span></button>
   </div>
 </div>
   <div id="hpSandbox"><!-- vignette secondaire, coin bas-droite -->
